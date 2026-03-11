@@ -1,0 +1,33 @@
+cat > .gitignore << 'EOF'
+# Variáveis de ambiente — NUNCA commitar
+.env
+backend/.env
+frontend/.env
+
+# Ambiente virtual Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Alembic — não versionar o banco local
+*.db
+*.sqlite
+
+# Node e frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Uploads locais (fotos em desenvolvimento)
+backend/uploads/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/settings.json
+EOF

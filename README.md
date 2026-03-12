@@ -64,39 +64,6 @@ App disponível em `http://localhost:5173`
 
 ---
 
-## Variáveis de ambiente
-
-### `backend/.env`
-
-```env
-DATABASE_URL=postgresql://postgres:senha@localhost:5432/connectcidade
-SECRET_KEY=chave-secreta-longa
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=480
-ADMIN_CPF=00000000000
-ADMIN_NOME=Administrador
-ADMIN_EMAIL=admin@connectcidade.com
-ADMIN_SENHA=senha-admin
-RESEND_API_KEY=re_xxxx
-EMAIL_FROM=noreply@connectcidade.com
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=connect-cidade-fotos
-R2_PUBLIC_URL=
-```
-
-### `frontend/.env`
-
-```env
-VITE_API_URL=http://localhost:8000
-VITE_DEFAULT_LAT=-29.1678
-VITE_DEFAULT_LNG=-51.1794
-VITE_DEFAULT_ZOOM=14
-```
-
----
-
 ## Estrutura do projeto
 
 ```

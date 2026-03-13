@@ -35,4 +35,4 @@ def login(dados: LoginInput, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="CPF ou senha incorretos.")
 
     token = criar_token_acesso({"sub": usuario.cpf, "tipo": usuario.tipo_usuario.value})
-    return TokenResponse(access_token=token, tipo_usuario=usuario.tipo_usuario.value)
+    return TokenResponse(access_token=token, tipo_usuario=usuario.tipo_usuario.value, nome=usuario.nome_usuario)

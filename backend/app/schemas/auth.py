@@ -10,3 +10,4 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     tipo_usuario: str
+    nome: str

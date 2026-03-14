@@ -14,7 +14,7 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
 @router.post("/cadastro", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 def cadastro(dados: UsuarioCreate, db: Session = Depends(get_db)):
     if not validar_cpf(dados.cpf):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="CPF inválido.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="CPF inválido.")
 
     if get_usuario_por_cpf(db, dados.cpf):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="CPF já cadastrado.")

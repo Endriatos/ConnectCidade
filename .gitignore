@@ -31,3 +31,6 @@ Thumbs.db
 # VS Code
 .vscode/settings.json
 EOF
+
+# Testes
+backend/test.db

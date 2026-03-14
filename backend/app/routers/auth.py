@@ -6,7 +6,7 @@ from app.schemas.auth import LoginInput, TokenResponse
 from app.schemas.usuario import UsuarioCreate, UsuarioResponse
 from app.utils.auth_utils import criar_token_acesso, verificar_senha
 from app.utils.cpf_utils import validar_cpf
-from app.utils.deps import get_db
+from app.utils.deps import get_db, get_usuario_atual
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
@@ -35,4 +35,9 @@ def login(dados: LoginInput, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="CPF ou senha incorretos.")
 
     token = criar_token_acesso({"sub": usuario.cpf, "tipo": usuario.tipo_usuario.value})
-    return TokenResponse(access_token=token, tipo_usuario=usuario.tipo_usuario.value, nome=usuario.nome_usuario)
+    return TokenResponse(access_token=token, tipo_usuario=usuario.tipo_usuario.value)
+
+
+@router.get("/me", response_model=UsuarioResponse)
+def me(usuario_atual=Depends(get_usuario_atual)):
+    return usuario_atual

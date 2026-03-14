@@ -20,7 +20,7 @@ export default function Login() {
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
 
-  const { login } = useAuthStore()
+  const { login, setNome } = useAuthStore()
   const navigate = useNavigate()
 
   const handleCPF = (e) => setCpf(formatCPF(e.target.value))
@@ -33,9 +33,10 @@ export default function Login() {
     try {
       const cpfLimpo = cpf.replace(/\D/g, '')
       const { data } = await api.post('/auth/login', { cpf: cpfLimpo, senha })
-      login(data.access_token, data.tipo_usuario, data.nome)
-
-      if (data.tipo_usuario === 'admin') {
+      login(data.access_token, data.tipo_usuario)
+      const me = await api.get('/auth/me')
+      setNome(me.data.nome_usuario)
+      if (data.tipo_usuario === 'ADMIN') {
         navigate('/admin')
       } else {
         navigate('/home')

@@ -5,11 +5,15 @@ const useAuthStore = create((set) => ({
   tipoUsuario: localStorage.getItem('tipoUsuario') || null,
   nome: localStorage.getItem('nomeUsuario') || null,
 
-  login: (token, tipoUsuario, nome) => {
+  login: (token, tipoUsuario) => {
     localStorage.setItem('token', token)
     localStorage.setItem('tipoUsuario', tipoUsuario)
+    set({ token, tipoUsuario })
+  },
+
+  setNome: (nome) => {
     localStorage.setItem('nomeUsuario', nome)
-    set({ token, tipoUsuario, nome })
+    set({ nome })
   },
 
   logout: () => {

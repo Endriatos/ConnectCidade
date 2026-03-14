@@ -17,9 +17,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/", tags=["Health Check"])
+def health_check():
+    return {"status": "online"}
+
 app.include_router(auth_router)
 
 
-@app.get("/")
-def health_check():
-    return {"status": "online"}
+

@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
 import { MapPin, FileText, Users, Shield, ArrowRight } from 'lucide-react'
+import logoCC from '../assets/logoCC.png'
 
-const features = [
+// Cards de funcionalidades exibidos na seção "Como Funciona"
+const funcionalidades = [
   {
     icon: MapPin,
     title: 'Mapeie Problemas',
@@ -28,14 +30,11 @@ export default function Landing() {
   return (
     <div className="flex flex-col min-h-screen">
 
-      {/* Header sticky */}
+      {/* Header fixo no topo */}
       <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
         <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(161,93%,30%)]">
-              <MapPin className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-[#171717]">Connect Cidade</span>
+          <Link to="/" className="flex items-center">
+            <img src={logoCC} alt="Connect Cidade" className="h-9" />
           </Link>
           <div className="flex items-center gap-3">
             <Link
@@ -54,20 +53,15 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Hero — chamada principal com degradê */}
       <section
         className="py-20 lg:py-32"
         style={{
-          background: 'linear-gradient(135deg, rgba(52,184,109,0.10) 0%, hsl(0,0%,96%) 50%, rgba(237,250,246,0.30) 100%)'
+          background: 'linear-gradient(135deg, rgba(52,184,109,0.20) 0%, hsl(0,0%,96%) 50%, rgba(52,184,109,0.10) 100%)'
         }}
       >
         <div className="mx-auto px-4" style={{ maxWidth: '1400px' }}>
           <div className="max-w-3xl mx-auto text-center">
-           {/* <div className="inline-flex items-center gap-2 rounded-full bg-[hsl(161,93%,30%)]/10 px-4 py-2 text-sm font-medium text-[hsl(161,93%,30%)] mb-6">
-              <MapPin className="h-4 w-4" />
-              Plataforma Cidadã
-            </div>
-*/}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#171717] mb-6 leading-tight">
               Conecte-se com sua{' '}
               <span className="text-[hsl(161,93%,30%)]">Cidade</span>
@@ -77,6 +71,7 @@ export default function Landing() {
               Reporte problemas urbanos de forma simples e rápida. Acompanhe o status das suas solicitações e ajude a construir uma cidade melhor.
             </p>
 
+            {/* Botões de ação */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/cadastro"
@@ -96,7 +91,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Seção "Como Funciona" — lista os cards de funcionalidades */}
       <section className="py-16" style={{ backgroundColor: 'hsl(0, 0%, 96%)' }}>
         <div className="mx-auto px-4" style={{ maxWidth: '1400px' }}>
           <h2 className="text-2xl md:text-3xl font-bold text-center text-[#171717] mb-4">
@@ -107,24 +102,24 @@ export default function Landing() {
           </p>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-            {features.map((feat, i) => (
+            {funcionalidades.map((funcionalidade, i) => (
               <div
                 key={i}
                 className="p-6 rounded-xl border hover:shadow-lg transition-shadow"
                 style={{ backgroundColor: 'hsl(0,0%,98%)', borderColor: 'hsl(0,0%,83%)' }}
               >
                 <div className="w-12 h-12 rounded-lg bg-[hsl(161,93%,30%)]/10 flex items-center justify-center mb-4">
-                  <feat.icon className="h-6 w-6 text-[hsl(161,93%,30%)]" />
+                  <funcionalidade.icon className="h-6 w-6 text-[hsl(161,93%,30%)]" />
                 </div>
-                <h3 className="font-semibold text-lg text-[#171717] mb-2">{feat.title}</h3>
-                <p className="text-[#171717]/50 text-sm leading-relaxed">{feat.description}</p>
+                <h3 className="font-semibold text-lg text-[#171717] mb-2">{funcionalidade.title}</h3>
+                <p className="text-[#171717]/50 text-sm leading-relaxed">{funcionalidade.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA — convite para cadastro */}
       <section className="py-16 bg-[hsl(161,93%,30%)]">
         <div className="mx-auto px-4 text-center" style={{ maxWidth: '1400px' }}>
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
@@ -143,15 +138,12 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Rodapé */}
       <footer className="py-8" style={{ borderTop: '1px solid hsl(0,0%,83%)' }}>
         <div className="mx-auto px-4" style={{ maxWidth: '1400px' }}>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[hsl(161,93%,30%)]">
-                <MapPin className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-bold text-[#171717]">Connect Cidade</span>
+            <div className="flex items-center">
+              <img src={logoCC} alt="Connect Cidade" className="h-8" />
             </div>
             <p className="text-sm text-[#171717]/40">
               2026 Connect Cidade. Projeto acadêmico — Uniftec.

@@ -2,15 +2,23 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
+import Cadastro from './pages/Cadastro'
 import Home from './pages/Home'
+import RotaProtegida from './components/RotaProtegida'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Rotas públicas */}
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/home" element={<Home />} />
+        <Route path="/cadastro" element={<Cadastro />} />
+
+        {/* Rotas protegidas — exigem token JWT */}
+        <Route path="/home" element={<RotaProtegida><Home /></RotaProtegida>} />
+
+        {/* Qualquer rota desconhecida volta para a landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

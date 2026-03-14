@@ -1,7 +1,7 @@
 from typing import Generator
 
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
@@ -9,7 +9,7 @@ from app.config import settings
 from app.crud.usuario import get_usuario_por_cpf
 from app.database import SessionLocal
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+bearer_scheme = HTTPBearer()
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -21,10 +21,11 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def get_usuario_atual(
-    token: str = Depends(oauth2_scheme),
+    credentials=Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ):
     credenciais_exception = HTTPException(status_code=401, detail="Não autorizado")
+    token = credentials.credentials
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         cpf: str = payload.get("sub")

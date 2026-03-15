@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers.auth import router as auth_router
+
 app = FastAPI(
     title="Connect Cidade",
     version="0.1.0",
@@ -15,7 +17,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.get("/")
+@app.get("/", tags=["Health Check"])
 def health_check():
     return {"status": "online"}
+
+app.include_router(auth_router)
+
+
+

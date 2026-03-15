@@ -18,7 +18,7 @@ O cidadão registra o problema com foto, localização GPS e descrição. A admi
 | Camada | Tecnologias |
 |---|---|
 | **Backend** | Python · FastAPI · PostgreSQL · SQLAlchemy · Alembic · Pydantic |
-| **Frontend** | React · Vite · Tailwind CSS · Leaflet.js · Recharts · Zustand |
+| **Frontend** | React · Vite · Tailwind CSS · Leaflet.js · Recharts · Zustand · Lottie |
 | **Infraestrutura** | Vercel · Railway · Cloudflare R2 · Resend |
 
 ---
@@ -83,8 +83,7 @@ ConnectCidade/
         ├── components/   # Componentes reutilizáveis
         ├── pages/        # Telas da aplicação
         ├── services/     # Integração com a API
-        ├── store/        # Estado global (Zustand)
-        └── hooks/        # Hooks customizados
+        └── store/        # Estado global (Zustand)
 ```
 
 ---

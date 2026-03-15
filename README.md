@@ -1,7 +1,9 @@
 # Connect Cidade 🏙️
 
-> Plataforma web responsiva para reporte e acompanhamento de problemas urbanos.  
+> Plataforma web responsiva para reporte e acompanhamento de problemas urbanos.
 > Trabalho de Conclusão de Curso — Análise e Desenvolvimento de Sistemas · Uniftec · 2026
+
+**Acesse:** http://64.181.164.111
 
 ---
 
@@ -19,7 +21,7 @@ O cidadão registra o problema com foto, localização GPS e descrição. A admi
 |---|---|
 | **Backend** | Python · FastAPI · PostgreSQL · SQLAlchemy · Alembic · Pydantic |
 | **Frontend** | React · Vite · Tailwind CSS · Leaflet.js · Recharts · Zustand · Lottie |
-| **Infraestrutura** | Vercel · Railway · Cloudflare R2 · Resend |
+| **Infraestrutura** | Docker · Oracle Cloud (Ubuntu 24.04 aarch64) · MinIO · Resend |
 
 ---
 
@@ -103,6 +105,20 @@ ConnectCidade/
 - Atualização de status com comentário obrigatório
 - Dashboard com indicadores de desempenho
 - Gestão de administradores
+
+---
+
+## Arquitetura de deploy
+
+A aplicação roda em uma VM Oracle Cloud (Ubuntu 24.04 · ARM aarch64) com três containers Docker gerenciados pelo Compose:
+
+| Container | Imagem base | Função |
+|---|---|---|
+| `frontend` | `nginx:alpine` (multi-stage com `node:22-alpine`) | Build do React + reverse proxy |
+| `backend` | `python:3.12-slim` | API FastAPI via Uvicorn |
+| `db` | `postgres:16-alpine` | Banco de dados (volume persistente) |
+
+O Nginx recebe todas as requisições na porta 80. Chamadas para `/api/*` são repassadas ao backend; todo o resto serve os arquivos estáticos do React com fallback para `index.html`.
 
 ---
 

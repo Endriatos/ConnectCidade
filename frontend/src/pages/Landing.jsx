@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { MapPin, FileText, Users, Shield, ArrowRight } from 'lucide-react'
 import Lottie from 'lottie-react'
 import logoCC from '../assets/logoCC.png'
-import cityAnimation from '../assets/city.json'
+import cityAnimation from '../assets/City.json'
 
 // Cards de funcionalidades exibidos na seção "Como Funciona"
 const funcionalidades = [

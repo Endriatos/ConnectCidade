@@ -40,6 +40,25 @@ function formatTelefone(value) {
   return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`
 }
 
+// Avalia a força da senha (0 = vazia, 1-2 = fraca, 3 = média, 4-5 = forte)
+function avaliarForca(senha) {
+  if (!senha) return 0
+  let pontos = 0
+  if (senha.length >= 8) pontos++
+  if (/[A-Z]/.test(senha)) pontos++
+  if (/[a-z]/.test(senha)) pontos++
+  if (/[0-9]/.test(senha)) pontos++
+  if (/[^A-Za-z0-9]/.test(senha)) pontos++
+  return pontos
+}
+
+// Retorna rótulo e cor da barra de força da senha
+function infoForca(pontos) {
+  if (pontos <= 2) return { label: 'Fraca', cor: 'bg-red-400', largura: 'w-1/3' }
+  if (pontos <= 4) return { label: 'Média', cor: 'bg-yellow-400', largura: 'w-2/3' }
+  return { label: 'Forte', cor: 'bg-[hsl(161,93%,30%)]', largura: 'w-full' }
+}
+
 // Retorna a classe CSS do input, aplicando borda vermelha se houver erro
 function classeInput(erro) {
   return `w-full px-4 py-3 rounded-xl border text-[#171717] placeholder-[#171717]/25 text-sm focus:outline-none transition-colors ${
@@ -119,7 +138,11 @@ export default function Cadastro() {
       }
       case 'senha':
         if (!v) return 'Senha é obrigatória.'
-        if (v.length < 6) return 'Mínimo de 6 caracteres.'
+        if (v.length < 8) return 'Mínimo de 8 caracteres.'
+        if (!/[A-Z]/.test(v)) return 'Inclua pelo menos uma letra maiúscula.'
+        if (!/[a-z]/.test(v)) return 'Inclua pelo menos uma letra minúscula.'
+        if (!/[0-9]/.test(v)) return 'Inclua pelo menos um número.'
+        if (!/[^A-Za-z0-9]/.test(v)) return 'Inclua pelo menos um caractere especial (!@#$%...).'
         return ''
       case 'confirmar_senha':
         if (!v) return 'Confirme sua senha.'
@@ -197,7 +220,7 @@ export default function Cadastro() {
           <Link to="/" className="flex items-center">
             <img src={logoCC} alt="Connect Cidade" className="h-9" />
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 translate-y-px">
             <Link to="/login" className="text-sm font-medium text-[#171717]/60 hover:text-[#171717] transition-colors">
               Entrar
             </Link>
@@ -312,6 +335,17 @@ export default function Cadastro() {
                   {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {form.senha && (() => {
+                const { label, cor, largura } = infoForca(avaliarForca(form.senha))
+                return (
+                  <div className="mt-1.5">
+                    <div className="h-1.5 w-full rounded-full bg-[#171717]/10">
+                      <div className={`h-1.5 rounded-full transition-all duration-300 ${cor} ${largura}`} />
+                    </div>
+                    <p className={`text-xs mt-0.5 ${cor.replace('bg-', 'text-')}`}>{label}</p>
+                  </div>
+                )
+              })()}
               {erros.senha && <p className="text-xs text-red-500 mt-0.5">{erros.senha}</p>}
             </div>
 

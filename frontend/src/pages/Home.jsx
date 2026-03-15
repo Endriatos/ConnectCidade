@@ -24,7 +24,7 @@ export default function Home() {
           <Link to="/home" className="flex items-center">
             <img src={logoCC} alt="Connect Cidade" className="h-9" />
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 translate-y-px">
             {/* Exibe o primeiro nome do usuário logado */}
             <button className="text-sm font-medium px-4 py-2 rounded-lg border border-[#171717]/10 text-[#171717] hover:bg-[#171717]/5 transition-colors">
               {primeiroNome}

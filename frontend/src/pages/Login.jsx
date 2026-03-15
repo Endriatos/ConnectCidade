@@ -69,7 +69,7 @@ export default function Login() {
           <Link to="/" className="flex items-center">
             <img src={logoCC} alt="Connect Cidade" className="h-9" />
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 translate-y-px">
             <Link
               to="/login"
               className="text-sm font-medium text-[#171717]/60 hover:text-[#171717] transition-colors"

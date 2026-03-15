@@ -194,7 +194,7 @@ export default function Cadastro() {
       const me = await api.get('/auth/me')
       setNome(me.data.nome_usuario)
 
-      navigate('/home')
+      navigate('/home', { state: { recemCadastrado: true } })
     } catch (err) {
       console.error('Erro cadastro:', err.response?.status, err.response?.data)
       // Trata erros de validação do FastAPI (array) e erros simples (string)

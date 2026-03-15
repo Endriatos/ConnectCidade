@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, X } from 'lucide-react'
 import api from '../services/api'
 import useAuthStore from '../store/authStore'
 import logoCC from '../assets/logoCC.png'
@@ -56,14 +56,210 @@ function avaliarForca(senha) {
 function infoForca(pontos) {
   if (pontos <= 2) return { label: 'Fraca', cor: 'bg-red-400', largura: 'w-1/3' }
   if (pontos <= 4) return { label: 'Média', cor: 'bg-yellow-400', largura: 'w-2/3' }
-  return { label: 'Forte', cor: 'bg-[hsl(161,93%,30%)]', largura: 'w-full' }
+  return { label: 'Forte', cor: 'bg-[#3cb478]', largura: 'w-full' }
 }
 
 // Retorna a classe CSS do input, aplicando borda vermelha se houver erro
 function classeInput(erro) {
-  return `w-full px-4 py-3 rounded-xl border text-[#171717] placeholder-[#171717]/25 text-sm focus:outline-none transition-colors ${
-    erro ? 'border-red-400 focus:border-red-400' : 'border-[#171717]/10 focus:border-[hsl(161,93%,30%)]'
+  return `w-full px-4 py-3 rounded-xl border text-[#2a2a2a] placeholder-[#2a2a2a]/25 text-sm focus:outline-none transition-colors ${
+    erro ? 'border-red-400 focus:border-red-400' : 'border-[#2a2a2a]/10 focus:border-[#3cb478]'
   }`
+}
+
+// Modal com a Política de Privacidade completa
+function ModalPrivacidade({ onAceitar, onFechar }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={e => { if (e.target === e.currentTarget) onFechar() }}
+    >
+      <div className="relative w-full max-w-2xl max-h-[85vh] bg-white rounded-2xl shadow-xl flex flex-col">
+
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between px-7 py-5 border-b border-[#2a2a2a]/8 shrink-0">
+          <h2 className="text-lg font-semibold text-[#2a2a2a]">Política de Privacidade</h2>
+          <button
+            onClick={onFechar}
+            className="text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Conteúdo rolável */}
+        <div className="overflow-y-auto px-7 py-6 flex-1 text-sm text-[#2a2a2a]/75 leading-relaxed space-y-5">
+
+          <p className="text-xs text-[#2a2a2a]/40">Última atualização: março de 2026</p>
+
+          {/* Aviso de contexto acadêmico */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 text-xs leading-relaxed">
+            <strong>Plataforma em fase de testes — Trabalho de Conclusão de Curso (TCC).</strong>{' '}
+            O ConnectCidade é um protótipo acadêmico desenvolvido como projeto de TCC e ainda não está
+            em operação comercial. Ao final do período de validação, todos os dados pessoais coletados
+            serão <strong>anonimizados ou excluídos permanentemente</strong>.
+          </div>
+
+          <p>
+            A presente Política de Privacidade descreve como o <strong className="text-[#2a2a2a]">ConnectCidade</strong> coleta,
+            utiliza, armazena e protege as informações pessoais de seus usuários durante a fase de testes,
+            em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 — LGPD).
+          </p>
+
+          <section className="space-y-1.5">
+            <h3 className="font-semibold text-[#2a2a2a]">1. Controladores de Dados</h3>
+            <p>
+              O ConnectCidade é desenvolvido e operado por <strong className="text-[#2a2a2a]">Deivid Castagna Carvalho Spada</strong> e{' '}
+              <strong className="text-[#2a2a2a]">Daniel Andreas Netto Albrecht</strong>, responsáveis pelo tratamento
+              das informações pessoais coletadas na plataforma.
+            </p>
+          </section>
+
+          <section className="space-y-1.5">
+            <h3 className="font-semibold text-[#2a2a2a]">2. Dados Coletados</h3>
+            <p>Para criar e manter sua conta, coletamos as seguintes informações:</p>
+            <ul className="list-disc list-inside space-y-1 pl-1">
+              <li><strong className="text-[#2a2a2a]">Nome completo</strong> — para identificação do usuário na plataforma.</li>
+              <li><strong className="text-[#2a2a2a]">CPF</strong> — para garantir unicidade do cadastro e autenticidade do cidadão.</li>
+              <li><strong className="text-[#2a2a2a]">E-mail</strong> — para comunicação e recuperação de acesso.</li>
+              <li><strong className="text-[#2a2a2a]">Data de nascimento</strong> — para verificação de maioridade e conformidade legal.</li>
+              <li><strong className="text-[#2a2a2a]">Telefone celular</strong> (opcional) — para contato em caso de atualização de solicitações.</li>
+            </ul>
+            <p>
+              Além dos dados cadastrais, registramos as <strong className="text-[#2a2a2a]">solicitações e reclamações</strong> enviadas
+              pelo usuário à plataforma, incluindo descrições, categorias, localização (bairro/endereço) e
+              arquivos anexados (fotos).
+            </p>
+          </section>
+
+          <section className="space-y-1.5">
+            <h3 className="font-semibold text-[#2a2a2a]">3. Finalidade do Tratamento</h3>
+            <p>Os dados coletados são utilizados exclusivamente para:</p>
+            <ul className="list-disc list-inside space-y-1 pl-1">
+              <li>Criação e gerenciamento da conta do usuário;</li>
+              <li>Autenticação e controle de acesso;</li>
+              <li>Registro, acompanhamento e resolução de solicitações e reclamações urbanas;</li>
+              <li>Comunicação sobre o andamento das solicitações realizadas;</li>
+              <li>Melhoria contínua da plataforma e dos serviços oferecidos;</li>
+              <li>Cumprimento de obrigações legais e regulatórias.</li>
+            </ul>
+          </section>
+
+          <section className="space-y-1.5">
+            <h3 className="font-semibold text-[#2a2a2a]">4. Base Legal</h3>
+            <p>
+              O tratamento dos dados pessoais é realizado com base no <strong className="text-[#2a2a2a]">consentimento explícito</strong> do
+              titular (art. 7º, I da LGPD), na <strong className="text-[#2a2a2a]">execução do contrato</strong> (prestação dos serviços da
+              plataforma) e no <strong className="text-[#2a2a2a]">legítimo interesse</strong> dos controladores para melhoria dos serviços e
+              segurança da plataforma.
+            </p>
+          </section>
+
+          <section className="space-y-1.5">
+            <h3 className="font-semibold text-[#2a2a2a]">5. Compartilhamento de Dados</h3>
+            <p>
+              O ConnectCidade <strong className="text-[#2a2a2a]">não vende nem comercializa</strong> dados pessoais de usuários a terceiros.
+              Podemos compartilhar informações nas seguintes situações:
+            </p>
+            <ul className="list-disc list-inside space-y-1 pl-1">
+              <li>
+                Com <strong className="text-[#2a2a2a]">órgãos públicos municipais</strong> responsáveis pelo atendimento das
+                solicitações, na medida necessária para a resolução dos problemas reportados;
+              </li>
+              <li>
+                Com <strong className="text-[#2a2a2a]">prestadores de serviços técnicos</strong> (hospedagem, banco de dados)
+                que atuam sob contrato e estão sujeitos a obrigações de confidencialidade;
+              </li>
+              <li>
+                Quando <strong className="text-[#2a2a2a]">exigido por lei</strong> ou por determinação judicial.
+              </li>
+            </ul>
+          </section>
+
+          <section className="space-y-1.5">
+            <h3 className="font-semibold text-[#2a2a2a]">6. Armazenamento e Segurança</h3>
+            <p>
+              Os dados são armazenados em servidores seguros, com acesso restrito e controlado. Adotamos
+              medidas técnicas e organizacionais adequadas para proteger as informações pessoais contra
+              acesso não autorizado, alteração, divulgação ou destruição, incluindo criptografia de
+              senhas e tokens de autenticação.
+            </p>
+            <p>
+              Por se tratar de uma plataforma em fase de validação acadêmica, os dados serão mantidos
+              apenas durante o período de testes do TCC. <strong className="text-[#2a2a2a]">Ao término da avaliação,
+              todos os dados pessoais serão anonimizados ou excluídos permanentemente</strong>, sem qualquer
+              uso posterior para fins comerciais.
+            </p>
+          </section>
+
+          <section className="space-y-1.5">
+            <h3 className="font-semibold text-[#2a2a2a]">7. Direitos do Titular</h3>
+            <p>Em conformidade com a LGPD, você tem direito a:</p>
+            <ul className="list-disc list-inside space-y-1 pl-1">
+              <li>Confirmar a existência de tratamento de seus dados;</li>
+              <li>Acessar os dados que temos sobre você;</li>
+              <li>Corrigir dados incompletos, inexatos ou desatualizados;</li>
+              <li>Solicitar a anonimização, bloqueio ou eliminação de dados desnecessários;</li>
+              <li>Revogar o consentimento a qualquer momento;</li>
+              <li>Solicitar a portabilidade dos dados a outro fornecedor;</li>
+              <li>Opor-se ao tratamento realizado em desconformidade com a lei.</li>
+            </ul>
+            <p>Para exercer esses direitos, entre em contato pelos canais indicados na seção abaixo.</p>
+          </section>
+
+          <section className="space-y-1.5">
+            <h3 className="font-semibold text-[#2a2a2a]">8. Cookies e Dados de Navegação</h3>
+            <p>
+              A plataforma pode utilizar cookies de sessão para manter o usuário autenticado durante o uso.
+              Não utilizamos cookies de rastreamento ou publicidade. Os dados de acesso (logs) podem
+              ser registrados para fins de segurança e diagnóstico técnico.
+            </p>
+          </section>
+
+          <section className="space-y-1.5">
+            <h3 className="font-semibold text-[#2a2a2a]">9. Alterações nesta Política</h3>
+            <p>
+              Esta Política de Privacidade pode ser atualizada periodicamente. O uso continuado
+              da plataforma após qualquer alteração implica a aceitação da política atualizada.
+            </p>
+          </section>
+
+          <section className="space-y-1.5">
+            <h3 className="font-semibold text-[#2a2a2a]">10. Contato</h3>
+            <p>
+              Em caso de dúvidas, solicitações ou reclamações relacionadas ao tratamento de dados pessoais,
+              entre em contato com os responsáveis pela plataforma pelos e-mails abaixo:
+            </p>
+            <ul className="list-disc list-inside space-y-1 pl-1">
+              <li>
+                Deivid Castagna Carvalho Spada —{' '}
+                <a href="mailto:dspada@outlook.com.br" className="text-[#3cb478] hover:underline">
+                  dspada@outlook.com.br
+                </a>
+              </li>
+              <li>
+                Daniel Andreas Netto Albrecht —{' '}
+                <a href="mailto:danielalbrecht@acad.ftec.com.br" className="text-[#3cb478] hover:underline">
+                  danielalbrecht@acad.ftec.com.br
+                </a>
+              </li>
+            </ul>
+          </section>
+
+        </div>
+
+        {/* Rodapé com botão de aceite */}
+        <div className="px-7 py-5 border-t border-[#2a2a2a]/8 shrink-0">
+          <button
+            onClick={onAceitar}
+            className="w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all"
+          >
+            Li e aceito a Política de Privacidade
+          </button>
+        </div>
+
+      </div>
+    </div>
+  )
 }
 
 export default function Cadastro() {
@@ -81,6 +277,8 @@ export default function Cadastro() {
   const [mostrarConfirmar, setMostrarConfirmar] = useState(false)
   const [erroGeral, setErroGeral] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [modalPrivacidade, setModalPrivacidade] = useState(false)
+  const [privacidadeAceita, setPrivacidadeAceita] = useState(false)
   const { login, setNome } = useAuthStore()
   const navigate = useNavigate()
 
@@ -171,6 +369,11 @@ export default function Cadastro() {
     setErros(novosErros)
     if (Object.values(novosErros).some(Boolean)) return
 
+    if (!privacidadeAceita) {
+      setErros(prev => ({ ...prev, privacidade: 'Você precisa aceitar a Política de Privacidade.' }))
+      return
+    }
+
     setCarregando(true)
     try {
       // Cria a conta
@@ -214,6 +417,18 @@ export default function Cadastro() {
   return (
     <div className="min-h-screen flex flex-col">
 
+      {/* Modal da Política de Privacidade */}
+      {modalPrivacidade && (
+        <ModalPrivacidade
+          onAceitar={() => {
+            setPrivacidadeAceita(true)
+            setErros(prev => ({ ...prev, privacidade: '' }))
+            setModalPrivacidade(false)
+          }}
+          onFechar={() => setModalPrivacidade(false)}
+        />
+      )}
+
       {/* Header fixo no topo */}
       <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
         <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
@@ -221,10 +436,10 @@ export default function Cadastro() {
             <img src={logoCC} alt="Connect Cidade" className="h-9" />
           </Link>
           <div className="flex items-center gap-3 translate-y-px">
-            <Link to="/login" className="text-sm font-medium text-[#171717]/60 hover:text-[#171717] transition-colors">
+            <Link to="/login" className="text-sm font-medium text-[#2a2a2a]/60 hover:text-[#2a2a2a] transition-colors">
               Entrar
             </Link>
-            <Link to="/cadastro" className="text-sm font-medium px-4 py-2 rounded-lg bg-[hsl(161,93%,30%)] text-white hover:bg-[hsl(161,93%,25%)] transition-colors">
+            <Link to="/cadastro" className="text-sm font-medium px-4 py-2 rounded-lg bg-[#3cb478] text-white hover:bg-[#349d69] transition-colors">
               Cadastrar
             </Link>
           </div>
@@ -232,21 +447,21 @@ export default function Cadastro() {
       </header>
 
       {/* Conteúdo centralizado */}
-      <div className="flex-1 flex items-center justify-center bg-[hsl(0,0%,96%)] py-10">
+      <div className="flex-1 flex items-center justify-center bg-[#f5f5f5] py-10">
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm px-8 py-10">
 
           {/* Ícone e título */}
           <div className="mb-8 text-center">
             <img src={iconCC} alt="Connect Cidade" className="h-14 mx-auto mb-4" />
-            <p className="text-2xl font-semibold text-[#171717] tracking-tight">Criar conta</p>
-            <p className="mt-2 text-sm text-[#171717]/50">Preencha os dados para se cadastrar</p>
+            <p className="text-2xl font-semibold text-[#2a2a2a] tracking-tight">Criar conta</p>
+            <p className="mt-2 text-sm text-[#2a2a2a]/50">Preencha os dados para se cadastrar</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
             {/* Nome completo */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[#171717]/60 uppercase tracking-wide">Nome completo</label>
+              <label className="text-xs font-medium text-[#2a2a2a]/60 uppercase tracking-wide">Nome completo</label>
               <input
                 type="text"
                 value={form.nome_usuario}
@@ -260,7 +475,7 @@ export default function Cadastro() {
 
             {/* CPF */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[#171717]/60 uppercase tracking-wide">CPF</label>
+              <label className="text-xs font-medium text-[#2a2a2a]/60 uppercase tracking-wide">CPF</label>
               <input
                 type="text"
                 value={form.cpf}
@@ -274,7 +489,7 @@ export default function Cadastro() {
 
             {/* E-mail */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[#171717]/60 uppercase tracking-wide">E-mail</label>
+              <label className="text-xs font-medium text-[#2a2a2a]/60 uppercase tracking-wide">E-mail</label>
               <input
                 type="text"
                 value={form.email}
@@ -288,7 +503,7 @@ export default function Cadastro() {
 
             {/* Data de nascimento */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[#171717]/60 uppercase tracking-wide">Data de nascimento</label>
+              <label className="text-xs font-medium text-[#2a2a2a]/60 uppercase tracking-wide">Data de nascimento</label>
               <input
                 type="date"
                 value={form.data_nascimento}
@@ -301,8 +516,8 @@ export default function Cadastro() {
 
             {/* Celular (opcional) */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[#171717]/60 uppercase tracking-wide">
-                Celular <span className="normal-case text-[#171717]/30 font-normal">(opcional)</span>
+              <label className="text-xs font-medium text-[#2a2a2a]/60 uppercase tracking-wide">
+                Celular <span className="normal-case text-[#2a2a2a]/30 font-normal">(opcional)</span>
               </label>
               <input
                 type="text"
@@ -317,7 +532,7 @@ export default function Cadastro() {
 
             {/* Senha com botão de visibilidade */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[#171717]/60 uppercase tracking-wide">Senha</label>
+              <label className="text-xs font-medium text-[#2a2a2a]/60 uppercase tracking-wide">Senha</label>
               <div className="relative">
                 <input
                   type={mostrarSenha ? 'text' : 'password'}
@@ -330,7 +545,7 @@ export default function Cadastro() {
                 <button
                   type="button"
                   onClick={() => setMostrarSenha(!mostrarSenha)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#171717]/30 hover:text-[#171717]/60 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2a2a2a]/30 hover:text-[#2a2a2a]/60 transition-colors"
                 >
                   {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -339,7 +554,7 @@ export default function Cadastro() {
                 const { label, cor, largura } = infoForca(avaliarForca(form.senha))
                 return (
                   <div className="mt-1.5">
-                    <div className="h-1.5 w-full rounded-full bg-[#171717]/10">
+                    <div className="h-1.5 w-full rounded-full bg-[#2a2a2a]/10">
                       <div className={`h-1.5 rounded-full transition-all duration-300 ${cor} ${largura}`} />
                     </div>
                     <p className={`text-xs mt-0.5 ${cor.replace('bg-', 'text-')}`}>{label}</p>
@@ -351,7 +566,7 @@ export default function Cadastro() {
 
             {/* Confirmação de senha com botão de visibilidade */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-[#171717]/60 uppercase tracking-wide">Confirmar senha</label>
+              <label className="text-xs font-medium text-[#2a2a2a]/60 uppercase tracking-wide">Confirmar senha</label>
               <div className="relative">
                 <input
                   type={mostrarConfirmar ? 'text' : 'password'}
@@ -364,7 +579,7 @@ export default function Cadastro() {
                 <button
                   type="button"
                   onClick={() => setMostrarConfirmar(!mostrarConfirmar)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#171717]/30 hover:text-[#171717]/60 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2a2a2a]/30 hover:text-[#2a2a2a]/60 transition-colors"
                 >
                   {mostrarConfirmar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -373,20 +588,31 @@ export default function Cadastro() {
             </div>
 
             {/* Aceite da política de privacidade */}
-            <div className="flex items-start gap-3">
-              <input
-                id="privacidade"
-                type="checkbox"
-                required
-                className="mt-0.5 h-4 w-4 rounded border-[#171717]/20 accent-[hsl(161,93%,30%)] cursor-pointer shrink-0"
-              />
-              <label htmlFor="privacidade" className="text-sm text-[#171717]/50 leading-snug cursor-pointer">
-                Li e estou ciente da{' '}
-                <a href="/politica-de-privacidade" className="text-[hsl(161,93%,30%)] font-medium hover:underline">
-                  Política de Privacidade
-                </a>
-                .
-              </label>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-start gap-3">
+                <input
+                  id="privacidade"
+                  type="checkbox"
+                  checked={privacidadeAceita}
+                  onChange={e => {
+                    setPrivacidadeAceita(e.target.checked)
+                    if (e.target.checked) setErros(prev => ({ ...prev, privacidade: '' }))
+                  }}
+                  className="mt-0.5 h-4 w-4 rounded border-[#2a2a2a]/20 accent-[#3cb478] cursor-pointer shrink-0"
+                />
+                <label htmlFor="privacidade" className="text-sm text-[#2a2a2a]/50 leading-snug cursor-pointer">
+                  Li e estou ciente da{' '}
+                  <button
+                    type="button"
+                    onClick={() => setModalPrivacidade(true)}
+                    className="text-[#3cb478] font-medium hover:underline"
+                  >
+                    Política de Privacidade
+                  </button>
+                  .
+                </label>
+              </div>
+              {erros.privacidade && <p className="text-xs text-red-500 mt-0.5">{erros.privacidade}</p>}
             </div>
 
             {/* Erro geral retornado pela API */}
@@ -395,16 +621,16 @@ export default function Cadastro() {
             <button
               type="submit"
               disabled={carregando}
-              className="mt-2 w-full py-3 rounded-xl bg-[hsl(161,93%,30%)] text-white font-medium text-sm hover:bg-[hsl(161,93%,25%)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-2 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {carregando ? 'Cadastrando...' : 'Criar conta'}
             </button>
           </form>
 
           {/* Link para a página de login */}
-          <p className="mt-6 text-center text-sm text-[#171717]/40">
+          <p className="mt-6 text-center text-sm text-[#2a2a2a]/40">
             Já tem conta?{' '}
-            <Link to="/login" className="text-[hsl(161,93%,30%)] font-medium hover:underline">
+            <Link to="/login" className="text-[#3cb478] font-medium hover:underline">
               Entrar
             </Link>
           </p>

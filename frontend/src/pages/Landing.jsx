@@ -58,7 +58,7 @@ export default function Landing() {
       {/* Hero — chamada principal com fundo verde escuro */}
       <section
         className="relative py-20 lg:py-32 overflow-hidden"
-        style={{ background: '#0d5c30' }}
+        style={{ background: '#157040' }}
       >
         {/* Animação de fundo */}
         <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.15 }}>
@@ -130,13 +130,13 @@ export default function Landing() {
       </section>
 
       {/* CTA — convite para cadastro */}
-      <section className="py-16 bg-[#3cb478]">
+      <section className="py-16" style={{ background: '#157040' }}>
         <div className="mx-auto px-4 text-center" style={{ maxWidth: '1400px' }}>
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
             Faça parte da transformação
           </h2>
           <p className="text-white/80 mb-8 max-w-xl mx-auto">
-            Junte-se a cidadãos que já estão melhorando nossa cidade
+            Junte-se a cidadãos que já estão melhorando nossa cidade.
           </p>
           <Link
             to="/cadastro"

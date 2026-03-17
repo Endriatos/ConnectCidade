@@ -18,6 +18,7 @@ SOLICITACAO_BASE = {
     "endereco_referencia": "Rua Teste, 123",
     "latitude": -23.550520,
     "longitude": -46.633308,
+    "confirmar_duplicata": True
 }
 
 CATEGORIAS_SEED = [

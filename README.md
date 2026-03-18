@@ -3,7 +3,7 @@
 > Plataforma web responsiva para reporte e acompanhamento de problemas urbanos.
 > Trabalho de Conclusão de Curso — Análise e Desenvolvimento de Sistemas · Uniftec · 2026
 
-**Acesse:** http://64.181.164.111
+**Acesse:** https://connectcidade.duckdns.org/
 
 ---
 

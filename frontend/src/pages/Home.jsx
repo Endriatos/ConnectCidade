@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Plus, LogOut, User, ChevronDown } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import logoCC from '../assets/logoCC.png'
 
@@ -8,13 +9,22 @@ export default function Home() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Exibe apenas o primeiro nome no header
   const primeiroNome = nome ? nome.split(' ')[0] : 'Usuário'
-
-  // Abre o modal apenas se vier do cadastro
   const [modalAberto, setModalAberto] = useState(location.state?.recemCadastrado === true)
+  const [menuAberto, setMenuAberto] = useState(false)
+  const menuRef = useRef(null)
 
-  // Limpa a sessão e redireciona para a landing
+  // Fecha o menu ao clicar fora dele
+  useEffect(() => {
+    function handleClickFora(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuAberto(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickFora)
+    return () => document.removeEventListener('mousedown', handleClickFora)
+  }, [])
+
   const handleLogout = () => {
     logout()
     navigate('/', { replace: true })
@@ -23,31 +33,57 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
 
-      {/* Header fixo no topo */}
+      {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-        <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
+        <div className="mx-auto px-6 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
+
           <Link to="/home" className="flex items-center">
             <img src={logoCC} alt="Connect Cidade" className="h-9" />
           </Link>
-          <div className="flex items-center gap-3 translate-y-px">
-            {/* Exibe o primeiro nome do usuário logado */}
-            <button className="text-sm font-medium px-4 py-2 rounded-lg border border-[#2a2a2a]/10 text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors">
-              {primeiroNome}
-            </button>
+
+          {/* Menu do usuário com dropdown */}
+          <div className="relative" ref={menuRef}>
             <button
-              onClick={handleLogout}
-              className="text-sm font-medium px-4 py-2 rounded-lg bg-[#3cb478] text-white hover:bg-[#349d69] transition-colors"
+              onClick={() => setMenuAberto((v) => !v)}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#2a2a2a]/10 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
             >
-              Sair
+              <User className="h-4 w-4 text-[#2a2a2a]/40" />
+              {primeiroNome}
+              <ChevronDown className="h-3.5 w-3.5 text-[#2a2a2a]/40" />
             </button>
+
+            {menuAberto && (
+              <div className="absolute right-0 mt-1 w-36 rounded-xl border border-[#2a2a2a]/8 bg-white shadow-lg py-1 z-50">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
+                >
+                  <LogOut className="h-4 w-4 text-[#2a2a2a]/40" />
+                  Sair
+                </button>
+              </div>
+            )}
           </div>
+
         </div>
       </header>
 
-      {/* Área principal — conteúdo a ser desenvolvido */}
-      <div className="flex-1 bg-[#f5f5f5] flex items-center justify-center">
-        <p className="text-[#2a2a2a]/50 text-sm">Você está logado.</p>
-      </div>
+      {/* Conteúdo principal */}
+      <main className="flex-1 bg-[#f5f5f5]">
+        <div className="mx-auto px-6 py-10 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
+          <div>
+            <h1 className="text-4xl font-semibold text-[#2a2a2a]">Olá, {primeiroNome}!</h1>
+            <p className="text-base text-[#2a2a2a]/50 mt-2">Veja os problemas reportados na sua região</p>
+          </div>
+          <Link
+            to="/nova-solicitacao"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#3cb478] text-white text-base font-medium hover:bg-[#349d69] transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            Registrar Problema
+          </Link>
+        </div>
+      </main>
 
       {/* Modal de boas-vindas após cadastro */}
       {modalAberto && (

@@ -30,7 +30,7 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Verifica se o usuário foi redirecionado por tentar acessar uma rota protegida
+  const sessaoExpirada = new URLSearchParams(location.search).get('sessao') === 'expirada'
   const avisoLogin = location.state?.avisoLogin
 
   const handleCPF = (e) => setCpf(formatCPF(e.target.value))
@@ -133,8 +133,15 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center bg-[#f5f5f5]">
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm px-8 py-10">
 
+          {sessaoExpirada && (
+            <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <span className="text-amber-500 text-base leading-none mt-0.5">⚠</span>
+              <p className="text-sm text-amber-700">Sua sessão expirou. Faça login novamente.</p>
+            </div>
+          )}
+
           {/* Aviso exibido quando o usuário tenta acessar uma rota protegida sem estar logado */}
-          {avisoLogin && (
+          {avisoLogin && !sessaoExpirada && (
             <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
               <span className="text-amber-500 text-base leading-none mt-0.5">⚠</span>
               <p className="text-sm text-amber-700">É necessário fazer login para acessar esta página.</p>

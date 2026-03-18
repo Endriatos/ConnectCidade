@@ -4,8 +4,6 @@ import { User, ChevronDown, LogOut, MapPin, Loader2, Camera, Upload, X, AlertTri
 import useAuthStore from '../store/authStore'
 import api from '../services/api'
 import logoCC from '../assets/logoCC.png'
-import Lottie from 'lottie-react'
-import typing from '../assets/Typing.json'
 
 const iconeCategoria = (nome) => {
   if (nome?.includes('Iluminação')) return Lightbulb
@@ -37,9 +35,9 @@ export default function NovaSolicitacao() {
   const [geoStatus, setGeoStatus] = useState('idle') // 'idle' | 'carregando' | 'ok' | 'erro'
 
   // Controle de envio e duplicata
-  const [modalFoto, setModalFoto] = useState(false)
   const [solicitacaoCriada, setSolicitacaoCriada] = useState(null)
   const [enviando, setEnviando] = useState(false)
+  const [uploadProgresso, setUploadProgresso] = useState(null) // '2/3' ou null
   const [avisDuplicata, setAvisDuplicata] = useState(null)
   const [erros, setErros] = useState({})
 
@@ -105,11 +103,19 @@ export default function NovaSolicitacao() {
 
   const handleAdicionarFoto = (e) => {
     const arquivos = Array.from(e.target.files)
-    setFotos((prev) => {
-      const novas = [...prev, ...arquivos].slice(0, 5)
-      return novas
-    })
+    setFotos((prev) => [...prev, ...arquivos].slice(0, 5))
+    setErros((p) => ({ ...p, fotos: '' }))
     e.target.value = ''
+  }
+
+  const abrirGaleria = () => {
+    fotoInputRef.current.removeAttribute('capture')
+    fotoInputRef.current.click()
+  }
+
+  const abrirCamera = () => {
+    fotoInputRef.current.setAttribute('capture', 'environment')
+    fotoInputRef.current.click()
   }
 
   const handleRemoverFoto = (index) => {
@@ -134,11 +140,24 @@ export default function NovaSolicitacao() {
         return
       }
 
-      // Enriquece com o nome da categoria para exibir no modal
+      const idSolicitacao = res.data.id_solicitacao
+
+      // Upload das fotos em sequência
+      for (let i = 0; i < fotos.length; i++) {
+        setUploadProgresso(`${i + 1}/${fotos.length}`)
+        const form = new FormData()
+        form.append('arquivo', fotos[i])
+        await api.post(`/solicitacoes/${idSolicitacao}/fotos`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      }
+      setUploadProgresso(null)
+
       const categoriaSelecionada = categorias.find((c) => c.id_categoria === idCategoria)
       setSolicitacaoCriada({ ...res.data, nome_categoria: categoriaSelecionada?.nome_categoria })
     } catch {
       setErros({ geral: 'Não foi possível enviar a solicitação. Tente novamente.' })
+      setUploadProgresso(null)
     } finally {
       setEnviando(false)
     }
@@ -150,46 +169,13 @@ export default function NovaSolicitacao() {
     if (!idCategoria)                 novosErros.categoria = 'Selecione uma categoria.'
     if (!descricao.trim())            novosErros.descricao = 'Descreva o problema.'
     if (!enderecoReferencia.trim())   novosErros.endereco  = 'Informe o endereço.'
+    if (fotos.length === 0)           novosErros.fotos     = 'Adicione pelo menos uma foto.'
     if (Object.keys(novosErros).length) return setErros(novosErros)
     enviarSolicitacao(false)
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
-
-      {/* Modal — upload de fotos em breve */}
-      {modalFoto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setModalFoto(false) }}
-        >
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl px-8 py-8">
-            <button
-              onClick={() => setModalFoto(false)}
-              className="absolute top-4 right-4 text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <div className="flex flex-col items-center text-center gap-4">
-              <Lottie animationData={typing} loop autoplay style={{ width: 180, height: 180 }} />
-              <div>
-                <p className="text-xl font-semibold text-[#2a2a2a] tracking-tight">
-                  Coisas boas estão chegando!
-                </p>
-                <p className="mt-2 text-sm text-[#2a2a2a]/55 leading-relaxed">
-                  Ainda estamos trabalhando nisso. Em breve você poderá anexar fotos às suas solicitações.
-                </p>
-              </div>
-              <button
-                onClick={() => setModalFoto(false)}
-                className="mt-2 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all"
-              >
-                Entendido
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal — aviso de duplicata */}
       {avisDuplicata && (
@@ -400,21 +386,24 @@ export default function NovaSolicitacao() {
               {/* Fotos */}
               <div>
                 <label className="block text-sm font-medium text-[#2a2a2a] mb-2">
-                  Fotos <span className="text-[#2a2a2a]/40 font-normal">(mín. 1, máx. 5)</span>
+                  Fotos <span className="text-[#2a2a2a]/40 font-normal">(mín. 1, máx. 5)</span> <span className="text-red-400">*</span>
                 </label>
-                <div className="flex gap-3 mb-3">
+                {erros.fotos && <p className="text-xs text-red-500 mb-2">{erros.fotos}</p>}
+                <div className={`flex gap-3 mb-3 ${erros.fotos ? 'ring-2 ring-red-300 rounded-xl p-1' : ''}`}>
                   <button
                     type="button"
-                    onClick={() => setModalFoto(true)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#2a2a2a]/10 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
+                    onClick={abrirGaleria}
+                    disabled={fotos.length >= 5}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#2a2a2a]/10 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 disabled:opacity-40 transition-colors"
                   >
                     <Upload className="h-4 w-4" />
                     Galeria
                   </button>
                   <button
                     type="button"
-                    onClick={() => setModalFoto(true)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#2a2a2a]/10 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
+                    onClick={abrirCamera}
+                    disabled={fotos.length >= 5}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#2a2a2a]/10 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 disabled:opacity-40 transition-colors"
                   >
                     <Camera className="h-4 w-4" />
                     Câmera
@@ -465,7 +454,7 @@ export default function NovaSolicitacao() {
                 {enviando ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Enviando...
+                    {uploadProgresso ? `Enviando foto ${uploadProgresso}...` : 'Enviando...'}
                   </>
                 ) : 'Enviar Solicitação'}
               </button>

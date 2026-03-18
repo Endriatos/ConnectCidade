@@ -8,5 +8,5 @@ class CategoriaResponse(BaseModel):
 
     id_categoria: int
     nome_categoria: str
-    descricao: Optional[str] = None
+    descricao: str
     cor_hex: str

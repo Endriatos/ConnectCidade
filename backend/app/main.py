@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers.auth import router as auth_router
 from app.routers.categorias import router as categorias_router
 from app.routers.fotos import router as fotos_router
+from app.routers.mapa import router as mapa_router
 from app.routers.solicitacoes import router as solicitacoes_router
 
 app = FastAPI(
@@ -28,6 +29,7 @@ app.include_router(auth_router)
 app.include_router(categorias_router)
 app.include_router(solicitacoes_router)
 app.include_router(fotos_router)
+app.include_router(mapa_router)
 
 
 

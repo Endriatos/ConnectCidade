@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Plus, LogOut, User, ChevronDown } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import logoCC from '../assets/logoCC.png'
+import Mapa from './Mapa'
 
 export default function Home() {
   const { nome, logout } = useAuthStore()
@@ -31,7 +32,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
 
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
@@ -68,20 +69,27 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Conteúdo principal */}
-      <main className="flex-1 bg-[#f5f5f5]">
-        <div className="mx-auto px-6 py-10 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
-          <div>
-            <h1 className="text-4xl font-semibold text-[#2a2a2a]">Olá, {primeiroNome}!</h1>
-            <p className="text-base text-[#2a2a2a]/50 mt-2">Veja os problemas reportados na sua região</p>
+      {/* Conteúdo */}
+      <main className="flex-1">
+        <div className="mx-auto px-6 py-6 flex flex-col gap-5" style={{ maxWidth: '1400px' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-[#2a2a2a]">Olá, {primeiroNome}!</h1>
+              <p className="text-sm text-[#2a2a2a]/50 mt-0.5">Veja os problemas reportados na sua região</p>
+            </div>
+            <Link
+              to="/nova-solicitacao"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#3cb478] text-white text-sm font-medium hover:bg-[#349d69] transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Registrar Problema
+            </Link>
           </div>
-          <Link
-            to="/nova-solicitacao"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#3cb478] text-white text-base font-medium hover:bg-[#349d69] transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            Registrar Problema
-          </Link>
+
+          {/* Mapa */}
+          <div className="rounded-2xl overflow-hidden border border-black/8 shadow-sm" style={{ height: '70vh' }}>
+            <Mapa />
+          </div>
         </div>
       </main>
 

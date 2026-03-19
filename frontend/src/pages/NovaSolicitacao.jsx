@@ -1,9 +1,39 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, ChevronDown, LogOut, MapPin, Loader2, Camera, Upload, X, AlertTriangle, RefreshCw, CheckCircle, Lightbulb, Trash2, Accessibility, Construction } from 'lucide-react'
+import { User, ChevronDown, LogOut, MapPin, Loader2, Camera, Upload, X, AlertTriangle, CheckCircle, Lightbulb, Trash2, Accessibility, Construction, Search, Pencil, LocateFixed } from 'lucide-react'
+import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import useAuthStore from '../store/authStore'
 import api from '../services/api'
 import logoCC from '../assets/logoCC.png'
+
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+})
+
+function CapturarMapa({ mapaRef }) {
+  const mapa = useMap()
+  useEffect(() => { mapaRef.current = mapa }, [mapa, mapaRef])
+  return null
+}
+
+function MapaEventos({ onMoveEnd }) {
+  const debRef = useRef(null)
+  useMapEvents({
+    moveend: (e) => {
+      clearTimeout(debRef.current)
+      debRef.current = setTimeout(() => {
+        const { lat, lng } = e.target.getCenter()
+        onMoveEnd(lat, lng)
+      }, 600)
+    },
+  })
+  return null
+}
 
 const iconeCategoria = (nome) => {
   if (nome?.includes('Iluminação')) return Lightbulb
@@ -33,6 +63,16 @@ export default function NovaSolicitacao() {
   const [latitude, setLatitude] = useState(null)
   const [longitude, setLongitude] = useState(null)
   const [geoStatus, setGeoStatus] = useState('idle') // 'idle' | 'carregando' | 'ok' | 'erro'
+
+  // Modal de mapa
+  const [modalMapa, setModalMapa] = useState(false)
+  const [posModal, setPosModal] = useState([-29.1678, -51.1794])
+  const [enderecoModal, setEnderecoModal] = useState('')
+  const [buscaModal, setBuscaModal] = useState('')
+  const [sugestoes, setSugestoes] = useState([])
+  const [toastMapa, setToastMapa] = useState(null)
+  const debounceRef = useRef(null)
+  const mapaRef = useRef(null)
 
   // Controle de envio e duplicata
   const [solicitacaoCriada, setSolicitacaoCriada] = useState(null)
@@ -95,6 +135,115 @@ export default function NovaSolicitacao() {
   // Tenta capturar localização ao montar
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { capturarLocalizacao() }, [])
+
+  const geocodificarEndereco = async (endereco) => {
+    if (!endereco.trim() || geoStatus === 'ok') return
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1`,
+        { headers: { 'Accept-Language': 'pt-BR' } }
+      )
+      const data = await res.json()
+      if (data.length > 0) {
+        setLatitude(parseFloat(data[0].lat))
+        setLongitude(parseFloat(data[0].lon))
+      }
+    } catch {
+      // mantém fallback se geocodificação falhar
+    }
+  }
+
+  const geocodificacaoReversa = async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+        { headers: { 'Accept-Language': 'pt-BR' } }
+      )
+      const data = await res.json()
+      const addr = data.address
+      const partes = [addr.road, addr.house_number, addr.suburb ?? addr.neighbourhood].filter(Boolean)
+      return partes.join(', ') || data.display_name
+    } catch {
+      return ''
+    }
+  }
+
+  const mostrarToast = (msg, tipo = 'sucesso') => {
+    setToastMapa({ msg, tipo })
+    setTimeout(() => setToastMapa(null), 2500)
+  }
+
+  const abrirModalMapa = async () => {
+    const lat = latitude ?? -29.1678
+    const lng = longitude ?? -51.1794
+    setPosModal([lat, lng])
+    setSugestoes([])
+    setBuscaModal(enderecoReferencia)
+    const end = enderecoReferencia || await geocodificacaoReversa(lat, lng)
+    setEnderecoModal(end)
+    setModalMapa(true)
+  }
+
+  const handleDragEnd = async (e) => {
+    const { lat, lng } = e.target.getLatLng()
+    setPosModal([lat, lng])
+    const end = await geocodificacaoReversa(lat, lng)
+    setEnderecoModal(end)
+    setBuscaModal(end)
+  }
+
+  const handleBuscaChange = (val) => {
+    setBuscaModal(val)
+    setSugestoes([])
+    clearTimeout(debounceRef.current)
+    if (val.trim().length < 3) return
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(val)}&city=Caxias%20do%20Sul&state=RS&country=Brazil&limit=5&addressdetails=1`,
+          { headers: { 'Accept-Language': 'pt-BR' } }
+        )
+        const data = await res.json()
+        setSugestoes(data)
+      } catch {}
+    }, 400)
+  }
+
+  const selecionarSugestao = (s) => {
+    setEnderecoModal(s.display_name)
+    setBuscaModal(s.display_name)
+    setSugestoes([])
+    if (mapaRef.current) mapaRef.current.setView([parseFloat(s.lat), parseFloat(s.lon)], 16)
+  }
+
+  const obterLocalizacaoAtual = () => {
+    if (!navigator.geolocation) {
+      mostrarToast('GPS não disponível neste dispositivo', 'erro')
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        if (mapaRef.current) mapaRef.current.setView([lat, lng], 16)
+        const end = await geocodificacaoReversa(lat, lng)
+        setEnderecoModal(end)
+        setBuscaModal(end)
+        mostrarToast('Localização obtida com sucesso!')
+      },
+      () => mostrarToast('Não foi possível obter a localização', 'erro')
+    )
+  }
+
+  const confirmarPosicaoMapa = () => {
+    if (!mapaRef.current) return
+    const center = mapaRef.current.getCenter()
+    setLatitude(center.lat)
+    setLongitude(center.lng)
+    setEnderecoReferencia(enderecoModal)
+    setGeoStatus('manual')
+    setModalMapa(false)
+  }
 
   const handleLogout = () => {
     logout()
@@ -176,6 +325,109 @@ export default function NovaSolicitacao() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
+
+      {/* Modal — seleção de localização no mapa */}
+      {modalMapa && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl flex flex-col" style={{ height: '80vh' }}>
+
+            {/* Cabeçalho com busca e sugestões */}
+            <div className="shrink-0 relative">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-[#2a2a2a]/8">
+                <div className="flex flex-1 items-center rounded-xl border border-[#2a2a2a]/10 focus-within:ring-2 focus-within:ring-[#3cb478]/30 overflow-hidden">
+                  <Search className="h-4 w-4 text-[#2a2a2a]/30 ml-3 shrink-0" />
+                  <input
+                    type="text"
+                    id="busca-endereco"
+                    name="busca-endereco"
+                    placeholder="Pesquisar endereço em Caxias do Sul..."
+                    value={buscaModal}
+                    onChange={(e) => handleBuscaChange(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Escape' && setSugestoes([])}
+                    className="flex-1 px-3 py-2 text-sm text-[#2a2a2a] placeholder-[#2a2a2a]/30 bg-transparent focus:outline-none"
+                  />
+                  {buscaModal && (
+                    <button onClick={() => { setBuscaModal(''); setSugestoes([]) }} className="px-2 text-[#2a2a2a]/30 hover:text-[#2a2a2a]/60">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <button onClick={() => { setModalMapa(false); setSugestoes([]) }} className="shrink-0 text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Dropdown de sugestões */}
+              {sugestoes.length > 0 && (
+                <div className="absolute left-4 right-4 top-full z-[3000] bg-white rounded-xl border border-[#2a2a2a]/10 shadow-lg overflow-hidden">
+                  {sugestoes.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => selecionarSugestao(s)}
+                      className="w-full text-left px-4 py-2.5 text-sm text-[#2a2a2a] hover:bg-[#f5f5f5] border-b border-[#2a2a2a]/5 last:border-0 truncate"
+                    >
+                      {s.display_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Mapa */}
+            <div className="flex-1 relative overflow-hidden">
+              <MapContainer center={posModal} zoom={16} className="h-full w-full" zoomControl={false}>
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <CapturarMapa mapaRef={mapaRef} />
+                <MapaEventos onMoveEnd={async (lat, lng) => {
+                  const end = await geocodificacaoReversa(lat, lng)
+                  setEnderecoModal(end)
+                  setBuscaModal(end)
+                }} />
+              </MapContainer>
+
+              {/* Pin fixo no centro */}
+              <div className="absolute top-1/2 left-1/2 z-[1000] pointer-events-none" style={{ transform: 'translate(-50%, -100%)' }}>
+                <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14 0C6.268 0 0 6.268 0 14C0 24.5 14 36 14 36C14 36 28 24.5 28 14C28 6.268 21.732 0 14 0Z" fill="#3cb478"/>
+                  <circle cx="14" cy="14" r="5" fill="white"/>
+                </svg>
+              </div>
+
+              {/* Toast */}
+              {toastMapa && (
+                <div className={`absolute top-3 left-1/2 -translate-x-1/2 z-[4000] px-4 py-2 rounded-xl text-sm font-medium shadow-md whitespace-nowrap ${toastMapa.tipo === 'sucesso' ? 'bg-[#3cb478] text-white' : 'bg-red-500 text-white'}`}>
+                  {toastMapa.msg}
+                </div>
+              )}
+
+              {/* Botão localização atual */}
+              <button
+                onClick={obterLocalizacaoAtual}
+                title="Usar minha localização atual"
+                className="absolute bottom-4 right-4 z-[1000] bg-white rounded-xl shadow-md p-2.5 text-[#2a2a2a]/60 hover:text-[#3cb478] transition-colors"
+              >
+                <LocateFixed className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Rodapé */}
+            <div className="shrink-0 px-4 py-3 border-t border-[#2a2a2a]/8">
+              {enderecoModal && (
+                <p className="text-xs text-[#2a2a2a]/50 mb-2 truncate">{enderecoModal}</p>
+              )}
+              <button
+                onClick={confirmarPosicaoMapa}
+                className="w-full py-2.5 rounded-xl bg-[#3cb478] text-white text-sm font-medium hover:bg-[#349d69] transition-colors"
+              >
+                Confirmar localização
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal — aviso de duplicata */}
       {avisDuplicata && (
@@ -343,30 +595,21 @@ export default function NovaSolicitacao() {
 
               {/* Endereço */}
               <div>
-                <label htmlFor="endereco" className="block text-sm font-medium text-[#2a2a2a] mb-2">
+                <label className="block text-sm font-medium text-[#2a2a2a] mb-2">
                   Endereço <span className="text-red-400">*</span>
                 </label>
                 {erros.endereco && <p className="text-xs text-red-500 mb-1">{erros.endereco}</p>}
-                <div className={`flex items-center rounded-xl border focus-within:ring-2 transition-colors ${erros.endereco ? 'border-red-300 focus-within:ring-red-200' : 'border-[#2a2a2a]/10 focus-within:ring-[#3cb478]/30'}`}>
-                  <input
-                    id="endereco"
-                    type="text"
-                    placeholder="Ex: Rua XV de Novembro, 320"
-                    value={enderecoReferencia}
-                    onChange={(e) => { setEnderecoReferencia(e.target.value); setErros((p) => ({ ...p, endereco: '' })) }}
-                    className="flex-1 px-4 py-3 text-sm text-[#2a2a2a] placeholder-[#2a2a2a]/30 bg-transparent focus:outline-none"
-                  />
+                <div className={`flex items-center rounded-xl border ${erros.endereco ? 'border-red-300' : 'border-[#2a2a2a]/10'}`}>
+                  <p onClick={abrirModalMapa} className="flex-1 px-4 py-3 text-sm text-[#2a2a2a] truncate cursor-pointer">
+                    {enderecoReferencia || <span className="text-[#2a2a2a]/30">Nenhuma localização selecionada</span>}
+                  </p>
                   <button
                     type="button"
-                    onClick={capturarLocalizacao}
-                    disabled={geoStatus === 'carregando'}
-                    title="Atualizar localização"
-                    className="pr-3 pl-2 text-[#2a2a2a]/30 hover:text-[#3cb478] disabled:opacity-40 transition-colors"
+                    onClick={abrirModalMapa}
+                    title="Editar localização"
+                    className="pr-3 pl-2 text-[#2a2a2a]/30 hover:text-[#3cb478] transition-colors"
                   >
-                    {geoStatus === 'carregando'
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <RefreshCw className="h-4 w-4" />
-                    }
+                    <Pencil className="h-4 w-4" />
                   </button>
                 </div>
                 {geoStatus === 'ok' && (
@@ -378,7 +621,7 @@ export default function NovaSolicitacao() {
                 {geoStatus === 'erro' && (
                   <div className="flex items-center gap-2 text-sm text-orange-500 bg-orange-50 px-4 py-3 rounded-xl mt-2">
                     <MapPin className="h-4 w-4 shrink-0" />
-                    Não foi possível obter a localização
+                    Não foi possível obter a localização automaticamente
                   </div>
                 )}
               </div>

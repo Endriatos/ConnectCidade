@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { User, ChevronDown, LogOut, MapPin, Loader2, Camera, Upload, X, AlertTriangle, CheckCircle, Lightbulb, Trash2, Accessibility, Construction, Search, Pencil, LocateFixed } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { MapPin, Loader2, Camera, Upload, X, AlertTriangle, CheckCircle, Lightbulb, Trash2, Accessibility, Construction, Search, Pencil, LocateFixed } from 'lucide-react'
 import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import useAuthStore from '../store/authStore'
 import api from '../services/api'
-import logoCC from '../assets/logoCC.png'
+import Header from '../components/Header'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -44,12 +43,7 @@ const iconeCategoria = (nome) => {
 }
 
 export default function NovaSolicitacao() {
-  const { nome, logout } = useAuthStore()
   const navigate = useNavigate()
-
-  const primeiroNome = nome ? nome.split(' ')[0] : 'Usuário'
-  const [menuAberto, setMenuAberto] = useState(false)
-  const menuRef = useRef(null)
 
   // Campos do formulário
   const [categorias, setCategorias] = useState([])
@@ -80,17 +74,6 @@ export default function NovaSolicitacao() {
   const [uploadProgresso, setUploadProgresso] = useState(null) // '2/3' ou null
   const [avisDuplicata, setAvisDuplicata] = useState(null)
   const [erros, setErros] = useState({})
-
-  // Fecha o menu ao clicar fora
-  useEffect(() => {
-    function handleClickFora(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuAberto(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickFora)
-    return () => document.removeEventListener('mousedown', handleClickFora)
-  }, [])
 
   // Busca categorias do backend
   useEffect(() => {
@@ -243,11 +226,6 @@ export default function NovaSolicitacao() {
     setEnderecoReferencia(enderecoModal)
     setGeoStatus('manual')
     setModalMapa(false)
-  }
-
-  const handleLogout = () => {
-    logout()
-    navigate('/', { replace: true })
   }
 
   const handleAdicionarFoto = (e) => {
@@ -508,35 +486,7 @@ export default function NovaSolicitacao() {
         </div>
       )}
 
-      {/* Header — igual ao Home */}
-      <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-        <div className="mx-auto px-6 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
-          <Link to="/home" className="flex items-center">
-            <img src={logoCC} alt="Connect Cidade" className="h-9" />
-          </Link>
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setMenuAberto((v) => !v)}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#2a2a2a]/10 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
-            >
-              <User className="h-4 w-4 text-[#2a2a2a]/40" />
-              {primeiroNome}
-              <ChevronDown className="h-3.5 w-3.5 text-[#2a2a2a]/40" />
-            </button>
-            {menuAberto && (
-              <div className="absolute right-0 mt-1 w-36 rounded-xl border border-[#2a2a2a]/8 bg-white shadow-lg py-1 z-50">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
-                >
-                  <LogOut className="h-4 w-4 text-[#2a2a2a]/40" />
-                  Sair
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Formulário */}
       <main className="flex-1 py-8">

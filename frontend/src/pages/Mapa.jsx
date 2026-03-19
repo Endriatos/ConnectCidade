@@ -6,6 +6,8 @@ import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Ca
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import api from '../services/api'
+import Lottie from 'lottie-react'
+import typing from '../assets/Typing.json'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -114,6 +116,8 @@ export default function Mapa() {
   const [fotos, setFotos] = useState([])
   const [carregandoFotos, setCarregandoFotos] = useState(false)
   const [fotoAtiva, setFotoAtiva] = useState(null)
+  const [categoriaFiltro, setCategoriaFiltro] = useState(null)
+  const [modalEmBreve, setModalEmBreve] = useState(false)
 
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -144,6 +148,9 @@ export default function Mapa() {
   }, [selecionada])
 
   const posicaoInicial = posicao ?? [-29.1678, -51.1794]
+  const solicitacoesFiltradas = categoriaFiltro
+    ? solicitacoes.filter((s) => s.id_categoria === categoriaFiltro)
+    : solicitacoes
 
   const cat = selecionada ? categorias[selecionada.id_categoria] : null
   const Icone = cat ? iconeCategoria(cat.nome_categoria) : MapPin
@@ -191,7 +198,7 @@ export default function Mapa() {
             })
           }}
         >
-          {solicitacoes.map((sol) => {
+          {solicitacoesFiltradas.map((sol) => {
             const c = categorias[sol.id_categoria]
             const cor = c?.cor_hex ?? '#3cb478'
             return (
@@ -205,6 +212,68 @@ export default function Mapa() {
           })}
         </MarkerClusterGroup>
       </MapContainer>
+
+      {/* Filtro de categorias */}
+      {Object.keys(categorias).length > 0 && (() => {
+        const catsArr = Object.values(categorias)
+        const opcoes = [
+          { id: null, Icone: null, cor: null },
+          ...catsArr.map((cat) => ({ id: cat.id_categoria, Icone: iconeCategoria(cat.nome_categoria), cor: cat.cor_hex })),
+        ]
+        const idxAtivo = opcoes.findIndex((o) => o.id === categoriaFiltro)
+        const tamanho = 36
+        const gap = 6
+
+        return (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm shadow-md rounded-full px-1.5 py-1.5">
+            <div className="relative flex items-center" style={{ gap }}>
+              {/* Pill deslizante */}
+              <div
+                className="absolute rounded-full transition-all duration-300 ease-in-out"
+                style={{
+                  width: tamanho,
+                  height: tamanho,
+                  transform: `translateX(${idxAtivo * (tamanho + gap)}px)`,
+                  backgroundColor: opcoes[idxAtivo]?.cor ? `${opcoes[idxAtivo].cor}25` : '#3cb47825',
+                  border: `2px solid ${opcoes[idxAtivo]?.cor ?? '#3cb478'}`,
+                }}
+              />
+              {opcoes.map((opcao) => {
+                const ativo = categoriaFiltro === opcao.id
+                return (
+                  <button
+                    key={opcao.id ?? 'todos'}
+                    onClick={() => setCategoriaFiltro(opcao.id)}
+                    className="relative z-10 flex items-center justify-center transition-colors duration-300"
+                    style={{ width: tamanho, height: tamanho }}
+                  >
+                    {opcao.Icone ? (
+                      <opcao.Icone
+                        className="h-4 w-4 transition-colors duration-300"
+                        style={{ color: ativo ? opcao.cor : '#2a2a2a40' }}
+                      />
+                    ) : (
+                      /* Ícone "Todos": 4 quadrantes com as cores das categorias */
+                      <div className="grid grid-cols-2 gap-px w-4 h-4 rounded-sm overflow-hidden">
+                        {catsArr.slice(0, 4).map((cat) => (
+                          <div
+                            key={cat.id_categoria}
+                            className="transition-opacity duration-300"
+                            style={{
+                              backgroundColor: cat.cor_hex,
+                              opacity: ativo ? 1 : 0.25,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Bottom sheet */}
       {selecionada && cat && (
@@ -258,10 +327,13 @@ export default function Mapa() {
                 <Calendar className="h-4 w-4" />
                 <span>{formatarData(selecionada.data_registro)}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <button
+                className="flex items-center gap-2 hover:text-[#3cb478] transition-colors"
+                onClick={() => setModalEmBreve(true)}
+              >
                 <ThumbsUp className="h-4 w-4" />
                 <span>{selecionada.contador_apoios} apoios</span>
-              </div>
+              </button>
             </div>
           </div>
 
@@ -346,6 +418,28 @@ export default function Mapa() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Modal em breve */}
+      {modalEmBreve && (
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl px-8 py-10 w-full max-w-sm text-center mx-4">
+            <div className="w-40 h-40 mx-auto">
+              <Lottie animationData={typing} loop />
+            </div>
+            <p className="text-xl font-semibold text-[#2a2a2a] tracking-tight mt-2">
+              Coisas boas estão chegando!
+            </p>
+            <p className="mt-2 text-sm text-[#2a2a2a]/50">
+              A função de apoiar solicitações ainda está sendo desenvolvida.
+            </p>
+            <button
+              onClick={() => setModalEmBreve(false)}
+              className="mt-6 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}

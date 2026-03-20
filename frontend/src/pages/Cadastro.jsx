@@ -108,8 +108,9 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
           <section className="space-y-1.5">
             <h3 className="font-semibold text-[#2a2a2a]">1. Controladores de Dados</h3>
             <p>
-              O ConnectCidade é desenvolvido e operado por <strong className="text-[#2a2a2a]">Deivid Castagna Carvalho Spada</strong> e{' '}
-              <strong className="text-[#2a2a2a]">Daniel Andreas Netto Albrecht</strong>, responsáveis pelo tratamento
+              O ConnectCidade é desenvolvido e operado por <strong className="text-[#2a2a2a]">Daniel Andreas Netto Albrecht</strong>,{' '}
+              <strong className="text-[#2a2a2a]">Deivid Castagna Carvalho Spada</strong> e{' '}
+              <strong className="text-[#2a2a2a]">Kauane Dalla Corte</strong>, responsáveis pelo tratamento
               das informações pessoais coletadas na plataforma.
             </p>
           </section>
@@ -231,15 +232,21 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
             </p>
             <ul className="list-disc list-inside space-y-1 pl-1">
               <li>
+                Daniel Andreas Netto Albrecht —{' '}
+                <a href="mailto:danielalbrecht@acad.ftec.com.br" className="text-[#3cb478] hover:underline">
+                  danielalbrecht@acad.ftec.com.br
+                </a>
+              </li>
+              <li>
                 Deivid Castagna Carvalho Spada —{' '}
                 <a href="mailto:dspada@outlook.com.br" className="text-[#3cb478] hover:underline">
                   dspada@outlook.com.br
                 </a>
               </li>
               <li>
-                Daniel Andreas Netto Albrecht —{' '}
-                <a href="mailto:danielalbrecht@acad.ftec.com.br" className="text-[#3cb478] hover:underline">
-                  danielalbrecht@acad.ftec.com.br
+                Kauane Dalla Corte —{' '}
+                <a href="mailto:kauane.corte@acad.ftec.com.br" className="text-[#3cb478] hover:underline">
+                  kauane.corte@acad.ftec.com.br
                 </a>
               </li>
             </ul>

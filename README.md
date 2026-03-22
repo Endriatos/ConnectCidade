@@ -117,6 +117,7 @@ A aplicação roda em uma VM Oracle Cloud (Ubuntu 24.04 · ARM aarch64) com trê
 | `frontend` | `nginx:alpine` (multi-stage com `node:22-alpine`) | Build do React + reverse proxy |
 | `backend` | `python:3.12-slim` | API FastAPI via Uvicorn |
 | `db` | `postgres:16-alpine` | Banco de dados (volume persistente) |
+| `minio` | `minio/minio:latest` | Armazenamento de fotos das solicitações |
 
 O Nginx recebe todas as requisições na porta 80. Chamadas para `/api/*` são repassadas ao backend; todo o resto serve os arquivos estáticos do React com fallback para `index.html`.
 

@@ -16,9 +16,11 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
 
     steps:
+      # Clona o repositório para permitir a comparação de arquivos alterados.
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Identifica se houve mudanças no backend e/ou frontend para evitar builds desnecessários.
       - name: Detect changed paths
         id: filter
         uses: dorny/paths-filter@v3
@@ -70,15 +72,6 @@ jobs:
           cache-to: type=gha,mode=max
 
       # Builda o Dockerfile do frontend e publica em ghcr.io/endriatos/connectcidade-frontend:latest.
-      - name: Generate frontend build metadata
-        id: frontend_meta
-        if: ${{ needs.detect-changes.outputs.frontend == 'true' }}
-        shell: bash
-        run: |
-          echo "build_time=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
-          echo "git_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-
-      # Builda o Dockerfile do frontend e publica em ghcr.io/endriatos/connectcidade-frontend:latest.
       - name: Build and push frontend image
         if: ${{ needs.detect-changes.outputs.frontend == 'true' }}
         uses: docker/build-push-action@v6
@@ -88,8 +81,8 @@ jobs:
           push: true
           build-args: |
             VITE_API_URL=/api
-            VITE_BUILD_TIME=${{ steps.frontend_meta.outputs.build_time }}
-            VITE_GIT_SHA=${{ steps.frontend_meta.outputs.git_sha }}
+            VITE_BUILD_TIME=${{ github.event.head_commit.timestamp }}
+            VITE_GIT_SHA=${{ github.sha }}
           tags: ghcr.io/endriatos/connectcidade-frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

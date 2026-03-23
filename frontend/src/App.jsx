@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Cadastro from './pages/Cadastro'
 import Home from './pages/Home'
 import NovaSolicitacao from './pages/NovaSolicitacao'
+import Health from './pages/Health'
 import RotaProtegida from './components/RotaProtegida'
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Cadastro />} />
+        <Route path="/health" element={<Health />} />
 
         {/* Rotas protegidas — exigem token JWT */}
         <Route path="/home" element={<RotaProtegida><Home /></RotaProtegida>} />

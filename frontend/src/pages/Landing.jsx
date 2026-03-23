@@ -1,15 +1,16 @@
-import { Link } from 'react-router-dom'
-import { MapPin, FileText, Users, Shield, ArrowRight } from 'lucide-react'
-import Lottie from 'lottie-react'
-import logoCC from '../assets/logoCC.png'
-import cityAnimation from '../assets/City.json'
+import { Link } from 'react-router-dom';
+import { MapPin, FileText, Users, Shield, ArrowRight } from 'lucide-react';
+import Lottie from 'lottie-react';
+import logoCC from '../assets/logoCC.png';
+import cityAnimation from '../assets/City.json';
 
 // Cards de funcionalidades exibidos na seção "Como Funciona"
 const funcionalidades = [
   {
     icon: MapPin,
     title: 'Mapeie Problemas',
-    description: 'Registre problemas urbanos com fotos e localização exata via GPS.',
+    description:
+      'Registre problemas urbanos com fotos e localização exata via GPS.',
   },
   {
     icon: FileText,
@@ -19,22 +20,27 @@ const funcionalidades = [
   {
     icon: Users,
     title: 'Apoie Demandas',
-    description: 'Reforce solicitações de outros cidadãos para dar mais visibilidade.',
+    description:
+      'Reforce solicitações de outros cidadãos para dar mais visibilidade.',
   },
   {
     icon: Shield,
     title: 'Transparência',
-    description: 'Visualize todas as demandas da cidade e o andamento das soluções.',
+    description:
+      'Visualize todas as demandas da cidade e o andamento das soluções.',
   },
-]
+];
 
 export default function Landing() {
+  console.log('Ambiente atualizado através do push');
   return (
     <div className="flex flex-col min-h-screen">
-
       {/* Header fixo no topo */}
       <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-        <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
+        <div
+          className="mx-auto px-8 h-16 flex items-center justify-between"
+          style={{ maxWidth: '1400px' }}
+        >
           <Link to="/" className="flex items-center">
             <img src={logoCC} alt="Connect Cidade" className="h-9" />
           </Link>
@@ -61,7 +67,10 @@ export default function Landing() {
         style={{ background: '#157040' }}
       >
         {/* Animação de fundo */}
-        <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.15 }}>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ opacity: 0.15 }}
+        >
           <Lottie
             animationData={cityAnimation}
             loop
@@ -73,12 +82,13 @@ export default function Landing() {
         <div className="relative mx-auto px-4" style={{ maxWidth: '1400px' }}>
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              Conecte-se com sua{' '}
-              <span className="text-[#7ddda8]">Cidade</span>
+              Conecte-se com sua <span className="text-[#7ddda8]">Cidade</span>
             </h1>
 
             <p className="text-lg md:text-xl text-white/70 mb-8 max-w-2xl mx-auto">
-              Reporte problemas urbanos de forma simples e rápida. Acompanhe o status das suas solicitações e ajude a construir uma cidade melhor.
+              Reporte problemas urbanos de forma simples e rápida. Acompanhe o
+              status das suas solicitações e ajude a construir uma cidade
+              melhor.
             </p>
 
             {/* Botões de ação */}
@@ -108,7 +118,8 @@ export default function Landing() {
             Como Funciona
           </h2>
           <p className="text-[#2a2a2a]/50 text-center mb-10 max-w-2xl mx-auto">
-            Uma plataforma simples e eficiente para conectar cidadãos e gestão pública
+            Uma plataforma simples e eficiente para conectar cidadãos e gestão
+            pública
           </p>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
@@ -121,8 +132,12 @@ export default function Landing() {
                 <div className="w-12 h-12 rounded-lg bg-[#3cb478]/10 flex items-center justify-center mb-4">
                   <funcionalidade.icon className="h-6 w-6 text-[#3cb478]" />
                 </div>
-                <h3 className="font-semibold text-lg text-[#2a2a2a] mb-2">{funcionalidade.title}</h3>
-                <p className="text-[#2a2a2a]/50 text-sm leading-relaxed">{funcionalidade.description}</p>
+                <h3 className="font-semibold text-lg text-[#2a2a2a] mb-2">
+                  {funcionalidade.title}
+                </h3>
+                <p className="text-[#2a2a2a]/50 text-sm leading-relaxed">
+                  {funcionalidade.description}
+                </p>
               </div>
             ))}
           </div>
@@ -131,7 +146,10 @@ export default function Landing() {
 
       {/* CTA — convite para cadastro */}
       <section className="py-16" style={{ background: '#157040' }}>
-        <div className="mx-auto px-4 text-center" style={{ maxWidth: '1400px' }}>
+        <div
+          className="mx-auto px-4 text-center"
+          style={{ maxWidth: '1400px' }}
+        >
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
             Faça parte da transformação
           </h2>
@@ -161,7 +179,6 @@ export default function Landing() {
           </div>
         </div>
       </footer>
-
     </div>
-  )
+  );
 }

@@ -6,7 +6,6 @@ import Header from '../components/Header';
 import Mapa from './Mapa';
 
 export default function Home() {
-  console.log('Ambiente atualizado através do push');
   const { nome } = useAuthStore();
   const location = useLocation();
 

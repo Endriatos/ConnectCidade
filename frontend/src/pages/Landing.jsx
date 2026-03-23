@@ -32,7 +32,9 @@ const funcionalidades = [
 ];
 
 export default function Landing() {
-  console.log('Ambiente atualizado através do push');
+  console.log(
+    'Ambiente atualizado através do push - commit `chore: refactor ci-cd.yml`',
+  );
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header fixo no topo */}

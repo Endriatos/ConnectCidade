@@ -1,8 +1,10 @@
 name: Deploy GCP
 
 on:
-  push:
-    branches: ['main']
+  workflow_run:
+    workflows: ["Build and Push Images"]
+    types:
+      - completed
 
 concurrency:
   group: deploy-main
@@ -10,6 +12,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -25,5 +28,6 @@ jobs:
             set -e
             cd ~/ConnectCidade
             git pull origin main
-            docker compose up -d --build
+            docker compose pull
+            docker compose up -d
             docker image prune -f

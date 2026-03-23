@@ -2,7 +2,7 @@ name: Deploy GCP
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ['main']
 
 concurrency:
   group: deploy-main
@@ -20,6 +20,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
+          command_timeout: 40m
           script: |
             set -e
             cd ~/ConnectCidade

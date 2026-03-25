@@ -36,6 +36,18 @@ class SolicitacaoResponse(BaseModel):
     ja_apoiado: Optional[bool] = None
 
 
+class AtualizacaoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_atualizacao: int
+    status_anterior: str
+    status_novo: str
+    comentario: str
+    data_atualizacao: datetime
+    # Nome do administrador que realizou a atualização; None se não houver responsável registrado
+    nome_administrador: Optional[str] = None
+
+
 class SolicitacaoMapaResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

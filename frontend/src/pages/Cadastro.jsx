@@ -92,14 +92,14 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
           <p className="text-xs text-[#2a2a2a]/40">Última atualização: março de 2026</p>
 
           {/* Aviso de contexto acadêmico */}
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 text-xs leading-relaxed">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 text-xs leading-relaxed text-justify">
             <strong>Plataforma em fase de testes — Trabalho de Conclusão de Curso (TCC).</strong>{' '}
             O ConnectCidade é um protótipo acadêmico desenvolvido como projeto de TCC e ainda não está
             em operação comercial. Ao final do período de validação, todos os dados pessoais coletados
             serão <strong>anonimizados ou excluídos permanentemente</strong>.
           </div>
 
-          <p>
+          <p className="text-justify">
             A presente Política de Privacidade descreve como o <strong className="text-[#2a2a2a]">ConnectCidade</strong> coleta,
             utiliza, armazena e protege as informações pessoais de seus usuários durante a fase de testes,
             em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 — LGPD).
@@ -107,9 +107,10 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
 
           <section className="space-y-1.5">
             <h3 className="font-semibold text-[#2a2a2a]">1. Controladores de Dados</h3>
-            <p>
-              O ConnectCidade é desenvolvido e operado por <strong className="text-[#2a2a2a]">Deivid Castagna Carvalho Spada</strong> e{' '}
-              <strong className="text-[#2a2a2a]">Daniel Andreas Netto Albrecht</strong>, responsáveis pelo tratamento
+            <p className="text-justify">
+              O ConnectCidade é desenvolvido e operado por <strong className="text-[#2a2a2a]">Daniel Andreas Netto Albrecht</strong>,{' '}
+              <strong className="text-[#2a2a2a]">Deivid Castagna Carvalho Spada</strong> e{' '}
+              <strong className="text-[#2a2a2a]">Kauane Dalla Corte</strong>, responsáveis pelo tratamento
               das informações pessoais coletadas na plataforma.
             </p>
           </section>
@@ -124,7 +125,7 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
               <li><strong className="text-[#2a2a2a]">Data de nascimento</strong> — para verificação de maioridade e conformidade legal.</li>
               <li><strong className="text-[#2a2a2a]">Telefone celular</strong> (opcional) — para contato em caso de atualização de solicitações.</li>
             </ul>
-            <p>
+            <p className="text-justify">
               Além dos dados cadastrais, registramos as <strong className="text-[#2a2a2a]">solicitações e reclamações</strong> enviadas
               pelo usuário à plataforma, incluindo descrições, categorias, localização (bairro/endereço) e
               arquivos anexados (fotos).
@@ -146,7 +147,7 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
 
           <section className="space-y-1.5">
             <h3 className="font-semibold text-[#2a2a2a]">4. Base Legal</h3>
-            <p>
+            <p className="text-justify">
               O tratamento dos dados pessoais é realizado com base no <strong className="text-[#2a2a2a]">consentimento explícito</strong> do
               titular (art. 7º, I da LGPD), na <strong className="text-[#2a2a2a]">execução do contrato</strong> (prestação dos serviços da
               plataforma) e no <strong className="text-[#2a2a2a]">legítimo interesse</strong> dos controladores para melhoria dos serviços e
@@ -156,7 +157,7 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
 
           <section className="space-y-1.5">
             <h3 className="font-semibold text-[#2a2a2a]">5. Compartilhamento de Dados</h3>
-            <p>
+            <p className="text-justify">
               O ConnectCidade <strong className="text-[#2a2a2a]">não vende nem comercializa</strong> dados pessoais de usuários a terceiros.
               Podemos compartilhar informações nas seguintes situações:
             </p>
@@ -177,13 +178,13 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
 
           <section className="space-y-1.5">
             <h3 className="font-semibold text-[#2a2a2a]">6. Armazenamento e Segurança</h3>
-            <p>
+            <p className="text-justify">
               Os dados são armazenados em servidores seguros, com acesso restrito e controlado. Adotamos
               medidas técnicas e organizacionais adequadas para proteger as informações pessoais contra
               acesso não autorizado, alteração, divulgação ou destruição, incluindo criptografia de
               senhas e tokens de autenticação.
             </p>
-            <p>
+            <p className="text-justify">
               Por se tratar de uma plataforma em fase de validação acadêmica, os dados serão mantidos
               apenas durante o período de testes do TCC. <strong className="text-[#2a2a2a]">Ao término da avaliação,
               todos os dados pessoais serão anonimizados ou excluídos permanentemente</strong>, sem qualquer
@@ -203,12 +204,12 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
               <li>Solicitar a portabilidade dos dados a outro fornecedor;</li>
               <li>Opor-se ao tratamento realizado em desconformidade com a lei.</li>
             </ul>
-            <p>Para exercer esses direitos, entre em contato pelos canais indicados na seção abaixo.</p>
+            <p className="text-justify">Para exercer esses direitos, entre em contato pelos canais indicados na seção abaixo.</p>
           </section>
 
           <section className="space-y-1.5">
             <h3 className="font-semibold text-[#2a2a2a]">8. Cookies e Dados de Navegação</h3>
-            <p>
+            <p className="text-justify">
               A plataforma pode utilizar cookies de sessão para manter o usuário autenticado durante o uso.
               Não utilizamos cookies de rastreamento ou publicidade. Os dados de acesso (logs) podem
               ser registrados para fins de segurança e diagnóstico técnico.
@@ -217,19 +218,27 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
 
           <section className="space-y-1.5">
             <h3 className="font-semibold text-[#2a2a2a]">9. Alterações nesta Política</h3>
-            <p>
-              Esta Política de Privacidade pode ser atualizada periodicamente. O uso continuado
-              da plataforma após qualquer alteração implica a aceitação da política atualizada.
+            <p className="text-justify">
+              Esta Política de Privacidade pode ser atualizada a qualquer momento, sem aviso prévio
+              aos usuários. A versão vigente estará sempre disponível nesta tela. O uso continuado
+              da plataforma após qualquer alteração será interpretado como aceitação integral da
+              política atualizada.
             </p>
           </section>
 
           <section className="space-y-1.5">
             <h3 className="font-semibold text-[#2a2a2a]">10. Contato</h3>
-            <p>
+            <p className="text-justify">
               Em caso de dúvidas, solicitações ou reclamações relacionadas ao tratamento de dados pessoais,
               entre em contato com os responsáveis pela plataforma pelos e-mails abaixo:
             </p>
             <ul className="list-disc list-inside space-y-1 pl-1">
+              <li>
+                Daniel Andreas Netto Albrecht —{' '}
+                <a href="mailto:danielalbrecht@acad.ftec.com.br" className="text-[#3cb478] hover:underline">
+                  danielalbrecht@acad.ftec.com.br
+                </a>
+              </li>
               <li>
                 Deivid Castagna Carvalho Spada —{' '}
                 <a href="mailto:dspada@outlook.com.br" className="text-[#3cb478] hover:underline">
@@ -237,9 +246,9 @@ function ModalPrivacidade({ onAceitar, onFechar }) {
                 </a>
               </li>
               <li>
-                Daniel Andreas Netto Albrecht —{' '}
-                <a href="mailto:danielalbrecht@acad.ftec.com.br" className="text-[#3cb478] hover:underline">
-                  danielalbrecht@acad.ftec.com.br
+                Kauane Dalla Corte —{' '}
+                <a href="mailto:kauane.corte@acad.ftec.com.br" className="text-[#3cb478] hover:underline">
+                  kauane.corte@acad.ftec.com.br
                 </a>
               </li>
             </ul>

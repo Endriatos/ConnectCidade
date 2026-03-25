@@ -1,9 +1,7 @@
 # ─── Variáveis de ambiente — NUNCA commitar ───
-.env
+
 .env.local
 .env.*.local
-backend/.env
-frontend/.env
 
 # ─── Python ───
 venv/

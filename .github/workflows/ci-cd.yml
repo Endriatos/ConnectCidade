@@ -112,11 +112,18 @@ jobs:
             set -e
             cd ~/ConnectCidade
             git pull origin main
+            echo "::group::Secrets no SSH (bytes; valor não é logado)"
+            echo "DB_PASSWORD=${#DB_PASSWORD} DATABASE_URL=${#DATABASE_URL} MINIO_ACCESS_KEY=${#MINIO_ACCESS_KEY} MINIO_SECRET_KEY=${#MINIO_SECRET_KEY} SECRET_KEY=${#SECRET_KEY}"
+            echo "::endgroup::"
             upsert_env() {
               f="$1"
               k="$2"
               v="$3"
-              [ -z "$v" ] && return 0
+              if [ -z "$v" ]; then
+                echo "upsert_env: ignorado (vazio) -> $f $k"
+                return 0
+              fi
+              echo "upsert_env: gravando -> $f $k (${#v} bytes)"
               touch "$f"
               grep -v "^${k}=" "$f" > "${f}.tmp" || true
               mv "${f}.tmp" "$f"
@@ -129,12 +136,39 @@ jobs:
             upsert_env backend/.env MINIO_ACCESS_KEY "$MINIO_ACCESS_KEY"
             upsert_env backend/.env MINIO_SECRET_KEY "$MINIO_SECRET_KEY"
             if [ -n "$DATABASE_URL" ]; then
+              echo "DATABASE_URL: usando secret DATABASE_URL"
               upsert_env backend/.env DATABASE_URL "$DATABASE_URL"
             elif [ -n "$DB_PASSWORD" ]; then
+              echo "DATABASE_URL: montando a partir de DB_PASSWORD"
               touch backend/.env
               grep -v '^DATABASE_URL=' backend/.env > backend/.env.tmp || true
               mv backend/.env.tmp backend/.env
               printf 'DATABASE_URL=postgresql://connect_user:%s@db:5432/connect_cidade\n' "$DB_PASSWORD" >> backend/.env
+            else
+              echo "DATABASE_URL: nem secret nem DB_PASSWORD — linha não será definida"
+            fi
+            echo "::group::Chaves presentes nos arquivos (só nomes)"
+            for f in .env backend/.env; do
+              echo "--- $f ---"
+              if [ -f "$f" ]; then
+                grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$f" 2>/dev/null | cut -d= -f1 | sort -u || true
+              else
+                echo "(arquivo inexistente)"
+              fi
+            done
+            echo "::endgroup::"
+            echo "::group::Obrigatórios para compose/backend"
+            miss=0
+            for k in DB_PASSWORD MINIO_ACCESS_KEY MINIO_SECRET_KEY; do
+              grep -q "^${k}=" .env 2>/dev/null || { echo "FALTA .env: $k"; miss=1; }
+            done
+            for k in SECRET_KEY MINIO_ACCESS_KEY MINIO_SECRET_KEY DATABASE_URL; do
+              grep -q "^${k}=" backend/.env 2>/dev/null || { echo "FALTA backend/.env: $k"; miss=1; }
+            done
+            echo "::endgroup::"
+            if [ "$miss" -ne 0 ]; then
+              echo "Corrija os secrets no GitHub ou o conteúdo dos .env na VM."
+              exit 1
             fi
             chmod 600 .env 2>/dev/null || true
             chmod 600 backend/.env 2>/dev/null || true

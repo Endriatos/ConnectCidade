@@ -92,19 +92,52 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Conecta por SSH na VM, atualiza o código, baixa imagens novas e recria os containers.
+      # SSH na VM: git pull + grava secrets nos .env
       - name: Deploy to GCP VM via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: DB_PASSWORD,DATABASE_URL,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,SECRET_KEY
           script_stop: true
           command_timeout: 40m
           script: |
             set -e
             cd ~/ConnectCidade
             git pull origin main
+            upsert_env() {
+              f="$1"
+              k="$2"
+              v="$3"
+              [ -z "$v" ] && return 0
+              touch "$f"
+              grep -v "^${k}=" "$f" > "${f}.tmp" || true
+              mv "${f}.tmp" "$f"
+              printf '%s=%s\n' "$k" "$v" >> "$f"
+            }
+            upsert_env .env DB_PASSWORD "$DB_PASSWORD"
+            upsert_env .env MINIO_ACCESS_KEY "$MINIO_ACCESS_KEY"
+            upsert_env .env MINIO_SECRET_KEY "$MINIO_SECRET_KEY"
+            upsert_env backend/.env SECRET_KEY "$SECRET_KEY"
+            upsert_env backend/.env MINIO_ACCESS_KEY "$MINIO_ACCESS_KEY"
+            upsert_env backend/.env MINIO_SECRET_KEY "$MINIO_SECRET_KEY"
+            if [ -n "$DATABASE_URL" ]; then
+              upsert_env backend/.env DATABASE_URL "$DATABASE_URL"
+            elif [ -n "$DB_PASSWORD" ]; then
+              touch backend/.env
+              grep -v '^DATABASE_URL=' backend/.env > backend/.env.tmp || true
+              mv backend/.env.tmp backend/.env
+              printf 'DATABASE_URL=postgresql://connect_user:%s@db:5432/connect_cidade\n' "$DB_PASSWORD" >> backend/.env
+            fi
+            chmod 600 .env 2>/dev/null || true
+            chmod 600 backend/.env 2>/dev/null || true
             docker compose pull
             docker compose up -d
             docker image prune -f

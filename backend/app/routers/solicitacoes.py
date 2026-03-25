@@ -1,9 +1,9 @@
-from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
+from app.crud.apoio import ja_apoiou
 from app.crud.solicitacao import (
     cancelar_solicitacao,
     create_solicitacao,
@@ -70,7 +70,12 @@ def detalhar_solicitacao(
     solicitacao = get_solicitacao_por_id(db, id_solicitacao)
     if not solicitacao:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada.")
-    return solicitacao
+
+    # Monta a resposta incluindo ja_apoiado, calculado para o usuário autenticado,
+    # passando diretamente no model_validate para evitar mutação do objeto
+    return SolicitacaoResponse.model_validate(
+        {**solicitacao.__dict__, "ja_apoiado": ja_apoiou(db, id_solicitacao, usuario_atual.id_usuario)}
+    )
 
 
 @router.patch("/{id_solicitacao}/cancelar", response_model=SolicitacaoResponse)

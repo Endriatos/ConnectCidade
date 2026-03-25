@@ -31,6 +31,9 @@ class SolicitacaoResponse(BaseModel):
     data_registro: datetime
     data_atualizacao: datetime
     data_resolucao: Optional[datetime] = None
+    # Indica se o usuário autenticado já apoiou esta solicitação;
+    # preenchido manualmente no endpoint de detalhe (não vem do ORM)
+    ja_apoiado: Optional[bool] = None
 
 
 class SolicitacaoMapaResponse(BaseModel):

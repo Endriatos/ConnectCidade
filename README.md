@@ -38,26 +38,26 @@ git --version
 
 ## Instalação e execução local
 
-### Execução com Docker (recomendado)
-
-1. Preencha os arquivos `.env`. As envs local estão disponíveis em https://drive.google.com/drive/folders/13nKMX3N8IUn5QwFhNWWzmiTNGjmJ9qSS?usp=drive_link
+Antes de executar o projeto com Docker ou manualmente, substitua os valores dos arquivos `.env`. As envs local estão disponíveis em https://drive.google.com/drive/folders/13nKMX3N8IUn5QwFhNWWzmiTNGjmJ9qSS?usp=drive_link
 
 - `./.env`
 - `./backend/.env`
 
-2. Suba a stack local com build das imagens do backend e frontend:
+### Execução com Docker (recomendado)
+
+1. Suba a stack local com build das imagens do backend e frontend:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ```
 
-3. Execute o seed inicial (categorias e administrador):
+2. Execute o seed inicial (categorias e administrador):
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.local.yml exec backend python seed.py
 ```
 
-4. Acesse:
+3. Acesse:
 
 - App: `http://localhost`
 - MinIO Console: `http://localhost:9001`

@@ -111,7 +111,9 @@ jobs:
           script: |
             set -e
             cd ~/ConnectCidade
-            git pull origin main
+            git fetch origin
+            git reset --hard origin/main
+            git clean -fd
             echo "::group::Secrets no SSH (bytes; valor não é logado)"
             echo "DB_PASSWORD=${#DB_PASSWORD} DATABASE_URL=${#DATABASE_URL} MINIO_ACCESS_KEY=${#MINIO_ACCESS_KEY} MINIO_SECRET_KEY=${#MINIO_SECRET_KEY} SECRET_KEY=${#SECRET_KEY}"
             echo "::endgroup::"

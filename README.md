@@ -17,11 +17,11 @@ O cidadão registra o problema com foto, localização GPS e descrição. A admi
 
 ## Tech Stack
 
-| Camada | Tecnologias |
-|---|---|
-| **Backend** | Python · FastAPI · PostgreSQL · SQLAlchemy · Alembic · Pydantic |
-| **Frontend** | React · Vite · Tailwind CSS · Leaflet.js · Recharts · Zustand · Lottie |
-| **Infraestrutura** | Docker · Oracle Cloud (Ubuntu 24.04 aarch64) · MinIO · Resend |
+| Camada             | Tecnologias                                                            |
+| ------------------ | ---------------------------------------------------------------------- |
+| **Backend**        | Python · FastAPI · PostgreSQL · SQLAlchemy · Alembic · Pydantic        |
+| **Frontend**       | React · Vite · Tailwind CSS · Leaflet.js · Recharts · Zustand · Lottie |
+| **Infraestrutura** | Docker · Oracle Cloud (Ubuntu 24.04 aarch64) · MinIO · Resend          |
 
 ---
 
@@ -38,27 +38,65 @@ git --version
 
 ## Instalação e execução local
 
-### Backend
+### Execução com Docker (recomendado)
+
+1. Preencha os arquivos `.env`. As envs local estão disponíveis em https://drive.google.com/drive/folders/13nKMX3N8IUn5QwFhNWWzmiTNGjmJ9qSS?usp=drive_link
+
+- `./.env`
+- `./backend/.env`
+
+2. Suba a stack local com build das imagens do backend e frontend:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+```
+
+3. Execute o seed inicial (categorias e administrador):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml exec backend python seed.py
+```
+
+4. Acesse:
+
+- App: `http://localhost`
+- MinIO Console: `http://localhost:9001`
+- MinIO API: `http://localhost:9000`
+
+Comandos úteis:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml ps
+docker compose -f docker-compose.yml -f docker-compose.local.yml logs -f
+docker compose -f docker-compose.yml -f docker-compose.local.yml down
+```
+
+Credenciais padrão de administrador (após seed):
+
+- CPF: `00000000000`
+- Senha: `troque_esta_senha`
+
+### Execução sem Docker (manual)
+
+#### Backend
 
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate        # Windows
+venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env         # preencha as variáveis
-alembic upgrade head         # cria as tabelas
-python seed.py               # popula dados iniciais
+alembic upgrade head
+python seed.py
 uvicorn app.main:app --reload
 ```
 
 API disponível em `http://localhost:8000` · Documentação em `http://localhost:8000/docs`
 
-### Frontend
+#### Frontend
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env         # preencha a URL da API
 npm run dev
 ```
 
@@ -93,6 +131,7 @@ ConnectCidade/
 ## Funcionalidades
 
 **Cidadão**
+
 - Cadastro e autenticação via CPF
 - Registro de solicitações com foto, GPS e descrição
 - Mapa interativo com todas as solicitações abertas
@@ -101,6 +140,7 @@ ConnectCidade/
 - Avaliação do atendimento após resolução
 
 **Administrador**
+
 - Painel com listagem e filtros de solicitações
 - Atualização de status com comentário obrigatório
 - Dashboard com indicadores de desempenho
@@ -112,12 +152,12 @@ ConnectCidade/
 
 A aplicação roda em uma VM Oracle Cloud (Ubuntu 24.04 · ARM aarch64) com três containers Docker gerenciados pelo Compose:
 
-| Container | Imagem base | Função |
-|---|---|---|
-| `frontend` | `nginx:alpine` (multi-stage com `node:22-alpine`) | Build do React + reverse proxy |
-| `backend` | `python:3.12-slim` | API FastAPI via Uvicorn |
-| `db` | `postgres:16-alpine` | Banco de dados (volume persistente) |
-| `minio` | `minio/minio:latest` | Armazenamento de fotos das solicitações |
+| Container  | Imagem base                                       | Função                                  |
+| ---------- | ------------------------------------------------- | --------------------------------------- |
+| `frontend` | `nginx:alpine` (multi-stage com `node:22-alpine`) | Build do React + reverse proxy          |
+| `backend`  | `python:3.12-slim`                                | API FastAPI via Uvicorn                 |
+| `db`       | `postgres:16-alpine`                              | Banco de dados (volume persistente)     |
+| `minio`    | `minio/minio:latest`                              | Armazenamento de fotos das solicitações |
 
 O Nginx recebe todas as requisições na porta 80. Chamadas para `/api/*` são repassadas ao backend; todo o resto serve os arquivos estáticos do React com fallback para `index.html`.
 
@@ -125,13 +165,13 @@ O Nginx recebe todas as requisições na porta 80. Chamadas para `/api/*` são r
 
 ## Convenções de código
 
-| Onde | Estilo |
-|---|---|
-| Backend — variáveis e funções | `snake_case` |
-| Backend — classes | `PascalCase` |
-| Frontend — variáveis e funções | `camelCase` |
-| Frontend — componentes | `PascalCase` |
-| Banco de dados | `snake_case` |
-| URLs da API | `kebab-case` |
+| Onde                           | Estilo       |
+| ------------------------------ | ------------ |
+| Backend — variáveis e funções  | `snake_case` |
+| Backend — classes              | `PascalCase` |
+| Frontend — variáveis e funções | `camelCase`  |
+| Frontend — componentes         | `PascalCase` |
+| Banco de dados                 | `snake_case` |
+| URLs da API                    | `kebab-case` |
 
 ---

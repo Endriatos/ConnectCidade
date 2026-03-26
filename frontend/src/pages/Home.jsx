@@ -54,7 +54,7 @@ export default function Home() {
 
       {/* Modal de boas-vindas após cadastro */}
       {modalAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl px-8 py-10 w-full max-w-sm text-center mx-4">
             <div className="flex items-center justify-center w-14 h-14 rounded-full bg-[#3cb478]/10 mx-auto mb-5">
               <svg

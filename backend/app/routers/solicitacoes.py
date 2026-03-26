@@ -1,9 +1,10 @@
-from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
+from app.crud.apoio import ja_apoiou
+from app.crud.atualizacao import get_timeline
 from app.crud.solicitacao import (
     cancelar_solicitacao,
     create_solicitacao,
@@ -12,7 +13,7 @@ from app.crud.solicitacao import (
     verificar_duplicata,
 )
 from app.models.solicitacao import StatusSolicitacao
-from app.schemas.solicitacao import SolicitacaoCreate, SolicitacaoResponse
+from app.schemas.solicitacao import AtualizacaoResponse, SolicitacaoCreate, SolicitacaoResponse
 from app.utils.deps import get_db, get_usuario_atual
 
 router = APIRouter(prefix="/solicitacoes", tags=["Solicitações"])
@@ -70,7 +71,27 @@ def detalhar_solicitacao(
     solicitacao = get_solicitacao_por_id(db, id_solicitacao)
     if not solicitacao:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada.")
-    return solicitacao
+
+    # Monta a resposta incluindo ja_apoiado, calculado para o usuário autenticado,
+    # passando diretamente no model_validate para evitar mutação do objeto
+    return SolicitacaoResponse.model_validate(
+        {**solicitacao.__dict__, "ja_apoiado": ja_apoiou(db, id_solicitacao, usuario_atual.id_usuario)}
+    )
+
+
+@router.get("/{id_solicitacao}/timeline", response_model=List[AtualizacaoResponse])
+def listar_timeline(
+    id_solicitacao: int,
+    db: Session = Depends(get_db),
+    usuario_atual=Depends(get_usuario_atual),
+):
+    # Verifica se a solicitação existe — retorna 404 se não encontrada
+    solicitacao = get_solicitacao_por_id(db, id_solicitacao)
+    if not solicitacao:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada.")
+
+    # Retorna o histórico de atualizações de status em ordem cronológica
+    return get_timeline(db, id_solicitacao)
 
 
 @router.patch("/{id_solicitacao}/cancelar", response_model=SolicitacaoResponse)

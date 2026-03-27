@@ -62,3 +62,19 @@ class SolicitacaoMapaResponse(BaseModel):
     contador_apoios: int
     data_registro: datetime
     fotos: List[FotoResponse]
+
+
+# Schema de resposta paginada para listagem de solicitações administrativas
+class PaginacaoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    # Total de registros encontrados com os filtros aplicados
+    total: int
+    # Página atual da listagem
+    pagina: int
+    # Quantidade de itens por página
+    por_pagina: int
+    # Total de páginas calculado com base no total e por_pagina
+    paginas: int
+    # Itens da página atual
+    itens: List[SolicitacaoResponse]

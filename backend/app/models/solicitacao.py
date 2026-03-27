@@ -14,6 +14,13 @@ class StatusSolicitacao(str, enum.Enum):
     CANCELADO = "CANCELADO"
 
 
+# Critérios de ordenação disponíveis na listagem de solicitações
+class OrdemSolicitacao(str, enum.Enum):
+    mais_recentes = "mais_recentes"
+    mais_antigos = "mais_antigos"
+    mais_apoiados = "mais_apoiados"
+
+
 class Solicitacao(Base):
     __tablename__ = "solicitacao"
 

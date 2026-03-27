@@ -180,3 +180,155 @@ def test_atualizar_status_comentario_vazio(client, db):
     )
 
     assert resp.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Testes de listagem paginada de solicitações (GET /admin/solicitacoes)
+# Seeds a partir de 400 para não colidir com os testes acima
+# ---------------------------------------------------------------------------
+
+
+def test_listar_solicitacoes_admin_sucesso(client, db):
+    """Admin acessa GET /admin/solicitacoes sem filtros e recebe 200 com estrutura paginada correta."""
+    # Cria uma solicitação como cidadão para garantir pelo menos um item na listagem
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(400), "cidadao_lista1@email.com")
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(401), "admin_lista1@email.com")
+
+    _criar_solicitacao(client, token_cidadao)
+
+    resp = client.get(
+        "/admin/solicitacoes",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    )
+
+    assert resp.status_code == 200
+
+    dados = resp.json()
+    # Verifica que todos os campos de paginação estão presentes na resposta
+    assert "total" in dados
+    assert "pagina" in dados
+    assert "por_pagina" in dados
+    assert "paginas" in dados
+    assert "itens" in dados
+    # Deve haver pelo menos a solicitação criada acima
+    assert len(dados["itens"]) >= 1
+
+
+def test_listar_solicitacoes_sem_autenticacao(client):
+    """Acessar GET /admin/solicitacoes sem token deve retornar 401 ou 403."""
+    resp = client.get("/admin/solicitacoes")
+    assert resp.status_code in (401, 403)
+
+
+def test_listar_solicitacoes_cidadao_nao_pode(client):
+    """Cidadão autenticado não tem permissão para listar solicitações do painel admin — espera 403."""
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(402), "cidadao_lista2@email.com")
+
+    resp = client.get(
+        "/admin/solicitacoes",
+        headers={"Authorization": f"Bearer {token_cidadao}"},
+    )
+
+    assert resp.status_code == 403
+
+
+def test_listar_solicitacoes_filtro_status(client, db):
+    """Após mudar o status para EM_ANALISE, a listagem filtrada deve retornar apenas itens com esse status."""
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(403), "cidadao_lista3@email.com")
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(404), "admin_lista2@email.com")
+
+    id_sol = _criar_solicitacao(client, token_cidadao)
+
+    # Muda o status da solicitação criada para EM_ANALISE via PATCH
+    client.patch(
+        _url_status(id_sol),
+        json={"status_novo": "EM_ANALISE", "comentario": "Iniciando análise."},
+        headers={"Authorization": f"Bearer {token_admin}"},
+    )
+
+    # Lista somente solicitações com status EM_ANALISE
+    resp = client.get(
+        "/admin/solicitacoes?status=EM_ANALISE",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    )
+
+    assert resp.status_code == 200
+    itens = resp.json()["itens"]
+    # Todos os itens retornados devem ter exatamente o status filtrado
+    assert all(item["status"] == "EM_ANALISE" for item in itens)
+
+
+def test_listar_solicitacoes_filtro_categoria(client, db):
+    """Listagem com ?id_categoria=1 deve retornar apenas solicitações dessa categoria."""
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(405), "cidadao_lista4@email.com")
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(406), "admin_lista3@email.com")
+
+    # _criar_solicitacao usa id_categoria=1 por padrão (definido em _SOLICITACAO_BASE)
+    _criar_solicitacao(client, token_cidadao)
+
+    resp = client.get(
+        "/admin/solicitacoes?id_categoria=1",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    )
+
+    assert resp.status_code == 200
+    itens = resp.json()["itens"]
+    # Todos os itens retornados devem pertencer à categoria 1
+    assert all(item["id_categoria"] == 1 for item in itens)
+
+
+def test_listar_solicitacoes_paginacao(client, db):
+    """Com por_pagina=2, a página deve conter no máximo 2 itens e o total deve ser >= 3."""
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(407), "cidadao_lista5@email.com")
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(408), "admin_lista4@email.com")
+
+    # Cria 3 solicitações com o mesmo cidadão
+    _criar_solicitacao(client, token_cidadao)
+    _criar_solicitacao(client, token_cidadao)
+    _criar_solicitacao(client, token_cidadao)
+
+    resp = client.get(
+        "/admin/solicitacoes?por_pagina=2",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    )
+
+    assert resp.status_code == 200
+    dados = resp.json()
+    # A página não pode ter mais itens do que o limite solicitado
+    assert len(dados["itens"]) <= 2
+    # O total deve refletir ao menos as 3 criadas acima
+    assert dados["total"] >= 3
+
+
+def test_listar_solicitacoes_ordem_mais_apoiados(client, db):
+    """Com ?ordem=mais_apoiados, o primeiro item da lista deve ter contador_apoios >= ao segundo."""
+    # Cidadão A cria a primeira solicitação (sem apoios)
+    token_cidadao_a = _cadastrar_e_logar(client, _gerar_cpf(409), "cidadao_lista6a@email.com")
+    # Cidadão B cria a segunda solicitação (receberá um apoio)
+    token_cidadao_b = _cadastrar_e_logar(client, _gerar_cpf(410), "cidadao_lista6b@email.com")
+    # Cidadão C é quem vai apoiar a solicitação do cidadão B
+    token_cidadao_c = _cadastrar_e_logar(client, _gerar_cpf(411), "cidadao_lista6c@email.com")
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(412), "admin_lista5@email.com")
+
+    _criar_solicitacao(client, token_cidadao_a)
+    id_sol_b = _criar_solicitacao(client, token_cidadao_b)
+
+    # Cidadão C apoia a solicitação do cidadão B para aumentar seu contador_apoios
+    resp_apoio = client.post(
+        f"/apoios/{id_sol_b}",
+        headers={"Authorization": f"Bearer {token_cidadao_c}"},
+    )
+    assert resp_apoio.status_code == 204
+
+    # Lista ordenando pelos mais apoiados
+    resp = client.get(
+        "/admin/solicitacoes?ordem=mais_apoiados",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    )
+
+    assert resp.status_code == 200
+    itens = resp.json()["itens"]
+    # Precisa haver pelo menos 2 itens para verificar a ordem
+    assert len(itens) >= 2
+    # O primeiro item deve ter contador_apoios maior ou igual ao segundo
+    assert itens[0]["contador_apoios"] >= itens[1]["contador_apoios"]

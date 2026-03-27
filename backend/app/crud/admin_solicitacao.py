@@ -60,6 +60,14 @@ def atualizar_status(
     return solicitacao
 
 
+def get_solicitacao_por_id(db: Session, id_solicitacao: int) -> Solicitacao | None:
+    """
+    Busca uma solicitação pelo id_solicitacao.
+    Retorna o objeto Solicitacao se encontrado, ou None caso não exista.
+    """
+    return db.query(Solicitacao).filter(Solicitacao.id_solicitacao == id_solicitacao).first()
+
+
 def listar_solicitacoes(
     db: Session,
     status: Optional[StatusSolicitacao] = None,

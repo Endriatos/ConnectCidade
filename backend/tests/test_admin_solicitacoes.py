@@ -332,3 +332,59 @@ def test_listar_solicitacoes_ordem_mais_apoiados(client, db):
     assert len(itens) >= 2
     # O primeiro item deve ter contador_apoios maior ou igual ao segundo
     assert itens[0]["contador_apoios"] >= itens[1]["contador_apoios"]
+
+
+# ---------------------------------------------------------------------------
+# Testes de detalhe de solicitação por id (GET /admin/solicitacoes/{id})
+# Seeds a partir de 500 para não colidir com os testes acima
+# ---------------------------------------------------------------------------
+
+
+def test_detalhar_solicitacao_admin_sucesso(client, db):
+    """Admin busca uma solicitação pelo id e recebe 200 com id correto e ja_apoiado=None."""
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(500), "cidadao_detalhe1@email.com")
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(501), "admin_detalhe1@email.com")
+
+    id_sol = _criar_solicitacao(client, token_cidadao)
+
+    resp = client.get(
+        f"/admin/solicitacoes/{id_sol}",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    )
+
+    assert resp.status_code == 200
+    dados = resp.json()
+    # O id retornado deve corresponder à solicitação criada
+    assert dados["id_solicitacao"] == id_sol
+    # ja_apoiado não se aplica ao contexto admin e deve ser None
+    assert dados["ja_apoiado"] is None
+
+
+def test_detalhar_solicitacao_admin_inexistente(client, db):
+    """Admin busca uma solicitação com id inexistente — espera 404."""
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(502), "admin_detalhe2@email.com")
+
+    resp = client.get(
+        "/admin/solicitacoes/999999",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    )
+
+    assert resp.status_code == 404
+
+
+def test_detalhar_solicitacao_sem_autenticacao(client):
+    """Acessar GET /admin/solicitacoes/{id} sem token deve retornar 401 ou 403."""
+    resp = client.get("/admin/solicitacoes/1")
+    assert resp.status_code in (401, 403)
+
+
+def test_detalhar_solicitacao_cidadao_nao_pode(client):
+    """Cidadão autenticado não tem permissão para acessar o detalhe admin — espera 403."""
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(503), "cidadao_detalhe2@email.com")
+
+    resp = client.get(
+        "/admin/solicitacoes/1",
+        headers={"Authorization": f"Bearer {token_cidadao}"},
+    )
+
+    assert resp.status_code == 403

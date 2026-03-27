@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.crud.admin_solicitacao import atualizar_status, listar_solicitacoes
+from app.crud.admin_solicitacao import atualizar_status, get_solicitacao_por_id, listar_solicitacoes
 from app.models.solicitacao import OrdemSolicitacao, StatusSolicitacao
 from app.schemas.solicitacao import PaginacaoResponse, SolicitacaoResponse
 from app.utils.deps import get_admin_atual, get_db
@@ -44,6 +44,30 @@ def listar_solicitacoes_admin(
         pagina=pagina,
         por_pagina=por_pagina,
     )
+
+
+@router.get("/{id_solicitacao}", response_model=SolicitacaoResponse)
+def detalhar_solicitacao_admin(
+    id_solicitacao: int,
+    db: Session = Depends(get_db),
+    # Exige que o usuário autenticado seja administrador
+    admin_atual=Depends(get_admin_atual),
+):
+    """
+    Retorna o detalhe de uma solicitação pelo id para o painel administrativo.
+
+    Retorna 404 se a solicitação não existir.
+    Retorna 403 se o usuário autenticado não for administrador.
+    O campo ja_apoiado é retornado como None pois não se aplica ao contexto admin.
+    """
+    solicitacao = get_solicitacao_por_id(db, id_solicitacao)
+
+    # Solicitação inexistente → 404
+    if solicitacao is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada.")
+
+    # Monta a resposta incluindo ja_apoiado=None, que não se aplica ao contexto admin
+    return SolicitacaoResponse.model_validate({**solicitacao.__dict__, "ja_apoiado": None})
 
 
 class AtualizarStatusRequest(BaseModel):

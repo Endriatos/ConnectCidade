@@ -23,3 +23,11 @@ class UsuarioResponse(BaseModel):
     email: str
     status_ativo: bool
     data_cadastro: datetime
+
+
+# Schema para atualização parcial do perfil do usuário autenticado
+class UsuarioUpdate(BaseModel):
+    # Todos os campos são opcionais — apenas os informados serão atualizados
+    nome_usuario: Optional[str] = None
+    telefone: Optional[str] = None
+    data_nascimento: Optional[date] = None

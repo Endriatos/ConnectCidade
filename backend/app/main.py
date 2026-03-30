@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers.admin.solicitacoes import router as admin_solicitacoes_router
 from app.routers.apoios import router as apoios_router
 from app.routers.auth import router as auth_router
 from app.routers.categorias import router as categorias_router
 from app.routers.fotos import router as fotos_router
 from app.routers.mapa import router as mapa_router
 from app.routers.solicitacoes import router as solicitacoes_router
+from app.routers.usuarios import router as usuarios_router
 
 app = FastAPI(
     title="Connect Cidade",
@@ -26,12 +28,19 @@ app.add_middleware(
 def health_check():
     return {"status": "online"}
 
+# Autenticação e usuários
 app.include_router(auth_router)
+app.include_router(usuarios_router)
+
+# Funcionalidades do cidadão
 app.include_router(categorias_router)
 app.include_router(solicitacoes_router)
 app.include_router(fotos_router)
-app.include_router(mapa_router)
 app.include_router(apoios_router)
+app.include_router(mapa_router)
+
+# Painel admin
+app.include_router(admin_solicitacoes_router)
 
 
 

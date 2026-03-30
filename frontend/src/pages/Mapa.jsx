@@ -118,6 +118,7 @@ export default function Mapa() {
   const [fotoAtiva, setFotoAtiva] = useState(null)
   const [categoriaFiltro, setCategoriaFiltro] = useState(null)
   const [modalEmBreve, setModalEmBreve] = useState(false)
+  const [animApoio, setAnimApoio] = useState(null)
 
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -139,13 +140,73 @@ export default function Mapa() {
   }, [])
 
   useEffect(() => {
-    if (!selecionada) { setFotos([]); return }
+    if (!selecionada?.id_solicitacao) return
+    api.get(`/solicitacoes/${selecionada.id_solicitacao}`).then((res) => {
+      setSelecionada((prev) =>
+        prev?.id_solicitacao === selecionada.id_solicitacao ? { ...prev, ...res.data } : prev
+      )
+    }).catch(() => {})
+  }, [selecionada?.id_solicitacao])
+
+  useEffect(() => {
+    if (!selecionada?.id_solicitacao) { setFotos([]); return }
     setCarregandoFotos(true)
     api.get(`/solicitacoes/${selecionada.id_solicitacao}/fotos`)
       .then((res) => setFotos(res.data))
       .catch(() => setFotos([]))
       .finally(() => setCarregandoFotos(false))
-  }, [selecionada])
+  }, [selecionada?.id_solicitacao])
+
+  useEffect(() => {
+    setAnimApoio(null)
+  }, [selecionada?.id_solicitacao])
+
+  const apoiarSolicitacao = (idSolicitacao) => {
+    api.post(`/apoios/${idSolicitacao}`).then(() => {
+      setSolicitacoes((prev) => prev.map((sol) =>
+        sol.id_solicitacao === idSolicitacao
+          ? { ...sol, contador_apoios: sol.contador_apoios + 1, ja_apoiado: true }
+          : sol
+      ))
+      setSelecionada((prev) =>
+        prev?.id_solicitacao === idSolicitacao
+          ? { ...prev, contador_apoios: prev.contador_apoios + 1, ja_apoiado: true }
+          : prev
+      )
+    }).catch(() => {})
+  }
+
+  const desapoiarSolicitacao = (idSolicitacao) => {
+    api.delete(`/apoios/${idSolicitacao}`).then(() => {
+      setSolicitacoes((prev) => prev.map((sol) =>
+        sol.id_solicitacao === idSolicitacao
+          ? { ...sol, contador_apoios: Math.max(0, sol.contador_apoios - 1), ja_apoiado: false }
+          : sol
+      ))
+      setSelecionada((prev) =>
+        prev?.id_solicitacao === idSolicitacao
+          ? { ...prev, contador_apoios: Math.max(0, prev.contador_apoios - 1), ja_apoiado: false }
+          : prev
+      )
+    }).catch(() => {})
+  }
+
+  const handleToggleApoio = () => {
+    if (!selecionada) return
+    if (selecionada.ja_apoiado) {
+      setAnimApoio('menos')
+      desapoiarSolicitacao(selecionada.id_solicitacao)
+    } else {
+      setAnimApoio('mais')
+      apoiarSolicitacao(selecionada.id_solicitacao)
+    }
+  }
+
+  const handleAnimacaoApoioFim = (e) => {
+    if (e.target !== e.currentTarget) return
+    if (e.animationName !== 'thumb-apoio-pop' && e.animationName !== 'thumb-apoio-menos') return
+    setAnimApoio(null)
+  }
 
   const posicaoInicial = posicao ?? [-29.1678, -51.1794]
   const solicitacoesFiltradas = categoriaFiltro
@@ -328,11 +389,23 @@ export default function Mapa() {
                 <span>{formatarData(selecionada.data_registro)}</span>
               </div>
               <button
-                className="flex items-center gap-2 hover:text-[#3cb478] transition-colors"
-                onClick={() => setModalEmBreve(true)}
+                type="button"
+                className="flex items-center gap-2 hover:text-[#3cb478] transition-colors active:scale-[0.98]"
+                onClick={handleToggleApoio}
               >
-                <ThumbsUp className="h-4 w-4" />
-                <span>{selecionada.contador_apoios} apoios</span>
+                <span
+                  className={`inline-flex shrink-0 origin-center will-change-transform ${selecionada?.ja_apoiado ? 'text-[#3cb478]' : ''} ${animApoio === 'mais' ? 'animate-thumb-apoio-mais' : animApoio === 'menos' ? 'animate-thumb-apoio-menos' : ''}`}
+                  onAnimationEnd={handleAnimacaoApoioFim}
+                >
+                  <ThumbsUp
+                    className="h-4 w-4"
+                    fill={selecionada?.ja_apoiado ? 'currentColor' : 'none'}
+                  />
+                </span>
+                <span>
+                  {selecionada.contador_apoios} apoio
+                  {selecionada.contador_apoios > 1 ? 's' : ''}
+                </span>
               </button>
             </div>
           </div>

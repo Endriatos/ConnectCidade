@@ -28,11 +28,11 @@ def _cadastrar_e_logar(client, cpf: str, email: str) -> str:
             "cpf": cpf,
             "nome_usuario": f"Usuário {cpf}",
             "email": email,
-            "senha": "senha123",
+            "senha": "Senha@123",
             "data_nascimento": str(date(1995, 6, 15)),
         },
     )
-    resp = client.post("/auth/login", json={"cpf": cpf, "senha": "senha123"})
+    resp = client.post("/auth/login", json={"cpf": cpf, "senha": "Senha@123"})
     return resp.json()["access_token"]
 
 

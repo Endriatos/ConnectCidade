@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.crud.usuario import get_usuario_por_cpf
 from app.database import SessionLocal
+from app.models.usuario import TipoUsuario
 
 # HTTPBearer extrai automaticamente o token do header "Authorization: Bearer <token>"
 # e o disponibiliza como credentials.credentials na função que o recebe via Depends.
@@ -63,3 +64,20 @@ def get_usuario_atual(
         raise credenciais_exception
 
     return usuario
+
+
+def get_admin_atual(usuario_atual=Depends(get_usuario_atual)):
+    """
+    Dependency de autorização para rotas exclusivas de administradores.
+
+    Reutiliza get_usuario_atual para obter o usuário já autenticado e verifica
+    se ele possui o tipo ADMIN. Caso contrário, lança 403 Forbidden para impedir
+    que cidadãos comuns acessem endpoints restritos ao painel administrativo.
+    """
+    # Verifica se o usuário autenticado tem perfil de administrador
+    if usuario_atual.tipo_usuario != TipoUsuario.ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso restrito a administradores.",
+        )
+    return usuario_atual

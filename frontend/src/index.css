@@ -10,6 +10,36 @@
   100% { transform: scale(2.5); opacity: 0; }
 }
 
+@keyframes thumb-apoio-pop {
+  0% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  38% {
+    transform: scale(1.22) rotate(-5deg);
+    filter: drop-shadow(0 0 8px rgba(60, 180, 120, 0.4));
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+}
+
+@keyframes thumb-apoio-menos {
+  0% { transform: scale(1) rotate(0deg); }
+  28% { transform: scale(0.62) rotate(16deg); }
+  58% { transform: scale(1.12) rotate(-10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.animate-thumb-apoio-mais {
+  animation: thumb-apoio-pop 0.52s cubic-bezier(0.33, 1.55, 0.64, 1);
+}
+
+.animate-thumb-apoio-menos {
+  animation: thumb-apoio-menos 0.46s cubic-bezier(0.45, 0, 0.55, 1.35);
+}
+
 @layer base {
   :root {
     --background: 0 0% 96%;       /* #f5f5f5 */

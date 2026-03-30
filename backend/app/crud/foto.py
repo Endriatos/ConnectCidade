@@ -24,3 +24,14 @@ def create_foto(db: Session, id_solicitacao: int, caminho_arquivo: str, ordem: i
     db.commit()
     db.refresh(foto)
     return foto
+
+
+def create_foto_nocommit(db: Session, id_solicitacao: int, caminho_arquivo: str, ordem: int) -> Foto:
+    # Novo: igual ao create_foto, mas sem commit — usado ao criar solicitação com várias fotos num único commit no router
+    foto = Foto(
+        id_solicitacao=id_solicitacao,
+        caminho_arquivo=caminho_arquivo,
+        ordem=ordem,
+    )
+    db.add(foto)
+    return foto

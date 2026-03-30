@@ -44,12 +44,23 @@ def _cadastrar_e_logar(client, cpf: str, email: str) -> str:
 
 
 def _criar_solicitacao(client, token: str) -> int:
-    """Cria uma solicitação e retorna o id_solicitacao."""
-    resp = client.post(
-        "/solicitacoes",
-        json=SOLICITACAO_BASE,
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    data = {
+        "id_categoria": str(SOLICITACAO_BASE["id_categoria"]),
+        "descricao": SOLICITACAO_BASE["descricao"],
+        "endereco_referencia": SOLICITACAO_BASE["endereco_referencia"],
+        "latitude": str(SOLICITACAO_BASE["latitude"]),
+        "longitude": str(SOLICITACAO_BASE["longitude"]),
+        "confirmar_duplicata": "true" if SOLICITACAO_BASE.get("confirmar_duplicata") else "false",
+    }
+    with patch("app.routers.solicitacoes.garantir_bucket_publico"), patch(
+        "app.routers.solicitacoes.fazer_upload_foto", return_value="http://minio-fake/foto.jpg"
+    ):
+        resp = client.post(
+            "/solicitacoes",
+            data=data,
+            files=[("fotos", ("seed.jpg", _jpeg_bytes(), "image/jpeg"))],
+            headers={"Authorization": f"Bearer {token}"},
+        )
     assert resp.status_code == 201
     return resp.json()["id_solicitacao"]
 
@@ -90,7 +101,7 @@ def _upload(client, token: str, id_sol: int, jpeg: bytes = None):
 # ---------------------------------------------------------------------------
 
 def test_upload_foto_sucesso(client, usuario_e_solicitacao):
-    """Upload válido deve retornar 201 com caminho_arquivo e ordem=1."""
+    """Upload válido após criação com 1 foto: próxima ordem é 2."""
     token, id_sol = usuario_e_solicitacao
     with MOCK_BUCKET, MOCK_UPLOAD:
         resp = _upload(client, token, id_sol)
@@ -98,18 +109,18 @@ def test_upload_foto_sucesso(client, usuario_e_solicitacao):
     assert resp.status_code == 201
     data = resp.json()
     assert "minio-fake" in data["caminho_arquivo"]
-    assert data["ordem"] == 1
+    assert data["ordem"] == 2
 
 
 def test_upload_segunda_foto(client, usuario_e_solicitacao):
-    """Segunda foto enviada deve ter ordem=2."""
+    """Com 1 foto na criação, dois uploads seguidos devem ter ordem 2 e 3."""
     token, id_sol = usuario_e_solicitacao
     with MOCK_BUCKET, MOCK_UPLOAD:
-        _upload(client, token, id_sol)           # primeira foto
-        resp = _upload(client, token, id_sol)    # segunda foto
+        _upload(client, token, id_sol)
+        resp = _upload(client, token, id_sol)
 
     assert resp.status_code == 201
-    assert resp.json()["ordem"] == 2
+    assert resp.json()["ordem"] == 3
 
 
 def test_upload_sem_autenticacao(client, usuario_e_solicitacao):
@@ -143,14 +154,14 @@ def test_upload_solicitacao_de_outro_usuario(client, usuario_e_solicitacao):
 
 
 def test_limite_cinco_fotos(client, usuario_e_solicitacao):
-    """Após 5 fotos, o sexto upload deve retornar 400."""
+    """Criação já inclui 1 foto; após mais 4 uploads (5 no total), o próximo retorna 400."""
     token, id_sol = usuario_e_solicitacao
     with MOCK_BUCKET, MOCK_UPLOAD:
-        for _ in range(5):
+        for _ in range(4):
             r = _upload(client, token, id_sol)
             assert r.status_code == 201
 
-        resp = _upload(client, token, id_sol)   # sexta foto — deve falhar
+        resp = _upload(client, token, id_sol)
     assert resp.status_code == 400
 
 

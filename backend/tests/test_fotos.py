@@ -1,9 +1,9 @@
-import io
 from datetime import date
 from unittest.mock import patch
 
 import pytest
-from PIL import Image
+
+from tests.conftest import _jpeg_bytes
 
 # ---------------------------------------------------------------------------
 # Helpers de dados base
@@ -18,13 +18,6 @@ SOLICITACAO_BASE = {
     "confirmar_duplicata": True,
 }
 
-
-def _jpeg_bytes() -> bytes:
-    """Gera bytes de um JPEG mínimo válido usando Pillow (100x100 vermelho)."""
-    img = Image.new("RGB", (100, 100), color="red")
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG")
-    return buf.getvalue()
 
 
 def _cadastrar_e_logar(client, cpf: str, email: str) -> str:

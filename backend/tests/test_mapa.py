@@ -1,11 +1,10 @@
-import io
 from datetime import date, datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
-from PIL import Image
 
 from app.models.solicitacao import Solicitacao, StatusSolicitacao
+from tests.conftest import _jpeg_bytes
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -37,12 +36,6 @@ def _cadastrar_e_logar(client, cpf: str, email: str) -> str:
     return resp.json()["access_token"]
 
 
-def _jpeg():
-    img = Image.new("RGB", (8, 8), color="green")
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG")
-    return buf.getvalue()
-
 
 def _criar_solicitacao(client, token: str) -> int:
     data = {
@@ -59,7 +52,7 @@ def _criar_solicitacao(client, token: str) -> int:
         resp = client.post(
             "/solicitacoes",
             data=data,
-            files=[("fotos", ("m.jpg", _jpeg(), "image/jpeg"))],
+            files=[("fotos", ("m.jpg", _jpeg_bytes(), "image/jpeg"))],
             headers={"Authorization": f"Bearer {token}"},
         )
     assert resp.status_code == 201

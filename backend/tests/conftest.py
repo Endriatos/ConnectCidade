@@ -79,7 +79,8 @@ def _cadastrar_e_logar(client, cpf: str, email: str) -> str:
     return resp.json()["access_token"]
 
 
-def _jpeg_teste_bytes() -> bytes:
+def _jpeg_bytes() -> bytes:
+    """Gera um JPEG mínimo válido (8x8 px) usando Pillow — usado como fixture de upload nos testes."""
     img = Image.new("RGB", (8, 8), color=(200, 30, 30))
     buf = io.BytesIO()
     img.save(buf, format="JPEG")
@@ -101,7 +102,7 @@ def _criar_solicitacao(client, token: str) -> int:
         resp = client.post(
             "/solicitacoes",
             data=data,
-            files=[("fotos", ("t.jpg", _jpeg_teste_bytes(), "image/jpeg"))],
+            files=[("fotos", ("t.jpg", _jpeg_bytes(), "image/jpeg"))],
             headers={"Authorization": f"Bearer {token}"},
         )
     assert resp.status_code == 201

@@ -44,6 +44,30 @@ def alterar_senha(db: Session, usuario: Usuario, senha_atual: str, senha_nova: s
     db.commit()
 
 
+def anonimizar_usuario(db: Session, usuario: Usuario) -> None:
+    """
+    Anonimiza os dados pessoais do usuário conforme a LGPD (Lei 13.709/2018),
+    substituindo informações identificáveis por valores genéricos irreversíveis.
+
+    Após a anonimização o usuário não consegue mais autenticar-se, pois o
+    senha_hash recebe um valor que nunca passa na verificação bcrypt.
+    """
+    # CPF substituído por identificador não rastreável baseado no id interno
+    usuario.cpf = f"excluido_{usuario.id_usuario}"
+    # Nome removido — valor genérico que não identifica a pessoa
+    usuario.nome_usuario = "Usuário Removido"
+    # E-mail substituído por endereço inválido no domínio .invalid (RFC 2606)
+    usuario.email = f"excluido_{usuario.id_usuario}@removido.invalid"
+    # Telefone apagado — campo opcional, basta setar None
+    usuario.telefone = None
+    # Hash inválido: "*" nunca satisfaz a verificação bcrypt, bloqueando qualquer login
+    usuario.senha_hash = "*"
+    # Desativa a conta para impedir qualquer forma de acesso futuro
+    usuario.status_ativo = False
+
+    db.commit()
+
+
 def create_usuario(db: Session, dados: UsuarioCreate) -> Usuario:
     usuario = Usuario(
         tipo_usuario=TipoUsuario.CIDADAO,

@@ -1,6 +1,9 @@
+import io
 from datetime import date
+from unittest.mock import patch
 
 import pytest
+from PIL import Image
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -76,16 +79,31 @@ def _cadastrar_e_logar(client, cpf: str, email: str) -> str:
     return resp.json()["access_token"]
 
 
+def _jpeg_teste_bytes() -> bytes:
+    img = Image.new("RGB", (8, 8), color=(200, 30, 30))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    return buf.getvalue()
+
+
 def _criar_solicitacao(client, token: str) -> int:
-    """
-    Cria uma solicitação com dados fixos usando o token fornecido
-    e retorna o id_solicitacao gerado pelo servidor.
-    """
-    resp = client.post(
-        "/solicitacoes",
-        json=_SOLICITACAO_BASE,
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    data = {
+        "id_categoria": str(_SOLICITACAO_BASE["id_categoria"]),
+        "descricao": _SOLICITACAO_BASE["descricao"],
+        "endereco_referencia": _SOLICITACAO_BASE["endereco_referencia"],
+        "latitude": str(_SOLICITACAO_BASE["latitude"]),
+        "longitude": str(_SOLICITACAO_BASE["longitude"]),
+        "confirmar_duplicata": "true" if _SOLICITACAO_BASE.get("confirmar_duplicata") else "false",
+    }
+    with patch("app.routers.solicitacoes.garantir_bucket_publico"), patch(
+        "app.routers.solicitacoes.fazer_upload_foto", return_value="http://minio-fake/foto.jpg"
+    ):
+        resp = client.post(
+            "/solicitacoes",
+            data=data,
+            files=[("fotos", ("t.jpg", _jpeg_teste_bytes(), "image/jpeg"))],
+            headers={"Authorization": f"Bearer {token}"},
+        )
     assert resp.status_code == 201
     return resp.json()["id_solicitacao"]
 

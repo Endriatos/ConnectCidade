@@ -1,6 +1,9 @@
+import io
 from datetime import date, datetime, timedelta, timezone
+from unittest.mock import patch
 
 import pytest
+from PIL import Image
 
 from app.models.solicitacao import Solicitacao, StatusSolicitacao
 
@@ -34,13 +37,31 @@ def _cadastrar_e_logar(client, cpf: str, email: str) -> str:
     return resp.json()["access_token"]
 
 
+def _jpeg():
+    img = Image.new("RGB", (8, 8), color="green")
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    return buf.getvalue()
+
+
 def _criar_solicitacao(client, token: str) -> int:
-    """Cria uma solicitação e retorna o id_solicitacao."""
-    resp = client.post(
-        "/solicitacoes",
-        json=SOLICITACAO_BASE,
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    data = {
+        "id_categoria": str(SOLICITACAO_BASE["id_categoria"]),
+        "descricao": SOLICITACAO_BASE["descricao"],
+        "endereco_referencia": SOLICITACAO_BASE["endereco_referencia"],
+        "latitude": str(SOLICITACAO_BASE["latitude"]),
+        "longitude": str(SOLICITACAO_BASE["longitude"]),
+        "confirmar_duplicata": "true" if SOLICITACAO_BASE.get("confirmar_duplicata") else "false",
+    }
+    with patch("app.routers.solicitacoes.garantir_bucket_publico"), patch(
+        "app.routers.solicitacoes.fazer_upload_foto", return_value="http://minio-fake/foto.jpg"
+    ):
+        resp = client.post(
+            "/solicitacoes",
+            data=data,
+            files=[("fotos", ("m.jpg", _jpeg(), "image/jpeg"))],
+            headers={"Authorization": f"Bearer {token}"},
+        )
     assert resp.status_code == 201
     return resp.json()["id_solicitacao"]
 

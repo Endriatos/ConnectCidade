@@ -252,39 +252,31 @@ export default function NovaSolicitacao() {
   const enviarSolicitacao = async (confirmarDuplicata = false) => {
     setErros({})
     setEnviando(true)
+    setUploadProgresso(null)
     try {
-      const res = await api.post('/solicitacoes', {
-        id_categoria: idCategoria,
-        descricao,
-        endereco_referencia: enderecoReferencia,
-        latitude: latitude ?? -29.1678,
-        longitude: longitude ?? -51.1794,
-        confirmar_duplicata: confirmarDuplicata,
-      })
+      // POST /solicitacoes em multipart: campos + fotos (obrigatório no back-end; mesmo nome "fotos" para cada arquivo)
+      const form = new FormData()
+      form.append('id_categoria', String(idCategoria))
+      form.append('descricao', descricao)
+      form.append('endereco_referencia', enderecoReferencia)
+      form.append('latitude', String(latitude ?? -29.1678))
+      form.append('longitude', String(longitude ?? -51.1794))
+      form.append('confirmar_duplicata', confirmarDuplicata ? 'true' : 'false')
+      fotos.forEach((f) => form.append('fotos', f))
 
+      // Não definir Content-Type manualmente: o axios define multipart com boundary ao enviar FormData
+      const res = await api.post('/solicitacoes', form)
+
+      // Duplicata: API retorna 200 com { aviso, protocolo, ... } sem criar solicitação até o usuário confirmar
       if (res.data.aviso) {
         setAvisDuplicata(res.data)
         return
       }
 
-      const idSolicitacao = res.data.id_solicitacao
-
-      // Upload das fotos em sequência
-      for (let i = 0; i < fotos.length; i++) {
-        setUploadProgresso(`${i + 1}/${fotos.length}`)
-        const form = new FormData()
-        form.append('arquivo', fotos[i])
-        await api.post(`/solicitacoes/${idSolicitacao}/fotos`, form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-      }
-      setUploadProgresso(null)
-
       const categoriaSelecionada = categorias.find((c) => c.id_categoria === idCategoria)
       setSolicitacaoCriada({ ...res.data, nome_categoria: categoriaSelecionada?.nome_categoria })
     } catch {
       setErros({ geral: 'Não foi possível enviar a solicitação. Tente novamente.' })
-      setUploadProgresso(null)
     } finally {
       setEnviando(false)
     }

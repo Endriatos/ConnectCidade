@@ -1,39 +1,7 @@
-from datetime import date
-
-from passlib.context import CryptContext
-
 from app.models.solicitacao import StatusSolicitacao
-from app.models.usuario import TipoUsuario, Usuario
-from tests.conftest import _cadastrar_e_logar, _criar_solicitacao, _gerar_cpf
+from tests.conftest import _cadastrar_e_logar, _criar_admin_e_logar, _criar_solicitacao, _gerar_cpf
 
 # Seeds a partir de 300 para não colidir com CPFs de outros arquivos de teste
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _criar_admin_e_logar(client, db, cpf: str, email: str) -> str:
-    """
-    Insere um usuário com tipo_usuario=ADMIN diretamente no banco (sem passar pela API,
-    que só permite cadastro de cidadãos) e retorna o token via login.
-    """
-    admin = Usuario(
-        tipo_usuario=TipoUsuario.ADMIN,
-        cpf=cpf,
-        nome_usuario=f"Admin {cpf}",
-        email=email,
-        senha_hash=pwd_context.hash("senha123"),
-        data_nascimento=date(1985, 1, 1),
-    )
-    db.add(admin)
-    db.commit()
-
-    # Realiza login pela API para obter o token JWT
-    resp = client.post("/auth/login", json={"cpf": cpf, "senha": "senha123"})
-    return resp.json()["access_token"]
 
 
 # URL base do endpoint de admin

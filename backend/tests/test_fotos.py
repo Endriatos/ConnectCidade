@@ -1,9 +1,8 @@
-from datetime import date
 from unittest.mock import patch
 
 import pytest
 
-from tests.conftest import _jpeg_bytes
+from tests.conftest import _cadastrar_e_logar, _jpeg_bytes
 
 # ---------------------------------------------------------------------------
 # Helpers de dados base
@@ -18,22 +17,6 @@ SOLICITACAO_BASE = {
     "confirmar_duplicata": True,
 }
 
-
-
-def _cadastrar_e_logar(client, cpf: str, email: str) -> str:
-    """Cadastra um usuário (ignora se já existe) e retorna o access token."""
-    client.post(
-        "/auth/cadastro",
-        json={
-            "cpf": cpf,
-            "nome_usuario": f"Usuário {cpf}",
-            "email": email,
-            "senha": "senha123",
-            "data_nascimento": str(date(1995, 1, 1)),
-        },
-    )
-    resp = client.post("/auth/login", json={"cpf": cpf, "senha": "senha123"})
-    return resp.json()["access_token"]
 
 
 def _criar_solicitacao(client, token: str) -> int:

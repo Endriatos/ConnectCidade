@@ -94,14 +94,14 @@ def test_alterar_senha_sucesso(client):
 
     resp = client.patch(
         "/usuarios/me/senha",
-        json={"senha_atual": "senha123", "senha_nova": "novaSenha456"},
+        json={"senha_atual": "Senha@123", "senha_nova": "NovaSenha@456"},
         headers={"Authorization": f"Bearer {token}"},
     )
 
     assert resp.status_code == 204
 
     # Confirma que o login com a nova senha funciona corretamente
-    resp_login = client.post("/auth/login", json={"cpf": cpf, "senha": "novaSenha456"})
+    resp_login = client.post("/auth/login", json={"cpf": cpf, "senha": "NovaSenha@456"})
     assert resp_login.status_code == 200
     assert "access_token" in resp_login.json()
 
@@ -114,7 +114,7 @@ def test_alterar_senha_atual_incorreta(client):
     resp = client.patch(
         "/usuarios/me/senha",
         # Senha atual deliberadamente incorreta para acionar o erro do crud
-        json={"senha_atual": "senhaErrada!", "senha_nova": "novaSenha456"},
+        json={"senha_atual": "SenhaErrada!", "senha_nova": "NovaSenha@456"},
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -122,14 +122,14 @@ def test_alterar_senha_atual_incorreta(client):
 
 
 def test_alterar_senha_nova_muito_curta(client):
-    """Enviar senha_nova com menos de 6 caracteres deve retornar 422 (validação do Pydantic)."""
+    """Enviar senha_nova que não atende aos requisitos deve retornar 422 (validação do Pydantic)."""
     cpf = _gerar_cpf(702)
     token = _cadastrar_e_logar(client, cpf, "usuario_senha3@email.com")
 
     resp = client.patch(
         "/usuarios/me/senha",
-        # senha_nova com apenas 3 caracteres viola min_length=6
-        json={"senha_atual": "senha123", "senha_nova": "abc"},
+        # senha_nova com apenas 3 caracteres viola o mínimo de 8 exigido pelo validator
+        json={"senha_atual": "Senha@123", "senha_nova": "abc"},
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -140,6 +140,6 @@ def test_alterar_senha_sem_autenticacao(client):
     """Acessar PATCH /usuarios/me/senha sem token deve retornar 401 ou 403."""
     resp = client.patch(
         "/usuarios/me/senha",
-        json={"senha_atual": "senha123", "senha_nova": "novaSenha456"},
+        json={"senha_atual": "Senha@123", "senha_nova": "NovaSenha@456"},
     )
     assert resp.status_code in (401, 403)

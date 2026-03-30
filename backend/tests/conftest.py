@@ -3,6 +3,7 @@ from datetime import date
 from unittest.mock import patch
 
 import pytest
+from passlib.context import CryptContext
 from PIL import Image
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -10,7 +11,11 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
 from app.main import app
+from app.models.usuario import TipoUsuario, Usuario
 from app.utils.deps import get_db
+
+# Contexto bcrypt reutilizado para gerar hashes de senha nos helpers de teste
+_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def _gerar_cpf(seed: int) -> str:
@@ -70,12 +75,33 @@ def _cadastrar_e_logar(client, cpf: str, email: str) -> str:
             "cpf": cpf,
             "nome_usuario": f"Usuário {cpf}",
             "email": email,
-            "senha": "senha123",
+            "senha": "Senha@123",
             "data_nascimento": str(date(1998, 3, 10)),
         },
     )
     # Realiza login e extrai o token de acesso da resposta
-    resp = client.post("/auth/login", json={"cpf": cpf, "senha": "senha123"})
+    resp = client.post("/auth/login", json={"cpf": cpf, "senha": "Senha@123"})
+    return resp.json()["access_token"]
+
+
+def _criar_admin_e_logar(client, db, cpf: str, email: str) -> str:
+    """
+    Insere um usuário ADMIN diretamente no banco (sem passar pela API,
+    que só permite cadastro de cidadãos) e retorna o token via login.
+    """
+    admin = Usuario(
+        tipo_usuario=TipoUsuario.ADMIN,
+        cpf=cpf,
+        nome_usuario=f"Admin {cpf}",
+        email=email,
+        senha_hash=_pwd_context.hash("Senha@123"),
+        data_nascimento=date(1985, 1, 1),
+    )
+    db.add(admin)
+    db.commit()
+
+    # Realiza login pela API para obter o token JWT
+    resp = client.post("/auth/login", json={"cpf": cpf, "senha": "Senha@123"})
     return resp.json()["access_token"]
 
 

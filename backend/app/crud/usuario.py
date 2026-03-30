@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.models import TipoUsuario, Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
-from app.utils.auth_utils import hashear_senha
+from app.utils.auth_utils import hashear_senha, verificar_senha
 
 
 def get_usuario_por_cpf(db: Session, cpf: str) -> Usuario | None:
@@ -27,6 +27,21 @@ def atualizar_usuario(db: Session, usuario: Usuario, dados: UsuarioUpdate) -> Us
     db.commit()
     db.refresh(usuario)
     return usuario
+
+
+def alterar_senha(db: Session, usuario: Usuario, senha_atual: str, senha_nova: str) -> None:
+    """
+    Verifica a senha atual e, se correta, salva o hash da nova senha.
+
+    Lança ValueError se a senha atual não conferir com o hash armazenado.
+    """
+    # Rejeita a operação imediatamente se a senha atual estiver errada
+    if not verificar_senha(senha_atual, usuario.senha_hash):
+        raise ValueError("Senha atual incorreta.")
+
+    # Armazena apenas o hash da nova senha — nunca o texto puro
+    usuario.senha_hash = hashear_senha(senha_nova)
+    db.commit()
 
 
 def create_usuario(db: Session, dados: UsuarioCreate) -> Usuario:

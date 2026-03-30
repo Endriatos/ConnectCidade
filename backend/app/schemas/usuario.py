@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UsuarioCreate(BaseModel):
@@ -31,3 +31,11 @@ class UsuarioUpdate(BaseModel):
     nome_usuario: Optional[str] = None
     telefone: Optional[str] = None
     data_nascimento: Optional[date] = None
+
+
+# Schema para alteração de senha do usuário autenticado
+class AlterarSenhaRequest(BaseModel):
+    # Senha atual para confirmar a identidade antes de permitir a troca
+    senha_atual: str
+    # Nova senha com mínimo de 6 caracteres
+    senha_nova: str = Field(..., min_length=6)

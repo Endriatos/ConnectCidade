@@ -76,3 +76,70 @@ def test_atualizar_perfil_body_vazio(client):
     assert resp.status_code == 200
     # Os dados retornados devem ser idênticos aos anteriores
     assert resp.json()["nome_usuario"] == nome_antes
+
+
+# ---------------------------------------------------------------------------
+# Testes de alteração de senha (PATCH /usuarios/me/senha)
+# Seeds a partir de 700 para não colidir com os testes acima
+# ---------------------------------------------------------------------------
+
+
+def test_alterar_senha_sucesso(client):
+    """Alteração com senha_atual correta deve retornar 204 e permitir login com a nova senha."""
+    cpf = _gerar_cpf(700)
+    _cadastrar_e_logar(client, cpf, "usuario_senha1@email.com")
+
+    # Obtém token com a senha original para chamar o endpoint protegido
+    token = _cadastrar_e_logar(client, cpf, "usuario_senha1@email.com")
+
+    resp = client.patch(
+        "/usuarios/me/senha",
+        json={"senha_atual": "senha123", "senha_nova": "novaSenha456"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert resp.status_code == 204
+
+    # Confirma que o login com a nova senha funciona corretamente
+    resp_login = client.post("/auth/login", json={"cpf": cpf, "senha": "novaSenha456"})
+    assert resp_login.status_code == 200
+    assert "access_token" in resp_login.json()
+
+
+def test_alterar_senha_atual_incorreta(client):
+    """Enviar senha_atual errada deve retornar 400 com mensagem de erro."""
+    cpf = _gerar_cpf(701)
+    token = _cadastrar_e_logar(client, cpf, "usuario_senha2@email.com")
+
+    resp = client.patch(
+        "/usuarios/me/senha",
+        # Senha atual deliberadamente incorreta para acionar o erro do crud
+        json={"senha_atual": "senhaErrada!", "senha_nova": "novaSenha456"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert resp.status_code == 400
+
+
+def test_alterar_senha_nova_muito_curta(client):
+    """Enviar senha_nova com menos de 6 caracteres deve retornar 422 (validação do Pydantic)."""
+    cpf = _gerar_cpf(702)
+    token = _cadastrar_e_logar(client, cpf, "usuario_senha3@email.com")
+
+    resp = client.patch(
+        "/usuarios/me/senha",
+        # senha_nova com apenas 3 caracteres viola min_length=6
+        json={"senha_atual": "senha123", "senha_nova": "abc"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert resp.status_code == 422
+
+
+def test_alterar_senha_sem_autenticacao(client):
+    """Acessar PATCH /usuarios/me/senha sem token deve retornar 401 ou 403."""
+    resp = client.patch(
+        "/usuarios/me/senha",
+        json={"senha_atual": "senha123", "senha_nova": "novaSenha456"},
+    )
+    assert resp.status_code in (401, 403)

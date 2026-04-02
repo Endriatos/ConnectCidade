@@ -84,3 +84,15 @@ def marcar_como_lida(
     db.commit()
     db.refresh(notificacao)
     return notificacao
+
+
+def marcar_todas_como_lidas(db: Session, id_usuario: int) -> None:
+    """
+    Marca todas as notificações não lidas do usuário como lidas em uma única operação.
+    Mais eficiente do que marcar uma a uma quando há múltiplas notificações pendentes.
+    """
+    db.query(Notificacao).filter(
+        Notificacao.id_usuario == id_usuario,
+        Notificacao.lida == False,  # noqa: E712 — comparação explícita exigida pelo SQLAlchemy
+    ).update({"lida": True}, synchronize_session=False)
+    db.commit()

@@ -188,3 +188,37 @@ def test_multiplas_atualizacoes_geram_multiplas_notificacoes(client, setup):
 
     # Deve haver ao menos 2 notificações (uma por cada mudança de status)
     assert len(itens) >= 2
+
+
+def test_marcar_todas_como_lidas(client, setup):
+    """
+    Após chamar PATCH /notificacoes/lidas, todas as notificações do cidadão
+    devem ter lida=True na listagem subsequente.
+    """
+    # Faz segunda atualização de status para garantir ao menos 2 notificações
+    client.patch(
+        f"/admin/solicitacoes/{setup['id_solicitacao']}/status",
+        json={"status_novo": "EM_ANDAMENTO", "comentario": "Equipe a caminho"},
+        headers={"Authorization": f"Bearer {setup['token_admin']}"},
+    )
+
+    # Marca todas as notificações como lidas de uma vez
+    resp = client.patch(
+        "/notificacoes/lidas",
+        headers={"Authorization": f"Bearer {setup['token_cidadao']}"},
+    )
+    assert resp.status_code == 204
+
+    # Verifica que todas as notificações estão marcadas como lidas
+    itens = client.get(
+        "/notificacoes",
+        headers={"Authorization": f"Bearer {setup['token_cidadao']}"},
+    ).json()
+    assert len(itens) >= 2
+    assert all(n["lida"] is True for n in itens)
+
+
+def test_marcar_todas_sem_token_retorna_401(client):
+    """PATCH /notificacoes/lidas sem token de autenticação deve retornar 401."""
+    resp = client.patch("/notificacoes/lidas")
+    assert resp.status_code == 401

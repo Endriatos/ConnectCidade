@@ -1,9 +1,9 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from app.crud.notificacao import listar_notificacoes, marcar_como_lida
+from app.crud.notificacao import listar_notificacoes, marcar_como_lida, marcar_todas_como_lidas
 from app.schemas.notificacao import NotificacaoResponse
 from app.utils.deps import get_db, get_usuario_atual
 
@@ -45,3 +45,17 @@ def marcar_lida(
         )
 
     return notificacao
+
+
+@router.patch("/lidas", status_code=status.HTTP_204_NO_CONTENT)
+def marcar_todas_lidas(
+    db: Session = Depends(get_db),
+    # Exige usuário autenticado — marca apenas as notificações do próprio usuário
+    usuario_atual=Depends(get_usuario_atual),
+):
+    """
+    Marca todas as notificações não lidas do usuário autenticado como lidas de uma vez.
+    Retorna 204 No Content em caso de sucesso — sem corpo na resposta.
+    """
+    marcar_todas_como_lidas(db, usuario_atual.id_usuario)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

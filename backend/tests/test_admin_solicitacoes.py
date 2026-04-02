@@ -356,3 +356,66 @@ def test_detalhar_solicitacao_cidadao_nao_pode(client):
     )
 
     assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Testes de filtro por autor (GET /admin/solicitacoes?id_autor=...)
+# Seeds 504, 505, 506
+# ---------------------------------------------------------------------------
+
+
+def test_listar_solicitacoes_filtro_id_autor(client, db):
+    """
+    Filtro ?id_autor deve retornar apenas as solicitações do cidadão informado,
+    excluindo as de outros cidadãos.
+    """
+    # Cria dois cidadãos distintos, cada um com uma solicitação
+    token_a = _cadastrar_e_logar(client, _gerar_cpf(504), "cidadao_autor1@email.com")
+    token_b = _cadastrar_e_logar(client, _gerar_cpf(505), "cidadao_autor2@email.com")
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(506), "admin_autor1@email.com")
+
+    # Cria uma solicitação para cada cidadão e captura o protocolo gerado
+    id_sol_a = _criar_solicitacao(client, token_a)
+    id_sol_b = _criar_solicitacao(client, token_b)
+
+    # Obtém o id_usuario de cada cidadão via GET /auth/me
+    id_usuario_a = client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {token_a}"}
+    ).json()["id_usuario"]
+    id_usuario_b = client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {token_b}"}
+    ).json()["id_usuario"]
+
+    # Captura o protocolo de cada solicitação para comparação posterior
+    protocolo_a = client.get(
+        f"/admin/solicitacoes/{id_sol_a}",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    ).json()["protocolo"]
+    protocolo_b = client.get(
+        f"/admin/solicitacoes/{id_sol_b}",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    ).json()["protocolo"]
+
+    # Filtra pelo autor A — deve retornar exatamente 1 item com o protocolo de A
+    resp_a = client.get(
+        f"/admin/solicitacoes?id_autor={id_usuario_a}",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    )
+    assert resp_a.status_code == 200
+    itens_a = resp_a.json()["itens"]
+    assert len(itens_a) == 1
+    assert itens_a[0]["protocolo"] == protocolo_a
+    # Confirma que a solicitação do outro cidadão não aparece no resultado
+    assert itens_a[0]["protocolo"] != protocolo_b
+
+    # Filtra pelo autor B — deve retornar exatamente 1 item com o protocolo de B
+    resp_b = client.get(
+        f"/admin/solicitacoes?id_autor={id_usuario_b}",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    )
+    assert resp_b.status_code == 200
+    itens_b = resp_b.json()["itens"]
+    assert len(itens_b) == 1
+    assert itens_b[0]["protocolo"] == protocolo_b
+    # Confirma que a solicitação do outro cidadão não aparece no resultado
+    assert itens_b[0]["protocolo"] != protocolo_a

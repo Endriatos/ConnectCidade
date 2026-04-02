@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.crud.admin_solicitacao import atualizar_status, get_solicitacao_por_id, listar_solicitacoes
+from app.crud.notificacao import criar_notificacao
 from app.models.solicitacao import OrdemSolicitacao, StatusSolicitacao
 from app.schemas.solicitacao import PaginacaoResponse, SolicitacaoResponse
 from app.utils.deps import get_admin_atual, get_db
@@ -20,6 +21,8 @@ def listar_solicitacoes_admin(
     id_categoria: Optional[int] = Query(None),
     # Busca parcial pelo protocolo da solicitação
     protocolo: Optional[str] = Query(None),
+    # Filtro opcional pelo id do cidadão autor das solicitações
+    id_autor: Optional[int] = Query(None),
     # Critério de ordenação: mais_recentes (padrão), mais_antigos ou mais_apoiados
     ordem: Optional[OrdemSolicitacao] = Query(None),
     # Número da página desejada (começa em 1)
@@ -40,6 +43,7 @@ def listar_solicitacoes_admin(
         status=status_filtro,
         id_categoria=id_categoria,
         protocolo=protocolo,
+        id_autor=id_autor,
         ordem=ordem,
         pagina=pagina,
         por_pagina=por_pagina,
@@ -103,5 +107,22 @@ def atualizar_status_solicitacao(
     except ValueError as e:
         # ValueError com "não encontrada" indica solicitação inexistente → 404
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    # Notifica o autor apenas se ele não for o próprio administrador que fez a mudança
+    if solicitacao.id_autor != admin_atual.id_usuario:
+        # Mapeamento de valores do enum para rótulos legíveis em português
+        _rotulos_status = {
+            "PENDENTE": "Pendente",
+            "EM_ANALISE": "Em Análise",
+            "EM_ANDAMENTO": "Em Andamento",
+            "RESOLVIDO": "Resolvido",
+            "CANCELADO": "Cancelado",
+        }
+        status_formatado = _rotulos_status.get(solicitacao.status.value, solicitacao.status.value)
+        mensagem = (
+            f"O status da sua solicitação {solicitacao.protocolo} "
+            f"foi atualizado para {status_formatado}."
+        )
+        criar_notificacao(db, solicitacao.id_autor, solicitacao.id_solicitacao, mensagem)
 
     return solicitacao

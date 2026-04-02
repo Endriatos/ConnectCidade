@@ -8,6 +8,7 @@ from app.routers.avaliacoes import router as avaliacoes_router
 from app.routers.categorias import router as categorias_router
 from app.routers.fotos import router as fotos_router
 from app.routers.mapa import router as mapa_router
+from app.routers.notificacoes import router as notificacoes_router
 from app.routers.solicitacoes import router as solicitacoes_router
 from app.routers.usuarios import router as usuarios_router
 
@@ -40,6 +41,7 @@ app.include_router(fotos_router)
 app.include_router(apoios_router)
 app.include_router(avaliacoes_router)
 app.include_router(mapa_router)
+app.include_router(notificacoes_router)
 
 # Painel admin
 app.include_router(admin_solicitacoes_router)

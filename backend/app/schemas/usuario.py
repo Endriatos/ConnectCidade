@@ -3,6 +3,8 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.utils.auth_utils import validar_complexidade_senha as _validar_complexidade_senha
+
 
 class UsuarioCreate(BaseModel):
     cpf: str
@@ -16,21 +18,10 @@ class UsuarioCreate(BaseModel):
     @classmethod
     def validar_complexidade_senha(cls, v: str) -> str:
         """
-        Valida os requisitos mínimos de segurança da senha no cadastro.
-        Espelha as mesmas regras de complexidade exigidas pelo frontend,
-        garantindo consistência mesmo em chamadas diretas à API.
+        Delega a validação de complexidade para a função centralizada em auth_utils,
+        garantindo que schemas e routers apliquem exatamente as mesmas regras.
         """
-        if len(v) < 8:
-            raise ValueError("A senha deve ter pelo menos 8 caracteres.")
-        if not any(c.isupper() for c in v):
-            raise ValueError("A senha deve conter pelo menos uma letra maiúscula.")
-        if not any(c.islower() for c in v):
-            raise ValueError("A senha deve conter pelo menos uma letra minúscula.")
-        if not any(c.isdigit() for c in v):
-            raise ValueError("A senha deve conter pelo menos um número.")
-        # Caractere especial: qualquer símbolo que não seja letra nem dígito
-        if not any(not c.isalnum() for c in v):
-            raise ValueError("A senha deve conter pelo menos um caractere especial.")
+        _validar_complexidade_senha(v)
         return v
 
 
@@ -64,16 +55,6 @@ class AlterarSenhaRequest(BaseModel):
     @field_validator("senha_nova")
     @classmethod
     def validar_complexidade_senha(cls, v: str) -> str:
-        """Valida que a nova senha atende aos requisitos mínimos de segurança."""
-        if len(v) < 8:
-            raise ValueError("A senha deve ter pelo menos 8 caracteres.")
-        if not any(c.isupper() for c in v):
-            raise ValueError("A senha deve conter pelo menos uma letra maiúscula.")
-        if not any(c.islower() for c in v):
-            raise ValueError("A senha deve conter pelo menos uma letra minúscula.")
-        if not any(c.isdigit() for c in v):
-            raise ValueError("A senha deve conter pelo menos um número.")
-        # Caractere especial: qualquer símbolo que não seja letra nem dígito
-        if not any(not c.isalnum() for c in v):
-            raise ValueError("A senha deve conter pelo menos um caractere especial.")
+        """Delega a validação para a função centralizada em auth_utils."""
+        _validar_complexidade_senha(v)
         return v

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from app.models.solicitacao import StatusSolicitacao
 from tests.conftest import _cadastrar_e_logar, _criar_admin_e_logar, _criar_solicitacao, _gerar_cpf
 
@@ -21,11 +23,13 @@ def test_atualizar_status_sucesso(client, db):
 
     id_sol = _criar_solicitacao(client, token_cidadao)
 
-    resp = client.patch(
-        _url_status(id_sol),
-        json={"status_novo": "EM_ANALISE", "comentario": "Analisando a ocorrência."},
-        headers={"Authorization": f"Bearer {token_admin}"},
-    )
+    # O envio de email é mockado para não depender de infraestrutura externa
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp = client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "EM_ANALISE", "comentario": "Analisando a ocorrência."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
 
     assert resp.status_code == 200
     assert resp.json()["status"] == "EM_ANALISE"
@@ -38,11 +42,13 @@ def test_atualizar_status_registra_timeline(client, db):
 
     id_sol = _criar_solicitacao(client, token_cidadao)
 
-    client.patch(
-        _url_status(id_sol),
-        json={"status_novo": "EM_ANDAMENTO", "comentario": "Equipe enviada ao local."},
-        headers={"Authorization": f"Bearer {token_admin}"},
-    )
+    # O envio de email é mockado para não depender de infraestrutura externa
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "EM_ANDAMENTO", "comentario": "Equipe enviada ao local."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
 
     resp = client.get(
         f"/solicitacoes/{id_sol}/timeline",
@@ -65,11 +71,13 @@ def test_atualizar_status_resolve_seta_data_resolucao(client, db):
 
     id_sol = _criar_solicitacao(client, token_cidadao)
 
-    resp = client.patch(
-        _url_status(id_sol),
-        json={"status_novo": "RESOLVIDO", "comentario": "Problema solucionado."},
-        headers={"Authorization": f"Bearer {token_admin}"},
-    )
+    # O envio de email é mockado para não depender de infraestrutura externa
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp = client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "RESOLVIDO", "comentario": "Problema solucionado."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
 
     assert resp.status_code == 200
     # data_resolucao deve ser preenchida automaticamente ao resolver
@@ -83,19 +91,21 @@ def test_atualizar_status_sai_de_resolvido_limpa_data_resolucao(client, db):
 
     id_sol = _criar_solicitacao(client, token_cidadao)
 
-    # Primeiro resolve a solicitação
-    client.patch(
-        _url_status(id_sol),
-        json={"status_novo": "RESOLVIDO", "comentario": "Resolvido."},
-        headers={"Authorization": f"Bearer {token_admin}"},
-    )
+    # O envio de email é mockado para não depender de infraestrutura externa
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        # Primeiro resolve a solicitação
+        client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "RESOLVIDO", "comentario": "Resolvido."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
 
-    # Depois reabre como EM_ANDAMENTO — data_resolucao deve ser apagada
-    resp = client.patch(
-        _url_status(id_sol),
-        json={"status_novo": "EM_ANDAMENTO", "comentario": "Reaberto por solicitação."},
-        headers={"Authorization": f"Bearer {token_admin}"},
-    )
+        # Depois reabre como EM_ANDAMENTO — data_resolucao deve ser apagada
+        resp = client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "EM_ANDAMENTO", "comentario": "Reaberto por solicitação."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
 
     assert resp.status_code == 200
     assert resp.json()["data_resolucao"] is None
@@ -103,7 +113,9 @@ def test_atualizar_status_sai_de_resolvido_limpa_data_resolucao(client, db):
 
 def test_atualizar_status_sem_autenticacao(client):
     """Acessar o endpoint sem token deve retornar 401 ou 403."""
-    resp = client.patch("/admin/solicitacoes/1/status", json={"status_novo": "EM_ANALISE", "comentario": "x"})
+    # O envio de email é mockado por consistência, embora a requisição falhe na autenticação
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp = client.patch("/admin/solicitacoes/1/status", json={"status_novo": "EM_ANALISE", "comentario": "x"})
     assert resp.status_code in (401, 403)
 
 
@@ -111,11 +123,13 @@ def test_atualizar_status_cidadao_nao_pode(client):
     """Cidadão autenticado não pode acessar endpoint de admin — espera 403."""
     token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(308), "cidadao_admin5@email.com")
 
-    resp = client.patch(
-        "/admin/solicitacoes/1/status",
-        json={"status_novo": "EM_ANALISE", "comentario": "Tentativa indevida."},
-        headers={"Authorization": f"Bearer {token_cidadao}"},
-    )
+    # O envio de email é mockado por consistência, embora a requisição falhe por falta de permissão
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp = client.patch(
+            "/admin/solicitacoes/1/status",
+            json={"status_novo": "EM_ANALISE", "comentario": "Tentativa indevida."},
+            headers={"Authorization": f"Bearer {token_cidadao}"},
+        )
 
     assert resp.status_code == 403
 
@@ -124,11 +138,13 @@ def test_atualizar_status_solicitacao_inexistente(client, db):
     """Admin tenta mudar status de solicitação inexistente — espera 404."""
     token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(309), "admin5@email.com")
 
-    resp = client.patch(
-        "/admin/solicitacoes/999999/status",
-        json={"status_novo": "EM_ANALISE", "comentario": "Não existe."},
-        headers={"Authorization": f"Bearer {token_admin}"},
-    )
+    # O envio de email é mockado por consistência, embora a requisição falhe com 404
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp = client.patch(
+            "/admin/solicitacoes/999999/status",
+            json={"status_novo": "EM_ANALISE", "comentario": "Não existe."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
 
     assert resp.status_code == 404
 
@@ -140,12 +156,14 @@ def test_atualizar_status_comentario_vazio(client, db):
 
     id_sol = _criar_solicitacao(client, token_cidadao)
 
+    # O envio de email é mockado por consistência, embora a requisição falhe na validação do Pydantic
     # Comentário com string vazia deve falhar na validação (min_length=1)
-    resp = client.patch(
-        _url_status(id_sol),
-        json={"status_novo": "EM_ANALISE", "comentario": ""},
-        headers={"Authorization": f"Bearer {token_admin}"},
-    )
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp = client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "EM_ANALISE", "comentario": ""},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
 
     assert resp.status_code == 422
 
@@ -208,11 +226,13 @@ def test_listar_solicitacoes_filtro_status(client, db):
     id_sol = _criar_solicitacao(client, token_cidadao)
 
     # Muda o status da solicitação criada para EM_ANALISE via PATCH
-    client.patch(
-        _url_status(id_sol),
-        json={"status_novo": "EM_ANALISE", "comentario": "Iniciando análise."},
-        headers={"Authorization": f"Bearer {token_admin}"},
-    )
+    # O envio de email é mockado para não depender de infraestrutura externa
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "EM_ANALISE", "comentario": "Iniciando análise."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
 
     # Lista somente solicitações com status EM_ANALISE
     resp = client.get(

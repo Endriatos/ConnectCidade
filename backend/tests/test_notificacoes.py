@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
+from unittest.mock import patch
 
 from tests.conftest import (
     _cadastrar_e_logar,
@@ -32,11 +33,13 @@ def setup(client, db):
         token_admin = resp.json()["access_token"]
 
     # Atualiza o status — isso dispara a criação da notificação para o cidadão
-    client.patch(
-        f"/admin/solicitacoes/{id_solicitacao}/status",
-        json={"status_novo": "EM_ANALISE", "comentario": "Iniciando análise"},
-        headers={"Authorization": f"Bearer {token_admin}"},
-    )
+    # O envio de email é mockado para não depender de infraestrutura externa
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        client.patch(
+            f"/admin/solicitacoes/{id_solicitacao}/status",
+            json={"status_novo": "EM_ANALISE", "comentario": "Iniciando análise"},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
 
     return {
         "token_cidadao": token_cidadao,
@@ -146,11 +149,13 @@ def test_cidadao_nao_ve_notificacao_de_outro(client, db, setup):
     id_sol2 = _criar_solicitacao(client, token_cidadao2)
 
     # Admin atualiza o status da solicitação do cidadão 2 — gera notificação para ele
-    client.patch(
-        f"/admin/solicitacoes/{id_sol2}/status",
-        json={"status_novo": "EM_ANALISE", "comentario": "Analisando do cidadão 2"},
-        headers={"Authorization": f"Bearer {setup['token_admin']}"},
-    )
+    # O envio de email é mockado para não depender de infraestrutura externa
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        client.patch(
+            f"/admin/solicitacoes/{id_sol2}/status",
+            json={"status_novo": "EM_ANALISE", "comentario": "Analisando do cidadão 2"},
+            headers={"Authorization": f"Bearer {setup['token_admin']}"},
+        )
 
     # O cidadão 1 lista as notificações — não deve ver as do cidadão 2
     itens_depois = client.get(
@@ -175,11 +180,13 @@ def test_multiplas_atualizacoes_geram_multiplas_notificacoes(client, setup):
     Após duas atualizações, o cidadão deve ter ao menos 2 notificações.
     """
     # Segunda atualização de status — a primeira já foi feita no fixture setup
-    client.patch(
-        f"/admin/solicitacoes/{setup['id_solicitacao']}/status",
-        json={"status_novo": "EM_ANDAMENTO", "comentario": "Equipe a caminho"},
-        headers={"Authorization": f"Bearer {setup['token_admin']}"},
-    )
+    # O envio de email é mockado para não depender de infraestrutura externa
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        client.patch(
+            f"/admin/solicitacoes/{setup['id_solicitacao']}/status",
+            json={"status_novo": "EM_ANDAMENTO", "comentario": "Equipe a caminho"},
+            headers={"Authorization": f"Bearer {setup['token_admin']}"},
+        )
 
     itens = client.get(
         "/notificacoes",
@@ -196,11 +203,13 @@ def test_marcar_todas_como_lidas(client, setup):
     devem ter lida=True na listagem subsequente.
     """
     # Faz segunda atualização de status para garantir ao menos 2 notificações
-    client.patch(
-        f"/admin/solicitacoes/{setup['id_solicitacao']}/status",
-        json={"status_novo": "EM_ANDAMENTO", "comentario": "Equipe a caminho"},
-        headers={"Authorization": f"Bearer {setup['token_admin']}"},
-    )
+    # O envio de email é mockado para não depender de infraestrutura externa
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        client.patch(
+            f"/admin/solicitacoes/{setup['id_solicitacao']}/status",
+            json={"status_novo": "EM_ANDAMENTO", "comentario": "Equipe a caminho"},
+            headers={"Authorization": f"Bearer {setup['token_admin']}"},
+        )
 
     # Marca todas as notificações como lidas de uma vez
     resp = client.patch(

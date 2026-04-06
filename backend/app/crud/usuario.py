@@ -9,6 +9,10 @@ def get_usuario_por_cpf(db: Session, cpf: str) -> Usuario | None:
     return db.query(Usuario).filter(Usuario.cpf == cpf).first()
 
 
+def get_usuario_por_id(db: Session, id_usuario: int) -> Usuario | None:
+    return db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+
+
 def get_usuario_por_email(db: Session, email: str) -> Usuario | None:
     return db.query(Usuario).filter(Usuario.email == email).first()
 

@@ -1,37 +1,28 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapPin, Loader2, Camera, Upload, X, AlertTriangle, CheckCircle, Lightbulb, Trash2, Accessibility, Construction, Search, Pencil, LocateFixed } from 'lucide-react'
-import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import api from '../services/api'
 import Header from '../components/Header'
 
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-})
+const LIBRARIES = ['places']
 
-function CapturarMapa({ mapaRef }) {
-  const mapa = useMap()
-  useEffect(() => { mapaRef.current = mapa }, [mapa, mapaRef])
-  return null
-}
+const CENTRO_MODAL_PADRAO = { lat: -29.1678, lng: -51.1794 }
 
-function MapaEventos({ onMoveEnd }) {
-  const debRef = useRef(null)
-  useMapEvents({
-    moveend: (e) => {
-      clearTimeout(debRef.current)
-      debRef.current = setTimeout(() => {
-        const { lat, lng } = e.target.getCenter()
-        onMoveEnd(lat, lng)
-      }, 600)
-    },
-  })
-  return null
+const LOC_DOT_SVG =
+  `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">` +
+  `<circle cx="18" cy="18" r="10" fill="#3b82f6" fill-opacity="0.3">` +
+  `<animate attributeName="r" values="10;17;10" dur="1.8s" repeatCount="indefinite"/>` +
+  `<animate attributeName="fill-opacity" values="0.4;0.05;0.4" dur="1.8s" repeatCount="indefinite"/>` +
+  `</circle>` +
+  `<circle cx="18" cy="18" r="7" fill="#3b82f6" stroke="white" stroke-width="2.5"/>` +
+  `</svg>`
+
+const queryParaBusca = (val) => {
+  if (val.includes(',')) return val
+  const outrasCidades = ['porto alegre', 'são paulo', 'florianópolis', 'curitiba', 'rio de janeiro', 'blumenau', 'joinville', 'pelotas', 'santa maria']
+  if (outrasCidades.some((c) => val.toLowerCase().includes(c))) return val
+  return `${val}, Caxias do Sul RS`
 }
 
 const iconeCategoria = (nome) => {
@@ -42,10 +33,28 @@ const iconeCategoria = (nome) => {
   return MapPin
 }
 
+const geocodificacaoReversa = async (lat, lng) => {
+  if (!window.google) return ''
+  try {
+    const geocoder = new window.google.maps.Geocoder()
+    const { results } = await geocoder.geocode({ location: { lat, lng } })
+    if (!results[0]) return ''
+    const comp = results[0].address_components
+    const get = (type) => comp.find((c) => c.types.includes(type))?.long_name ?? ''
+    const partes = [
+      get('route'),
+      get('street_number'),
+      get('sublocality_level_1') || get('neighborhood') || get('sublocality'),
+    ].filter(Boolean)
+    return partes.join(', ') || results[0].formatted_address
+  } catch {
+    return ''
+  }
+}
+
 export default function NovaSolicitacao() {
   const navigate = useNavigate()
 
-  // Campos do formulário
   const [categorias, setCategorias] = useState([])
   const [idCategoria, setIdCategoria] = useState(null)
   const [descricao, setDescricao] = useState('')
@@ -53,12 +62,10 @@ export default function NovaSolicitacao() {
   const [fotos, setFotos] = useState([])
   const fotoInputRef = useRef(null)
 
-  // Geolocalização
   const [latitude, setLatitude] = useState(null)
   const [longitude, setLongitude] = useState(null)
-  const [geoStatus, setGeoStatus] = useState('idle') // 'idle' | 'carregando' | 'ok' | 'erro'
+  const [geoStatus, setGeoStatus] = useState('idle')
 
-  // Modal de mapa
   const [modalMapa, setModalMapa] = useState(false)
   const [posModal, setPosModal] = useState([-29.1678, -51.1794])
   const [enderecoModal, setEnderecoModal] = useState('')
@@ -67,24 +74,25 @@ export default function NovaSolicitacao() {
   const [toastMapa, setToastMapa] = useState(null)
   const debounceRef = useRef(null)
   const mapaRef = useRef(null)
+  const localizacaoMarkerModalRef = useRef(null)
 
-  // Controle de envio e duplicata
   const [solicitacaoCriada, setSolicitacaoCriada] = useState(null)
   const [enviando, setEnviando] = useState(false)
-  const [uploadProgresso, setUploadProgresso] = useState(null) // '2/3' ou null
+  const [uploadProgresso, setUploadProgresso] = useState(null)
   const [avisDuplicata, setAvisDuplicata] = useState(null)
   const [erros, setErros] = useState({})
 
-  // Busca categorias do backend
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: LIBRARIES,
+  })
+
   useEffect(() => {
     api.get('/categorias').then((res) => setCategorias(res.data)).catch(() => {})
   }, [])
 
   const capturarLocalizacao = () => {
-    if (!navigator.geolocation) {
-      setGeoStatus('erro')
-      return
-    }
+    if (!navigator.geolocation) { setGeoStatus('erro'); return }
     setGeoStatus('carregando')
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -93,63 +101,17 @@ export default function NovaSolicitacao() {
         setLatitude(lat)
         setLongitude(lon)
         setGeoStatus('ok')
-        // Geocodificação reversa via Nominatim (OpenStreetMap)
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
-            { headers: { 'Accept-Language': 'pt-BR' } }
-          )
-          const data = await res.json()
-          const addr = data.address
-          const partes = [
-            addr.road,
-            addr.house_number,
-            addr.suburb ?? addr.neighbourhood,
-          ].filter(Boolean)
-          setEnderecoReferencia(partes.join(', ') || data.display_name)
-        } catch {
-          // Se a geocodificação falhar, mantém o campo como está
+        if (isLoaded) {
+          const end = await geocodificacaoReversa(lat, lon)
+          if (end) setEnderecoReferencia(end)
         }
       },
       () => setGeoStatus('erro'),
     )
   }
 
-  // Tenta capturar localização ao montar
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { capturarLocalizacao() }, [])
-
-  const geocodificarEndereco = async (endereco) => {
-    if (!endereco.trim() || geoStatus === 'ok') return
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1`,
-        { headers: { 'Accept-Language': 'pt-BR' } }
-      )
-      const data = await res.json()
-      if (data.length > 0) {
-        setLatitude(parseFloat(data[0].lat))
-        setLongitude(parseFloat(data[0].lon))
-      }
-    } catch {
-      // mantém fallback se geocodificação falhar
-    }
-  }
-
-  const geocodificacaoReversa = async (lat, lng) => {
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-        { headers: { 'Accept-Language': 'pt-BR' } }
-      )
-      const data = await res.json()
-      const addr = data.address
-      const partes = [addr.road, addr.house_number, addr.suburb ?? addr.neighbourhood].filter(Boolean)
-      return partes.join(', ') || data.display_name
-    } catch {
-      return ''
-    }
-  }
+  useEffect(() => { if (isLoaded) capturarLocalizacao() }, [isLoaded])
 
   const mostrarToast = (msg, tipo = 'sucesso') => {
     setToastMapa({ msg, tipo })
@@ -162,41 +124,70 @@ export default function NovaSolicitacao() {
     setPosModal([lat, lng])
     setSugestoes([])
     setBuscaModal(enderecoReferencia)
-    const end = enderecoReferencia || await geocodificacaoReversa(lat, lng)
-    setEnderecoModal(end)
+    setEnderecoModal(enderecoReferencia)
     setModalMapa(true)
   }
 
-  const handleDragEnd = async (e) => {
-    const { lat, lng } = e.target.getLatLng()
-    setPosModal([lat, lng])
-    const end = await geocodificacaoReversa(lat, lng)
-    setEnderecoModal(end)
-    setBuscaModal(end)
+  const handleMapaModalLoad = (map) => {
+    mapaRef.current = map
+    map.setCenter({ lat: posModal[0], lng: posModal[1] })
+    map.addListener('dragend', async () => {
+      const center = map.getCenter()
+      const end = await geocodificacaoReversa(center.lat(), center.lng())
+      setEnderecoModal(end)
+      setBuscaModal(end)
+    })
+    if (latitude != null && longitude != null) {
+      localizacaoMarkerModalRef.current = new window.google.maps.Marker({
+        position: { lat: latitude, lng: longitude },
+        map,
+        icon: {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(LOC_DOT_SVG)}`,
+          scaledSize: new window.google.maps.Size(36, 36),
+          anchor: new window.google.maps.Point(18, 18),
+        },
+        clickable: false,
+        zIndex: 500,
+      })
+    }
   }
 
   const handleBuscaChange = (val) => {
     setBuscaModal(val)
     setSugestoes([])
     clearTimeout(debounceRef.current)
-    if (val.trim().length < 3) return
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(val)}&city=Caxias%20do%20Sul&state=RS&country=Brazil&limit=5&addressdetails=1`,
-          { headers: { 'Accept-Language': 'pt-BR' } }
-        )
-        const data = await res.json()
-        setSugestoes(data)
-      } catch {}
+    if (val.trim().length < 3 || !window.google) return
+    debounceRef.current = setTimeout(() => {
+      const service = new window.google.maps.places.AutocompleteService()
+      service.getPlacePredictions(
+        {
+          input: queryParaBusca(val),
+          componentRestrictions: { country: 'br' },
+        },
+        (predictions, status) => {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+            setSugestoes(predictions)
+          }
+        }
+      )
     }, 400)
   }
 
-  const selecionarSugestao = (s) => {
-    setEnderecoModal(s.display_name)
-    setBuscaModal(s.display_name)
+  const selecionarSugestao = async (s) => {
+    setEnderecoModal(s.description)
+    setBuscaModal(s.description)
     setSugestoes([])
-    if (mapaRef.current) mapaRef.current.setView([parseFloat(s.lat), parseFloat(s.lon)], 16)
+    if (!window.google || !mapaRef.current) return
+    try {
+      const geocoder = new window.google.maps.Geocoder()
+      const { results } = await geocoder.geocode({ placeId: s.place_id })
+      if (results[0]) {
+        const lat = results[0].geometry.location.lat()
+        const lng = results[0].geometry.location.lng()
+        mapaRef.current.setCenter({ lat, lng })
+        mapaRef.current.setZoom(16)
+      }
+    } catch {}
   }
 
   const obterLocalizacaoAtual = () => {
@@ -208,7 +199,10 @@ export default function NovaSolicitacao() {
       async (pos) => {
         const lat = pos.coords.latitude
         const lng = pos.coords.longitude
-        if (mapaRef.current) mapaRef.current.setView([lat, lng], 16)
+        if (mapaRef.current) {
+          mapaRef.current.setCenter({ lat, lng })
+          mapaRef.current.setZoom(16)
+        }
         const end = await geocodificacaoReversa(lat, lng)
         setEnderecoModal(end)
         setBuscaModal(end)
@@ -221,8 +215,8 @@ export default function NovaSolicitacao() {
   const confirmarPosicaoMapa = () => {
     if (!mapaRef.current) return
     const center = mapaRef.current.getCenter()
-    setLatitude(center.lat)
-    setLongitude(center.lng)
+    setLatitude(center.lat())
+    setLongitude(center.lng())
     setEnderecoReferencia(enderecoModal)
     setGeoStatus('manual')
     setModalMapa(false)
@@ -254,7 +248,6 @@ export default function NovaSolicitacao() {
     setEnviando(true)
     setUploadProgresso(null)
     try {
-      // POST /solicitacoes em multipart: campos + fotos (obrigatório no back-end; mesmo nome "fotos" para cada arquivo)
       const form = new FormData()
       form.append('id_categoria', String(idCategoria))
       form.append('descricao', descricao)
@@ -263,16 +256,8 @@ export default function NovaSolicitacao() {
       form.append('longitude', String(longitude ?? -51.1794))
       form.append('confirmar_duplicata', confirmarDuplicata ? 'true' : 'false')
       fotos.forEach((f) => form.append('fotos', f))
-
-      // Não definir Content-Type manualmente: o axios define multipart com boundary ao enviar FormData
       const res = await api.post('/solicitacoes', form)
-
-      // Duplicata: API retorna 200 com { aviso, protocolo, ... } sem criar solicitação até o usuário confirmar
-      if (res.data.aviso) {
-        setAvisDuplicata(res.data)
-        return
-      }
-
+      if (res.data.aviso) { setAvisDuplicata(res.data); return }
       const categoriaSelecionada = categorias.find((c) => c.id_categoria === idCategoria)
       setSolicitacaoCriada({ ...res.data, nome_categoria: categoriaSelecionada?.nome_categoria })
     } catch {
@@ -285,10 +270,10 @@ export default function NovaSolicitacao() {
   const handleSubmit = (e) => {
     e.preventDefault()
     const novosErros = {}
-    if (!idCategoria)                 novosErros.categoria = 'Selecione uma categoria.'
-    if (!descricao.trim())            novosErros.descricao = 'Descreva o problema.'
-    if (!enderecoReferencia.trim())   novosErros.endereco  = 'Informe o endereço.'
-    if (fotos.length === 0)           novosErros.fotos     = 'Adicione pelo menos uma foto.'
+    if (!idCategoria)               novosErros.categoria = 'Selecione uma categoria.'
+    if (!descricao.trim())          novosErros.descricao = 'Descreva o problema.'
+    if (!enderecoReferencia.trim()) novosErros.endereco  = 'Informe o endereço.'
+    if (fotos.length === 0)         novosErros.fotos     = 'Adicione pelo menos uma foto.'
     if (Object.keys(novosErros).length) return setErros(novosErros)
     enviarSolicitacao(false)
   }
@@ -297,11 +282,10 @@ export default function NovaSolicitacao() {
     <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
 
       {/* Modal — seleção de localização no mapa */}
-      {modalMapa && (
+      {modalMapa && isLoaded && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl flex flex-col" style={{ height: '80vh' }}>
+          <div className="w-full max-w-lg sm:max-w-2xl lg:max-w-4xl bg-white rounded-2xl shadow-xl flex flex-col" style={{ height: '80vh' }}>
 
-            {/* Cabeçalho com busca e sugestões */}
             <div className="shrink-0 relative">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-[#2a2a2a]/8">
                 <div className="flex flex-1 items-center rounded-xl border border-[#2a2a2a]/10 focus-within:ring-2 focus-within:ring-[#3cb478]/30 overflow-hidden">
@@ -327,36 +311,34 @@ export default function NovaSolicitacao() {
                 </button>
               </div>
 
-              {/* Dropdown de sugestões */}
               {sugestoes.length > 0 && (
                 <div className="absolute left-4 right-4 top-full z-[3000] bg-white rounded-xl border border-[#2a2a2a]/10 shadow-lg overflow-hidden">
-                  {sugestoes.map((s, i) => (
+                  {sugestoes.map((s) => (
                     <button
-                      key={i}
+                      key={s.place_id}
                       onClick={() => selecionarSugestao(s)}
                       className="w-full text-left px-4 py-2.5 text-sm text-[#2a2a2a] hover:bg-[#f5f5f5] border-b border-[#2a2a2a]/5 last:border-0 truncate"
                     >
-                      {s.display_name}
+                      {s.description}
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Mapa */}
             <div className="flex-1 relative overflow-hidden">
-              <MapContainer center={posModal} zoom={16} className="h-full w-full" zoomControl={false}>
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <CapturarMapa mapaRef={mapaRef} />
-                <MapaEventos onMoveEnd={async (lat, lng) => {
-                  const end = await geocodificacaoReversa(lat, lng)
-                  setEnderecoModal(end)
-                  setBuscaModal(end)
-                }} />
-              </MapContainer>
+              <GoogleMap
+                mapContainerClassName="h-full w-full"
+                center={CENTRO_MODAL_PADRAO}
+                zoom={16}
+                onLoad={handleMapaModalLoad}
+                options={{
+                  streetViewControl: false,
+                  mapTypeControl: false,
+                  fullscreenControl: false,
+                  gestureHandling: 'greedy',
+                }}
+              />
 
               {/* Pin fixo no centro */}
               <div className="absolute top-1/2 left-1/2 z-[1000] pointer-events-none" style={{ transform: 'translate(-50%, -100%)' }}>
@@ -366,24 +348,21 @@ export default function NovaSolicitacao() {
                 </svg>
               </div>
 
-              {/* Toast */}
               {toastMapa && (
                 <div className={`absolute top-3 left-1/2 -translate-x-1/2 z-[4000] px-4 py-2 rounded-xl text-sm font-medium shadow-md whitespace-nowrap ${toastMapa.tipo === 'sucesso' ? 'bg-[#3cb478] text-white' : 'bg-red-500 text-white'}`}>
                   {toastMapa.msg}
                 </div>
               )}
 
-              {/* Botão localização atual */}
               <button
                 onClick={obterLocalizacaoAtual}
                 title="Usar minha localização atual"
-                className="absolute bottom-4 right-4 z-[1000] bg-white rounded-xl shadow-md p-2.5 text-[#2a2a2a]/60 hover:text-[#3cb478] transition-colors"
+                className="absolute bottom-[72px] right-[10px] z-[1000] bg-white rounded-xl shadow-md p-2.5 text-[#2a2a2a]/60 hover:text-[#3cb478] transition-colors"
               >
                 <LocateFixed className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Rodapé */}
             <div className="shrink-0 px-4 py-3 border-t border-[#2a2a2a]/8">
               {enderecoModal && (
                 <p className="text-xs text-[#2a2a2a]/50 mb-2 truncate">{enderecoModal}</p>
@@ -480,7 +459,6 @@ export default function NovaSolicitacao() {
 
       <Header />
 
-      {/* Formulário */}
       <main className="flex-1 py-8">
         <div className="mx-auto px-4 w-full max-w-2xl">
           <div className="bg-white rounded-2xl border border-[#2a2a2a]/8 shadow-sm p-8">
@@ -492,7 +470,6 @@ export default function NovaSolicitacao() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {/* Categoria */}
               <div>
                 <label className="block text-sm font-medium text-[#2a2a2a] mb-3">
                   Categoria <span className="text-red-400">*</span>
@@ -519,7 +496,6 @@ export default function NovaSolicitacao() {
                 </div>
               </div>
 
-              {/* Descrição */}
               <div>
                 <label htmlFor="descricao" className="block text-sm font-medium text-[#2a2a2a] mb-2">
                   Descrição <span className="text-red-400">*</span>
@@ -535,7 +511,6 @@ export default function NovaSolicitacao() {
                 {erros.descricao && <p className="text-xs text-red-500 mt-1">{erros.descricao}</p>}
               </div>
 
-              {/* Endereço */}
               <div>
                 <label className="block text-sm font-medium text-[#2a2a2a] mb-2">
                   Endereço <span className="text-red-400">*</span>
@@ -568,7 +543,6 @@ export default function NovaSolicitacao() {
                 )}
               </div>
 
-              {/* Fotos */}
               <div>
                 <label className="block text-sm font-medium text-[#2a2a2a] mb-2">
                   Fotos <span className="text-[#2a2a2a]/40 font-normal">(mín. 1, máx. 5)</span> <span className="text-red-400">*</span>
@@ -624,13 +598,8 @@ export default function NovaSolicitacao() {
                 )}
               </div>
 
+              {erros.geral && <p className="text-sm text-red-500">{erros.geral}</p>}
 
-              {erros.geral && (
-                <p className="text-sm text-red-500">{erros.geral}</p>
-              )}
-
-
-              {/* Botão enviar */}
               <button
                 type="submit"
                 disabled={enviando}

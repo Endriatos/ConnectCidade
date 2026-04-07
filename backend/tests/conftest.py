@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
 from app.main import app
+from app.models.categoria import Categoria
 from app.models.usuario import TipoUsuario, Usuario
 from app.utils.deps import get_db
 
@@ -146,6 +147,22 @@ def test_engine():
     )
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+    # Insere a categoria padrão usada por _criar_solicitacao (id_categoria=1)
+    # Necessário porque SQLite não aplica FK constraints — sem isso, JOINs com
+    # categoria retornam vazio mesmo que as solicitações tenham sido criadas
+    seed_session = sessionmaker(bind=engine)()
+    try:
+        seed_session.add(Categoria(
+            id_categoria=1,
+            nome_categoria="Iluminação Pública",
+            descricao="Problemas com postes e iluminação",
+            cor_hex="#F5A623",
+        ))
+        seed_session.commit()
+    finally:
+        seed_session.close()
+
     yield engine
     Base.metadata.drop_all(bind=engine)
     engine.dispose()

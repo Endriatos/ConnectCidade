@@ -48,7 +48,7 @@ async def criar_solicitacao(
     # Foto obrigatória no servidor: entre 1 e 5 arquivos no campo repetido "fotos"
     if not fotos or len(fotos) < 1:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Envie pelo menos uma foto.",
         )
     if len(fotos) > 5:

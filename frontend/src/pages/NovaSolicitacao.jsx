@@ -77,7 +77,7 @@ export default function NovaSolicitacao() {
 
   // Busca categorias do backend
   useEffect(() => {
-    api.get('/categorias').then((res) => setCategorias(res.data)).catch(() => {})
+    api.get('/categorias').then((res) => setCategorias(res.data)).catch(() => undefined)
   }, [])
 
   const capturarLocalizacao = () => {
@@ -115,26 +115,9 @@ export default function NovaSolicitacao() {
     )
   }
 
-  // Tenta capturar localização ao montar
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { capturarLocalizacao() }, [])
-
-  const geocodificarEndereco = async (endereco) => {
-    if (!endereco.trim() || geoStatus === 'ok') return
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1`,
-        { headers: { 'Accept-Language': 'pt-BR' } }
-      )
-      const data = await res.json()
-      if (data.length > 0) {
-        setLatitude(parseFloat(data[0].lat))
-        setLongitude(parseFloat(data[0].lon))
-      }
-    } catch {
-      // mantém fallback se geocodificação falhar
-    }
-  }
+  useEffect(() => {
+    capturarLocalizacao()
+  }, [])
 
   const geocodificacaoReversa = async (lat, lng) => {
     try {
@@ -167,14 +150,6 @@ export default function NovaSolicitacao() {
     setModalMapa(true)
   }
 
-  const handleDragEnd = async (e) => {
-    const { lat, lng } = e.target.getLatLng()
-    setPosModal([lat, lng])
-    const end = await geocodificacaoReversa(lat, lng)
-    setEnderecoModal(end)
-    setBuscaModal(end)
-  }
-
   const handleBuscaChange = (val) => {
     setBuscaModal(val)
     setSugestoes([])
@@ -188,7 +163,9 @@ export default function NovaSolicitacao() {
         )
         const data = await res.json()
         setSugestoes(data)
-      } catch {}
+      } catch {
+        void 0
+      }
     }, 400)
   }
 
@@ -490,7 +467,8 @@ export default function NovaSolicitacao() {
 
       {/* Formulário */}
       <main className="flex-1 py-8">
-        <div className="mx-auto px-4 w-full max-w-2xl">
+        <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6">
+          <div className="mx-auto w-full max-w-2xl">
           <div className="bg-white rounded-2xl border border-[#2a2a2a]/8 shadow-sm p-8">
 
             <h1 className="text-2xl font-semibold text-[#2a2a2a]">Registrar Problema</h1>
@@ -653,6 +631,7 @@ export default function NovaSolicitacao() {
               </button>
 
             </form>
+          </div>
           </div>
         </div>
       </main>

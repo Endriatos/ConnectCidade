@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, createElement } from 'react'
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents, ZoomControl } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
-import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, ThumbsUp, MapPin, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import api from '../services/api'
 import Lottie from 'lottie-react'
 import typing from '../assets/Typing.json'
+import { iconeCategoria } from '../utils/categoriaIcone'
+import { STATUS_COR, STATUS_LABEL, formatarData } from '../utils/solicitacaoStatus'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -15,35 +17,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
-
-const iconeCategoria = (nome) => {
-  if (nome?.includes('Iluminação')) return Lightbulb
-  if (nome?.includes('Coleta'))     return Trash2
-  if (nome?.includes('Acessib'))    return Accessibility
-  if (nome?.includes('Manutenção')) return Construction
-  return MapPin
-}
-
-const STATUS_LABEL = {
-  PENDENTE: 'Pendente',
-  EM_ANALISE: 'Em Análise',
-  EM_ANDAMENTO: 'Em Andamento',
-  RESOLVIDO: 'Resolvido',
-}
-
-const STATUS_COR = {
-  PENDENTE:     'hsl(221, 83%, 53%)',
-  EM_ANALISE:   'hsl(45, 93%, 47%)',
-  EM_ANDAMENTO: 'hsl(25, 95%, 53%)',
-  RESOLVIDO:    'hsl(142, 71%, 45%)',
-  CANCELADO:    'hsl(0, 72%, 50%)',
-}
-
-const formatarData = (iso) => {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return d.toLocaleDateString('pt-BR')
-}
 
 const PIN_HTML = (cor, animado) => `
   <div style="animation:${animado ? 'pin-bounce 0.6s ease infinite alternate' : 'none'};">
@@ -108,7 +81,7 @@ function RecentrarMapa({ lat, lng }) {
   return null
 }
 
-export default function Mapa() {
+export default function Mapa({ onCategoriasChange, categoriaFiltro = null }) {
   const [solicitacoes, setSolicitacoes] = useState([])
   const [categorias, setCategorias] = useState({})
   const [posicao, setPosicao] = useState(null)
@@ -116,7 +89,6 @@ export default function Mapa() {
   const [fotos, setFotos] = useState([])
   const [carregandoFotos, setCarregandoFotos] = useState(false)
   const [fotoAtiva, setFotoAtiva] = useState(null)
-  const [categoriaFiltro, setCategoriaFiltro] = useState(null)
   const [modalEmBreve, setModalEmBreve] = useState(false)
   const [animApoio, setAnimApoio] = useState(null)
 
@@ -132,12 +104,13 @@ export default function Mapa() {
       const mapa = {}
       res.data.forEach((c) => { mapa[c.id_categoria] = c })
       setCategorias(mapa)
-    }).catch(() => {})
+      onCategoriasChange?.(res.data)
+    }).catch(() => undefined)
 
     api.get('/mapa/solicitacoes').then((res) => {
       setSolicitacoes(res.data)
-    }).catch(() => {})
-  }, [])
+    }).catch(() => undefined)
+  }, [onCategoriasChange])
 
   useEffect(() => {
     if (!selecionada?.id_solicitacao) return
@@ -145,20 +118,39 @@ export default function Mapa() {
       setSelecionada((prev) =>
         prev?.id_solicitacao === selecionada.id_solicitacao ? { ...prev, ...res.data } : prev
       )
-    }).catch(() => {})
+    }).catch(() => undefined)
   }, [selecionada?.id_solicitacao])
 
   useEffect(() => {
-    if (!selecionada?.id_solicitacao) { setFotos([]); return }
-    setCarregandoFotos(true)
-    api.get(`/solicitacoes/${selecionada.id_solicitacao}/fotos`)
-      .then((res) => setFotos(res.data))
-      .catch(() => setFotos([]))
-      .finally(() => setCarregandoFotos(false))
+    let cancelled = false
+    const id = selecionada?.id_solicitacao
+    const run = async () => {
+      await Promise.resolve()
+      if (cancelled) return
+      if (!id) {
+        setFotos([])
+        return
+      }
+      setCarregandoFotos(true)
+      try {
+        const res = await api.get(`/solicitacoes/${id}/fotos`)
+        if (!cancelled) setFotos(res.data)
+      } catch {
+        if (!cancelled) setFotos([])
+      } finally {
+        if (!cancelled) setCarregandoFotos(false)
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
   }, [selecionada?.id_solicitacao])
 
   useEffect(() => {
-    setAnimApoio(null)
+    void Promise.resolve().then(() => {
+      setAnimApoio(null)
+    })
   }, [selecionada?.id_solicitacao])
 
   const apoiarSolicitacao = (idSolicitacao) => {
@@ -173,7 +165,7 @@ export default function Mapa() {
           ? { ...prev, contador_apoios: prev.contador_apoios + 1, ja_apoiado: true }
           : prev
       )
-    }).catch(() => {})
+    }).catch(() => undefined)
   }
 
   const desapoiarSolicitacao = (idSolicitacao) => {
@@ -188,7 +180,7 @@ export default function Mapa() {
           ? { ...prev, contador_apoios: Math.max(0, prev.contador_apoios - 1), ja_apoiado: false }
           : prev
       )
-    }).catch(() => {})
+    }).catch(() => undefined)
   }
 
   const handleToggleApoio = () => {
@@ -214,8 +206,6 @@ export default function Mapa() {
     : solicitacoes
 
   const cat = selecionada ? categorias[selecionada.id_categoria] : null
-  const Icone = cat ? iconeCategoria(cat.nome_categoria) : MapPin
-
   return (
     <div className="relative h-full w-full">
       <MapContainer
@@ -274,68 +264,6 @@ export default function Mapa() {
         </MarkerClusterGroup>
       </MapContainer>
 
-      {/* Filtro de categorias */}
-      {Object.keys(categorias).length > 0 && (() => {
-        const catsArr = Object.values(categorias)
-        const opcoes = [
-          { id: null, Icone: null, cor: null },
-          ...catsArr.map((cat) => ({ id: cat.id_categoria, Icone: iconeCategoria(cat.nome_categoria), cor: cat.cor_hex })),
-        ]
-        const idxAtivo = opcoes.findIndex((o) => o.id === categoriaFiltro)
-        const tamanho = 36
-        const gap = 6
-
-        return (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm shadow-md rounded-full px-1.5 py-1.5">
-            <div className="relative flex items-center" style={{ gap }}>
-              {/* Pill deslizante */}
-              <div
-                className="absolute rounded-full transition-all duration-300 ease-in-out"
-                style={{
-                  width: tamanho,
-                  height: tamanho,
-                  transform: `translateX(${idxAtivo * (tamanho + gap)}px)`,
-                  backgroundColor: opcoes[idxAtivo]?.cor ? `${opcoes[idxAtivo].cor}25` : '#3cb47825',
-                  border: `2px solid ${opcoes[idxAtivo]?.cor ?? '#3cb478'}`,
-                }}
-              />
-              {opcoes.map((opcao) => {
-                const ativo = categoriaFiltro === opcao.id
-                return (
-                  <button
-                    key={opcao.id ?? 'todos'}
-                    onClick={() => setCategoriaFiltro(opcao.id)}
-                    className="relative z-10 flex items-center justify-center transition-colors duration-300"
-                    style={{ width: tamanho, height: tamanho }}
-                  >
-                    {opcao.Icone ? (
-                      <opcao.Icone
-                        className="h-4 w-4 transition-colors duration-300"
-                        style={{ color: ativo ? opcao.cor : '#2a2a2a40' }}
-                      />
-                    ) : (
-                      /* Ícone "Todos": 4 quadrantes com as cores das categorias */
-                      <div className="grid grid-cols-2 gap-px w-4 h-4 rounded-sm overflow-hidden">
-                        {catsArr.slice(0, 4).map((cat) => (
-                          <div
-                            key={cat.id_categoria}
-                            className="transition-opacity duration-300"
-                            style={{
-                              backgroundColor: cat.cor_hex,
-                              opacity: ativo ? 1 : 0.25,
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )
-      })()}
-
       {/* Bottom sheet */}
       {selecionada && cat && (
         <div className="absolute bottom-0 left-0 right-0 z-[1000] bg-white rounded-t-2xl shadow-2xl max-h-[70vh] flex flex-col">
@@ -349,14 +277,16 @@ export default function Mapa() {
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-medium border-2"
                     style={{ borderColor: cat.cor_hex, color: cat.cor_hex, backgroundColor: `${cat.cor_hex}15` }}
                   >
-                    <Icone className="h-4 w-4" />
+                    {createElement(iconeCategoria(cat.nome_categoria), { className: 'h-4 w-4' })}
                     {cat.nome_categoria}
                   </span>
                   <span
                     className="text-[14px] font-medium px-3 py-1.5 rounded-full text-white"
-                    style={{ backgroundColor: STATUS_COR[selecionada.status] }}
+                    style={{
+                      backgroundColor: STATUS_COR[selecionada.status] ?? '#2a2a2a',
+                    }}
                   >
-                    {STATUS_LABEL[selecionada.status]}
+                    {STATUS_LABEL[selecionada.status] ?? selecionada.status}
                   </span>
                 </div>
                 <div className="flex items-start gap-1.5 text-sm text-[#2a2a2a]/50">

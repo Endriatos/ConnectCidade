@@ -1,6 +1,9 @@
+import logging
 from typing import List
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
+
+logger = logging.getLogger(__name__)
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -96,6 +99,7 @@ async def criar_solicitacao(
         db.commit()
         db.refresh(solicitacao)
     except Exception:
+        logger.exception("Erro ao criar solicitação")
         db.rollback()
         # Compensação: remove objetos já enviados ao MinIO se o banco falhar depois do upload
         for url in urls_minio:

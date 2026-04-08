@@ -5,8 +5,6 @@ import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Ca
 import api from '../services/api'
 import Lottie from 'lottie-react'
 import typing from '../assets/Typing.json'
-import { iconeCategoria } from '../utils/categoriaIcone'
-import { STATUS_COR, STATUS_LABEL, formatarData } from '../utils/solicitacaoStatus'
 
 const LIBRARIES = ['places']
 
@@ -71,7 +69,7 @@ const clusterSVG = (count) => {
 
 const CENTRO_PADRAO = { lat: -29.1678, lng: -51.1794 }
 
-export default function Mapa({ onCategoriasChange, categoriaFiltro = null }) {
+export default function Mapa() {
   const [solicitacoes, setSolicitacoes] = useState([])
   const [categorias, setCategorias] = useState({})
   const [posicao, setPosicao] = useState(null)
@@ -79,6 +77,7 @@ export default function Mapa({ onCategoriasChange, categoriaFiltro = null }) {
   const [fotos, setFotos] = useState([])
   const [carregandoFotos, setCarregandoFotos] = useState(false)
   const [fotoAtiva, setFotoAtiva] = useState(null)
+  const [categoriaFiltro, setCategoriaFiltro] = useState(null)
   const [modalEmBreve, setModalEmBreve] = useState(false)
   const [animApoio, setAnimApoio] = useState(null)
   const [mapa, setMapa] = useState(null)
@@ -117,33 +116,16 @@ export default function Mapa({ onCategoriasChange, categoriaFiltro = null }) {
       setSelecionada((prev) =>
         prev?.id_solicitacao === selecionada.id_solicitacao ? { ...prev, ...res.data } : prev
       )
-    }).catch(() => undefined)
+    }).catch(() => {})
   }, [selecionada?.id_solicitacao])
 
   useEffect(() => {
-    let cancelled = false
-    const id = selecionada?.id_solicitacao
-    const run = async () => {
-      await Promise.resolve()
-      if (cancelled) return
-      if (!id) {
-        setFotos([])
-        return
-      }
-      setCarregandoFotos(true)
-      try {
-        const res = await api.get(`/solicitacoes/${id}/fotos`)
-        if (!cancelled) setFotos(res.data)
-      } catch {
-        if (!cancelled) setFotos([])
-      } finally {
-        if (!cancelled) setCarregandoFotos(false)
-      }
-    }
-    void run()
-    return () => {
-      cancelled = true
-    }
+    if (!selecionada?.id_solicitacao) { setFotos([]); return }
+    setCarregandoFotos(true)
+    api.get(`/solicitacoes/${selecionada.id_solicitacao}/fotos`)
+      .then((res) => setFotos(res.data))
+      .catch(() => setFotos([]))
+      .finally(() => setCarregandoFotos(false))
   }, [selecionada?.id_solicitacao])
 
   useEffect(() => { setAnimApoio(null) }, [selecionada?.id_solicitacao])
@@ -275,7 +257,7 @@ export default function Mapa({ onCategoriasChange, categoriaFiltro = null }) {
           ? { ...prev, contador_apoios: prev.contador_apoios + 1, ja_apoiado: true }
           : prev
       )
-    }).catch(() => undefined)
+    }).catch(() => {})
   }
 
   const desapoiarSolicitacao = (idSolicitacao) => {
@@ -290,7 +272,7 @@ export default function Mapa({ onCategoriasChange, categoriaFiltro = null }) {
           ? { ...prev, contador_apoios: Math.max(0, prev.contador_apoios - 1), ja_apoiado: false }
           : prev
       )
-    }).catch(() => undefined)
+    }).catch(() => {})
   }
 
   const handleToggleApoio = () => {
@@ -411,16 +393,14 @@ export default function Mapa({ onCategoriasChange, categoriaFiltro = null }) {
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-medium border-2"
                     style={{ borderColor: cat.cor_hex, color: cat.cor_hex, backgroundColor: `${cat.cor_hex}15` }}
                   >
-                    {createElement(iconeCategoria(cat.nome_categoria), { className: 'h-4 w-4' })}
+                    <Icone className="h-4 w-4" />
                     {cat.nome_categoria}
                   </span>
                   <span
                     className="text-[14px] font-medium px-3 py-1.5 rounded-full text-white"
-                    style={{
-                      backgroundColor: STATUS_COR[selecionada.status] ?? '#2a2a2a',
-                    }}
+                    style={{ backgroundColor: STATUS_COR[selecionada.status] }}
                   >
-                    {STATUS_LABEL[selecionada.status] ?? selecionada.status}
+                    {STATUS_LABEL[selecionada.status]}
                   </span>
                 </div>
                 <div className="flex items-start gap-1.5 text-sm text-[#2a2a2a]/50">

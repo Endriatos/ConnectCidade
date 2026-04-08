@@ -101,11 +101,12 @@ jobs:
           MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DB_PASSWORD,DATABASE_URL,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,SECRET_KEY
+          envs: DB_PASSWORD,DATABASE_URL,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,SECRET_KEY, 
           script_stop: true
           command_timeout: 40m
           script: |

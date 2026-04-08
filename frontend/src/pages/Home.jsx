@@ -4,7 +4,6 @@ import { Plus } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import Header from '../components/Header';
 import Mapa from './Mapa';
-import { iconeCategoria } from '../utils/categoriaIcone';
 
 export default function Home() {
   const { nome } = useAuthStore();
@@ -14,10 +13,6 @@ export default function Home() {
   const [modalAberto, setModalAberto] = useState(
     location.state?.recemCadastrado === true,
   );
-  const [categoriasLegenda, setCategoriasLegenda] = useState([]);
-  const [categoriaFiltro, setCategoriaFiltro] = useState(null);
-  const [categoriaHover, setCategoriaHover] = useState(undefined);
-  const [filtroEmHover, setFiltroEmHover] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
@@ -25,7 +20,10 @@ export default function Home() {
 
       {/* Conteúdo */}
       <main className="flex-1">
-        <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 py-6 flex flex-col gap-8">
+        <div
+          className="mx-auto px-6 py-6 flex flex-col gap-5"
+          style={{ maxWidth: '1400px' }}
+        >
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-[#2a2a2a]">
@@ -43,102 +41,13 @@ export default function Home() {
               Registrar Problema
             </Link>
           </div>
-          <div className="relative">
-            {categoriasLegenda.length > 0 && (() => {
-              const opcoes = [
-                { id: null, Icone: null, cor: null, nome: 'Todas as categorias' },
-                ...categoriasLegenda.map((cat) => ({ id: cat.id_categoria, Icone: iconeCategoria(cat.nome_categoria), cor: cat.cor_hex, nome: cat.nome_categoria })),
-              ];
-              const idxAtivo = opcoes.findIndex((o) => o.id === categoriaFiltro);
-              const nomeAtivo = opcoes.find((o) => o.id === categoriaFiltro)?.nome ?? 'Todas as categorias';
-              const nomeHover = opcoes.find((o) => o.id === categoriaHover)?.nome;
-              const larguraPillCh = Math.max(...opcoes.map((o) => `Filtro: ${o.nome}`.length)) + 2;
-              const tamanho = 36;
-              const gap = 6;
-              return (
-                <div className="absolute left-1/2 -translate-x-1/2 -top-6 z-[1000] bg-white/90 backdrop-blur-sm shadow-md rounded-full px-1.5 py-1.5">
-                  <div
-                    className="relative flex items-center"
-                    style={{ gap }}
-                    onMouseEnter={() => setFiltroEmHover(true)}
-                    onMouseLeave={() => {
-                      setFiltroEmHover(false);
-                      setCategoriaHover(undefined);
-                    }}
-                  >
-                    <div
-                      className="absolute rounded-full transition-all duration-300 ease-in-out"
-                      style={{
-                        width: tamanho,
-                        height: tamanho,
-                        transform: `translateX(${idxAtivo * (tamanho + gap)}px)`,
-                        backgroundColor: opcoes[idxAtivo]?.cor ? `${opcoes[idxAtivo].cor}25` : '#3cb47825',
-                        border: `2px solid ${opcoes[idxAtivo]?.cor ?? '#3cb478'}`,
-                      }}
-                    />
-                    {opcoes.map((opcao) => {
-                      const ativo = categoriaFiltro === opcao.id;
-                      const emHover = categoriaHover === opcao.id;
-                      return (
-                        <button
-                          key={opcao.id ?? 'todos'}
-                          onClick={() => {
-                            setCategoriaFiltro(opcao.id);
-                            setCategoriaHover(undefined);
-                          }}
-                          aria-label={opcao.nome}
-                          onMouseEnter={() => {
-                            setCategoriaHover(opcao.id);
-                          }}
-                          onMouseLeave={() => {
-                            setCategoriaHover(undefined);
-                          }}
-                          className="relative z-10 flex items-center justify-center transition-colors duration-300"
-                          style={{ width: tamanho, height: tamanho }}
-                        >
-                          {opcao.Icone ? (
-                            <opcao.Icone
-                              className="h-4 w-4 transition-colors duration-300"
-                              style={{ color: ativo || emHover ? opcao.cor : '#2a2a2a40' }}
-                            />
-                          ) : (
-                            <div className="grid grid-cols-2 gap-px w-4 h-4 rounded-sm overflow-hidden">
-                              {categoriasLegenda.slice(0, 4).map((cat) => (
-                                <div
-                                  key={cat.id_categoria}
-                                  className="transition-opacity duration-300"
-                                  style={{
-                                    backgroundColor: cat.cor_hex,
-                                    opacity: ativo || emHover ? 1 : 0.25,
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {filtroEmHover && (
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-0.5 pointer-events-none">
-                      <div
-                        className="rounded-full border border-black/8 bg-white/90 backdrop-blur-sm text-[#2a2a2a]/65 text-[11px] font-medium px-2.5 py-0.5 text-center whitespace-nowrap"
-                        style={{ width: `${larguraPillCh}ch` }}
-                      >
-                        FILTRO: {nomeHover ?? nomeAtivo}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
 
-            <div
-              className="rounded-2xl overflow-hidden border border-black/8 shadow-sm"
-              style={{ height: '70vh' }}
-            >
-              <Mapa onCategoriasChange={setCategoriasLegenda} categoriaFiltro={categoriaFiltro} />
-            </div>
+          {/* Mapa */}
+          <div
+            className="rounded-2xl overflow-hidden border border-black/8 shadow-sm"
+            style={{ height: '70vh' }}
+          >
+            <Mapa />
           </div>
         </div>
       </main>

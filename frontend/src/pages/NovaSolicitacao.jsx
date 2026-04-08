@@ -88,7 +88,7 @@ export default function NovaSolicitacao() {
   })
 
   useEffect(() => {
-    api.get('/categorias').then((res) => setCategorias(res.data)).catch(() => undefined)
+    api.get('/categorias').then((res) => setCategorias(res.data)).catch(() => {})
   }, [])
 
   const capturarLocalizacao = () => {
@@ -460,8 +460,7 @@ export default function NovaSolicitacao() {
       <Header />
 
       <main className="flex-1 py-8">
-        <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6">
-          <div className="mx-auto w-full max-w-2xl">
+        <div className="mx-auto px-4 w-full max-w-2xl">
           <div className="bg-white rounded-2xl border border-[#2a2a2a]/8 shadow-sm p-8">
 
             <h1 className="text-2xl font-semibold text-[#2a2a2a]">Registrar Problema</h1>
@@ -615,7 +614,6 @@ export default function NovaSolicitacao() {
               </button>
 
             </form>
-          </div>
           </div>
         </div>
       </main>

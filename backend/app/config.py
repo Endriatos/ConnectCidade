@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=(".env", ".env.local"), extra="ignore")
+    model_config = SettingsConfigDict(env_file=(".env", ".env.local"), env_file_encoding="utf-8", extra="ignore")
 
     DATABASE_URL: str
     SECRET_KEY: str
@@ -14,8 +14,12 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str
     ADMIN_SENHA: str
 
-    RESEND_API_KEY: str = ""
-    EMAIL_FROM: str = ""
+    # Credenciais do Gmail para envio de e-mails transacionais via SMTP
+    GMAIL_USER: str = ""
+    # Senha de app gerada no Google (não a senha da conta) — necessária com 2FA ativo
+    GMAIL_APP_PASSWORD: str = ""
+    # URL base do frontend — usada para montar links nos e-mails enviados
+    FRONTEND_URL: str = "http://localhost:5173"
 
     MINIO_ENDPOINT: str = "http://minio:9000"
     MINIO_ACCESS_KEY: str = ""

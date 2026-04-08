@@ -73,6 +73,7 @@ def listar_solicitacoes(
     status: Optional[StatusSolicitacao] = None,
     id_categoria: Optional[int] = None,
     protocolo: Optional[str] = None,
+    id_autor: Optional[int] = None,
     ordem: Optional[OrdemSolicitacao] = None,
     pagina: int = 1,
     por_pagina: int = 20,
@@ -84,6 +85,7 @@ def listar_solicitacoes(
     - status: filtra pelo status da solicitação (ex: ABERTO, RESOLVIDO)
     - id_categoria: filtra pela categoria da solicitação
     - protocolo: busca parcial (case-insensitive) no campo protocolo
+    - id_autor: filtra pelo id do cidadão que criou a solicitação
 
     Ordenação:
     - "mais_apoiados": ordena por contador_apoios decrescente
@@ -106,6 +108,10 @@ def listar_solicitacoes(
     # Aplica busca parcial por protocolo apenas se informado
     if protocolo is not None:
         query = query.filter(Solicitacao.protocolo.ilike(f"%{protocolo}%"))
+
+    # Aplica filtro por autor apenas se informado
+    if id_autor is not None:
+        query = query.filter(Solicitacao.id_autor == id_autor)
 
     # Define a ordenação conforme o parâmetro recebido
     if ordem == OrdemSolicitacao.mais_apoiados:

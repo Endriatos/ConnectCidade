@@ -1,10 +1,16 @@
+import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
+
+logger = logging.getLogger(__name__)
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.crud.apoio import ja_apoiou
 from app.crud.atualizacao import get_timeline
+from app.crud.foto import create_foto_nocommit
 from app.crud.solicitacao import (
     cancelar_solicitacao,
     create_solicitacao,
@@ -15,36 +21,98 @@ from app.crud.solicitacao import (
 from app.models.solicitacao import StatusSolicitacao
 from app.schemas.solicitacao import AtualizacaoResponse, SolicitacaoCreate, SolicitacaoResponse
 from app.utils.deps import get_db, get_usuario_atual
+from app.utils.foto_utils import apagar_foto_por_url_publica, fazer_upload_foto, garantir_bucket_publico
 
 router = APIRouter(prefix="/solicitacoes", tags=["Solicitações"])
 
 
 @router.post("")
-def criar_solicitacao(
-    dados: SolicitacaoCreate,
+async def criar_solicitacao(
+    id_categoria: int = Form(),
+    descricao: str = Form(),
+    endereco_referencia: str = Form(),
+    latitude: float = Form(),
+    longitude: float = Form(),
+    confirmar_duplicata: bool = Form(False),
+    fotos: List[UploadFile] = File(),
     db: Session = Depends(get_db),
     usuario_atual=Depends(get_usuario_atual),
 ):
+    # Monta o mesmo modelo de validação usado antes (JSON); aqui os valores vêm do multipart
+    dados = SolicitacaoCreate(
+        id_categoria=id_categoria,
+        descricao=descricao,
+        endereco_referencia=endereco_referencia,
+        latitude=latitude,
+        longitude=longitude,
+        confirmar_duplicata=confirmar_duplicata,
+    )
+
+    # Foto obrigatória no servidor: entre 1 e 5 arquivos no campo repetido "fotos"
+    if not fotos or len(fotos) < 1:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Envie pelo menos uma foto.",
+        )
+    if len(fotos) > 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Limite de 5 fotos por solicitação.",
+        )
+
     # Se o usuário não confirmou, verifica se já existe solicitação semelhante próxima
     if not dados.confirmar_duplicata:
         duplicata = verificar_duplicata(db, dados.id_categoria, dados.latitude, dados.longitude)
         if duplicata:
             # Retorna status 200 com detalhes da duplicata para o frontend decidir se prossegue
-            return {
-                "aviso": (
-                    f"Já existe uma solicitação semelhante próxima a este local. "
-                    f"Deseja registrar mesmo assim?"
+            # (não grava solicitação nem envia nada ao MinIO neste caso)
+            return JSONResponse(
+                status_code=200,
+                content=jsonable_encoder(
+                    {
+                        "aviso": (
+                            "Já existe uma solicitação semelhante próxima a este local. "
+                            "Deseja registrar mesmo assim?"
+                        ),
+                        "duplicata_id": duplicata.id_solicitacao,
+                        "protocolo": duplicata.protocolo,
+                        "descricao": duplicata.descricao,
+                        "status": duplicata.status.value,
+                        "contador_apoios": duplicata.contador_apoios,
+                        "data_registro": duplicata.data_registro,
+                    }
                 ),
-                "duplicata_id": duplicata.id_solicitacao,
-                "protocolo": duplicata.protocolo,
-                "descricao": duplicata.descricao,
-                "status": duplicata.status.value,
-                "contador_apoios": duplicata.contador_apoios,
-                "data_registro": duplicata.data_registro,
-            }
+            )
 
-    # Sem duplicata ou usuário confirmou — cria a nova solicitação e retorna 201
-    solicitacao = create_solicitacao(db, dados, usuario_atual.id_usuario)
+    # Sem duplicata ou usuário confirmou — cria solicitação + todas as fotos na mesma transação (commit no fim)
+    urls_minio: List[str] = []
+    try:
+        garantir_bucket_publico()
+        # create_solicitacao faz flush para já existir id_solicitacao antes de gravar as fotos
+        solicitacao = create_solicitacao(db, dados, usuario_atual.id_usuario)
+        for ordem, arquivo in enumerate(fotos, start=1):
+            arquivo_bytes = await arquivo.read()
+            url = fazer_upload_foto(arquivo_bytes, arquivo.filename or "foto.jpg")
+            urls_minio.append(url)
+            # create_foto_nocommit: só db.add; o commit único fecha solicitação + fotos juntos
+            create_foto_nocommit(db, solicitacao.id_solicitacao, url, ordem)
+        db.commit()
+        db.refresh(solicitacao)
+    except Exception:
+        logger.exception("Erro ao criar solicitação")
+        db.rollback()
+        # Compensação: remove objetos já enviados ao MinIO se o banco falhar depois do upload
+        for url in urls_minio:
+            try:
+                apagar_foto_por_url_publica(url)
+            except Exception:
+                pass
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Não foi possível criar a solicitação com as fotos. Tente novamente.",
+        )
+
+    # Retorna 201 com o JSON da solicitação criada (igual ao fluxo anterior em JSON)
     return Response(
         content=SolicitacaoResponse.model_validate(solicitacao).model_dump_json(),
         status_code=201,

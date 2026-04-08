@@ -12,6 +12,25 @@ from app.config import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def validar_complexidade_senha(senha: str) -> None:
+    """
+    Valida os requisitos mínimos de segurança de uma senha.
+    Fonte única da lógica de complexidade — reutilizada pelos schemas e routers.
+    Lança ValueError com mensagem em português para cada regra violada.
+    """
+    if len(senha) < 8:
+        raise ValueError("A senha deve ter pelo menos 8 caracteres.")
+    if not any(c.isupper() for c in senha):
+        raise ValueError("A senha deve conter pelo menos uma letra maiúscula.")
+    if not any(c.islower() for c in senha):
+        raise ValueError("A senha deve conter pelo menos uma letra minúscula.")
+    if not any(c.isdigit() for c in senha):
+        raise ValueError("A senha deve conter pelo menos um número.")
+    # Caractere especial: qualquer símbolo que não seja letra nem dígito
+    if not any(not c.isalnum() for c in senha):
+        raise ValueError("A senha deve conter pelo menos um caractere especial.")
+
+
 def hashear_senha(senha: str) -> str:
     return pwd_context.hash(senha)
 

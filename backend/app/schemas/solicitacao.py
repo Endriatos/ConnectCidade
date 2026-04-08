@@ -64,6 +64,18 @@ class SolicitacaoMapaResponse(BaseModel):
     fotos: List[FotoResponse]
 
 
+# Schema de resumo de solicitação usado no detalhe de um cidadão no painel admin
+# nome_categoria não existe no model Solicitacao — vem de join com a tabela categoria
+class SolicitacaoResumoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_solicitacao: int
+    protocolo: str
+    nome_categoria: str
+    status: str
+    data_registro: datetime
+
+
 # Schema de resposta paginada para listagem de solicitações administrativas
 class PaginacaoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

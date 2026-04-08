@@ -5,6 +5,8 @@ import Login from './pages/Login'
 import Cadastro from './pages/Cadastro'
 import Home from './pages/Home'
 import NovaSolicitacao from './pages/NovaSolicitacao'
+import MinhasSolicitacoes from './pages/MinhasSolicitacoes'
+import DetalheMinhaSolicitacao from './pages/DetalheMinhaSolicitacao'
 import Health from './pages/Health'
 import RotaProtegida from './components/RotaProtegida'
 
@@ -21,6 +23,8 @@ function App() {
         {/* Rotas protegidas — exigem token JWT */}
         <Route path="/home" element={<RotaProtegida><Home /></RotaProtegida>} />
         <Route path="/nova-solicitacao" element={<RotaProtegida><NovaSolicitacao /></RotaProtegida>} />
+        <Route path="/minhas-solicitacoes" element={<RotaProtegida><MinhasSolicitacoes /></RotaProtegida>} />
+        <Route path="/minhas-solicitacoes/:idSolicitacao" element={<RotaProtegida><DetalheMinhaSolicitacao /></RotaProtegida>} />
 
         {/* Qualquer rota desconhecida volta para a landing */}
         <Route path="*" element={<Navigate to="/" replace />} />

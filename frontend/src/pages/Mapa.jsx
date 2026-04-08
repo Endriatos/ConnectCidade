@@ -79,8 +79,8 @@ export default function Mapa() {
   const [fotoAtiva, setFotoAtiva] = useState(null)
   const [categoriaFiltro, setCategoriaFiltro] = useState(null)
   const [modalEmBreve, setModalEmBreve] = useState(false)
-  const [animApoio, setAnimApoio] = useState(null)
   const [mapa, setMapa] = useState(null)
+  const [pulseApoio, setPulseApoio] = useState(false)
 
   const clustererRef = useRef(null)
   const localizacaoMarkerRef = useRef(null)
@@ -88,6 +88,7 @@ export default function Mapa() {
   const marcadoresPorIdRef = useRef({})
   const anteriorSelecionadaRef = useRef(null)
   const selecionadaRef = useRef(null)
+  const apoioPulseTimeoutRef = useRef(null)
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -128,8 +129,6 @@ export default function Mapa() {
       .finally(() => setCarregandoFotos(false))
   }, [selecionada?.id_solicitacao])
 
-  useEffect(() => { setAnimApoio(null) }, [selecionada?.id_solicitacao])
-
   useEffect(() => { selecionadaRef.current = selecionada }, [selecionada])
 
   useEffect(() => {
@@ -159,6 +158,12 @@ export default function Mapa() {
   const solicitacoesFiltradas = useMemo(
     () => categoriaFiltro ? solicitacoes.filter((s) => s.id_categoria === categoriaFiltro) : solicitacoes,
     [solicitacoes, categoriaFiltro]
+  )
+  const marcadorKey = useMemo(
+    () => solicitacoesFiltradas
+      .map((s) => `${s.id_solicitacao}:${s.latitude}:${s.longitude}:${s.id_categoria}`)
+      .join('|'),
+    [solicitacoesFiltradas]
   )
 
   useEffect(() => {
@@ -213,7 +218,7 @@ export default function Mapa() {
     })
 
     return () => { if (clustererRef.current) clustererRef.current.clearMarkers() }
-  }, [mapa, solicitacoesFiltradas, categorias])
+  }, [mapa, marcadorKey, categorias])
 
   useEffect(() => {
     const marcadores = marcadoresPorIdRef.current
@@ -278,19 +283,18 @@ export default function Mapa() {
   const handleToggleApoio = () => {
     if (!selecionada) return
     if (selecionada.ja_apoiado) {
-      setAnimApoio('menos')
       desapoiarSolicitacao(selecionada.id_solicitacao)
     } else {
-      setAnimApoio('mais')
+      setPulseApoio(true)
+      if (apoioPulseTimeoutRef.current) clearTimeout(apoioPulseTimeoutRef.current)
+      apoioPulseTimeoutRef.current = setTimeout(() => setPulseApoio(false), 150)
       apoiarSolicitacao(selecionada.id_solicitacao)
     }
   }
 
-  const handleAnimacaoApoioFim = (e) => {
-    if (e.target !== e.currentTarget) return
-    if (e.animationName !== 'thumb-apoio-pop' && e.animationName !== 'thumb-apoio-menos') return
-    setAnimApoio(null)
-  }
+  useEffect(() => () => {
+    if (apoioPulseTimeoutRef.current) clearTimeout(apoioPulseTimeoutRef.current)
+  }, [])
 
   const cat = selecionada ? categorias[selecionada.id_categoria] : null
   const Icone = cat ? iconeCategoria(cat.nome_categoria) : MapPin
@@ -431,12 +435,11 @@ export default function Mapa() {
                 </div>
                 <button
                   type="button"
-                  className="flex items-center gap-2 hover:text-[#3cb478] transition-colors active:scale-[0.98]"
+                  className="flex items-center gap-2 hover:text-[#3cb478] transition-colors"
                   onClick={handleToggleApoio}
                 >
                   <span
-                    className={`inline-flex shrink-0 origin-center will-change-transform ${selecionada?.ja_apoiado ? 'text-[#3cb478]' : ''} ${animApoio === 'mais' ? 'animate-thumb-apoio-mais' : animApoio === 'menos' ? 'animate-thumb-apoio-menos' : ''}`}
-                    onAnimationEnd={handleAnimacaoApoioFim}
+                    className={`inline-flex shrink-0 transition-[color,transform] duration-150 ease-out ${selecionada?.ja_apoiado ? 'text-[#3cb478]' : ''} ${pulseApoio ? 'scale-110' : 'scale-100'}`}
                   >
                     <ThumbsUp className="h-4 w-4" fill={selecionada?.ja_apoiado ? 'currentColor' : 'none'} />
                   </span>

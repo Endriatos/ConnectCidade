@@ -55,7 +55,6 @@ def verificar_duplicata(db: Session, id_categoria: int, latitude: float, longitu
 def create_solicitacao(db: Session, dados: SolicitacaoCreate, id_autor: int):
     # Gera o número de protocolo único para esta solicitação
     protocolo = gerar_protocolo(db)
-
     solicitacao = Solicitacao(
         id_autor=id_autor,
         id_categoria=dados.id_categoria,
@@ -67,9 +66,10 @@ def create_solicitacao(db: Session, dados: SolicitacaoCreate, id_autor: int):
         status=StatusSolicitacao.PENDENTE,
         contador_apoios=0,
     )
-
     db.add(solicitacao)
-    db.commit()
+    # flush: envia o INSERT na transação atual para obter id_solicitacao sem dar commit
+    # (o router faz commit depois de gravar também as fotos na mesma transação)
+    db.flush()
     db.refresh(solicitacao)
     return solicitacao
 

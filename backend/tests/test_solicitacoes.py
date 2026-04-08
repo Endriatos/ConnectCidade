@@ -1,14 +1,18 @@
-import pytest
+import io
 from datetime import date
+from unittest.mock import patch
+
+import pytest
+from PIL import Image
 from sqlalchemy.orm import sessionmaker
 
-from app.models import Categoria
+from app.models import Categoria, Foto, Solicitacao
 
 USUARIO_BASE = {
     "cpf": "52998224725",
     "nome_usuario": "Usuário Teste",
     "email": "teste@email.com",
-    "senha": "senha123",
+    "senha": "Senha@123",
     "data_nascimento": str(date(1995, 6, 15)),
 }
 
@@ -50,13 +54,38 @@ def get_token(client):
     return resp.json()["access_token"]
 
 
+@pytest.fixture(autouse=True)
+def _mock_minio_criar_solicitacao():
+    with patch("app.routers.solicitacoes.garantir_bucket_publico"), patch(
+        "app.routers.solicitacoes.fazer_upload_foto", return_value="http://minio-fake/foto.jpg"
+    ):
+        yield
+
+
+def _jpeg():
+    img = Image.new("RGB", (8, 8), color="blue")
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    return buf.getvalue()
+
+
+def _post_solicitacoes(client, token, payload, n_fotos=1):
+    d = {
+        "id_categoria": str(payload["id_categoria"]),
+        "descricao": payload["descricao"],
+        "endereco_referencia": payload["endereco_referencia"],
+        "latitude": str(payload["latitude"]),
+        "longitude": str(payload["longitude"]),
+        "confirmar_duplicata": "true" if payload.get("confirmar_duplicata") else "false",
+    }
+    files = [("fotos", (f"f{i}.jpg", _jpeg(), "image/jpeg")) for i in range(n_fotos)]
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    return client.post("/solicitacoes", data=d, files=files, headers=headers)
+
+
 def test_criar_solicitacao_sucesso(client):
     token = get_token(client)
-    resp = client.post(
-        "/solicitacoes",
-        json=SOLICITACAO_BASE,
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    resp = _post_solicitacoes(client, token, SOLICITACAO_BASE)
     assert resp.status_code == 201
     data = resp.json()
     assert "protocolo" in data
@@ -64,46 +93,75 @@ def test_criar_solicitacao_sucesso(client):
 
 
 def test_criar_solicitacao_sem_autenticacao(client):
-    resp = client.post("/solicitacoes", json=SOLICITACAO_BASE)
+    resp = _post_solicitacoes(client, None, SOLICITACAO_BASE)
     assert resp.status_code == 401
+
+
+def test_criar_solicitacao_sem_fotos(client):
+    token = get_token(client)
+    d = {
+        "id_categoria": str(SOLICITACAO_BASE["id_categoria"]),
+        "descricao": SOLICITACAO_BASE["descricao"],
+        "endereco_referencia": SOLICITACAO_BASE["endereco_referencia"],
+        "latitude": str(SOLICITACAO_BASE["latitude"]),
+        "longitude": str(SOLICITACAO_BASE["longitude"]),
+        "confirmar_duplicata": "true",
+    }
+    resp = client.post(
+        "/solicitacoes",
+        data=d,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 422
+
+
+def test_criar_solicitacao_falha_na_segunda_foto_rollback_e_limpa_minio(client, db):
+    token = get_token(client)
+    payload = {**SOLICITACAO_BASE, "descricao": "__rollback_segunda_foto__"}
+    primeira_url = "http://minio-fake/primeira.jpg"
+    uploads = []
+
+    def upload_side_effect(arquivo_bytes, nome_original):
+        uploads.append(nome_original)
+        if len(uploads) == 1:
+            return primeira_url
+        raise RuntimeError("falha simulada na segunda foto")
+
+    with patch("app.routers.solicitacoes.garantir_bucket_publico"), patch(
+        "app.routers.solicitacoes.fazer_upload_foto", side_effect=upload_side_effect
+    ), patch("app.routers.solicitacoes.apagar_foto_por_url_publica") as mock_apagar:
+        resp = _post_solicitacoes(client, token, payload, n_fotos=2)
+
+    assert resp.status_code == 500
+    assert db.query(Solicitacao).filter(Solicitacao.descricao == "__rollback_segunda_foto__").first() is None
+    assert (
+        db.query(Foto)
+        .join(Solicitacao, Foto.id_solicitacao == Solicitacao.id_solicitacao)
+        .filter(Solicitacao.descricao == "__rollback_segunda_foto__")
+        .first()
+        is None
+    )
+    mock_apagar.assert_called_once_with(primeira_url)
 
 
 def test_duplicata_detectada(client):
     token = get_token(client)
-    # Primeira solicitação na localização
-    client.post(
-        "/solicitacoes",
-        json={**SOLICITACAO_BASE, "confirmar_duplicata": False},
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    # Segunda solicitação no mesmo local sem confirmar — deve retornar aviso com status 200
-    resp = client.post(
-        "/solicitacoes",
-        json={**SOLICITACAO_BASE, "confirmar_duplicata": False},
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    _post_solicitacoes(client, token, {**SOLICITACAO_BASE, "confirmar_duplicata": False})
+    resp = _post_solicitacoes(client, token, {**SOLICITACAO_BASE, "confirmar_duplicata": False})
     assert resp.status_code == 200
     assert "aviso" in resp.json()
 
 
 def test_confirmar_duplicata(client):
     token = get_token(client)
-    # Com confirmar_duplicata=True a solicitação deve ser criada mesmo com duplicata próxima
-    resp = client.post(
-        "/solicitacoes",
-        json={**SOLICITACAO_BASE, "confirmar_duplicata": True},
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    _post_solicitacoes(client, token, {**SOLICITACAO_BASE, "confirmar_duplicata": False})
+    resp = _post_solicitacoes(client, token, {**SOLICITACAO_BASE, "confirmar_duplicata": True})
     assert resp.status_code == 201
 
 
 def test_listar_minhas_solicitacoes(client):
     token = get_token(client)
-    client.post(
-        "/solicitacoes",
-        json={**SOLICITACAO_BASE, "confirmar_duplicata": True},
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    _post_solicitacoes(client, token, {**SOLICITACAO_BASE, "confirmar_duplicata": True})
     resp = client.get("/solicitacoes/minhas", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
     assert len(resp.json()) >= 1
@@ -111,11 +169,7 @@ def test_listar_minhas_solicitacoes(client):
 
 def test_cancelar_solicitacao(client):
     token = get_token(client)
-    resp_create = client.post(
-        "/solicitacoes",
-        json={**SOLICITACAO_BASE, "confirmar_duplicata": True},
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    resp_create = _post_solicitacoes(client, token, {**SOLICITACAO_BASE, "confirmar_duplicata": True})
     assert resp_create.status_code == 201
     id_sol = resp_create.json()["id_solicitacao"]
 
@@ -129,11 +183,7 @@ def test_cancelar_solicitacao(client):
 
 def test_cancelar_solicitacao_nao_pendente(client, db):
     token = get_token(client)
-    resp_create = client.post(
-        "/solicitacoes",
-        json={**SOLICITACAO_BASE, "confirmar_duplicata": True},
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    resp_create = _post_solicitacoes(client, token, {**SOLICITACAO_BASE, "confirmar_duplicata": True})
     assert resp_create.status_code == 201
     id_sol = resp_create.json()["id_solicitacao"]
 

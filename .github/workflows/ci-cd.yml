@@ -83,6 +83,7 @@ jobs:
             VITE_API_URL=/api
             VITE_BUILD_TIME=${{ github.event.head_commit.timestamp }}
             VITE_GIT_SHA=${{ github.sha }}
+            VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           tags: ghcr.io/endriatos/connectcidade-frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -101,11 +102,12 @@ jobs:
           MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DB_PASSWORD,DATABASE_URL,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,SECRET_KEY
+          envs: DB_PASSWORD,DATABASE_URL,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,SECRET_KEY,GMAIL_APP_PASSWORD
           script_stop: true
           command_timeout: 40m
           script: |
@@ -115,7 +117,9 @@ jobs:
             git reset --hard origin/main
             git clean -fd
             echo "::group::Secrets no SSH (bytes; valor não é logado)"
-            echo "DB_PASSWORD=${#DB_PASSWORD} DATABASE_URL=${#DATABASE_URL} MINIO_ACCESS_KEY=${#MINIO_ACCESS_KEY} MINIO_SECRET_KEY=${#MINIO_SECRET_KEY} SECRET_KEY=${#SECRET_KEY}"
+            echo "DB_PASSWORD=${#DB_PASSWORD} DATABASE_URL=${#DATABASE_URL} MINIO_ACCESS_KEY=${#MINIO_ACCESS_KEY} MINIO_SECRET_KEY=${#MINIO_SECRET_KEY} SECRET_KEY=${#SECRET_KEY}
+            GMAIL_APP_PASSWORD=${#GMAIL_APP_PASSWORD}"
+
             echo "::endgroup::"
             upsert_env() {
               f="$1"
@@ -137,6 +141,7 @@ jobs:
             upsert_env backend/.env SECRET_KEY "$SECRET_KEY"
             upsert_env backend/.env MINIO_ACCESS_KEY "$MINIO_ACCESS_KEY"
             upsert_env backend/.env MINIO_SECRET_KEY "$MINIO_SECRET_KEY"
+            upsert_env backend/.env GMAIL_APP_PASSWORD "$GMAIL_APP_PASSWORD"
             if [ -n "$DATABASE_URL" ]; then
               echo "DATABASE_URL: usando secret DATABASE_URL"
               upsert_env backend/.env DATABASE_URL "$DATABASE_URL"

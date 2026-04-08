@@ -62,3 +62,31 @@ class SolicitacaoMapaResponse(BaseModel):
     contador_apoios: int
     data_registro: datetime
     fotos: List[FotoResponse]
+
+
+# Schema de resumo de solicitação usado no detalhe de um cidadão no painel admin
+# nome_categoria não existe no model Solicitacao — vem de join com a tabela categoria
+class SolicitacaoResumoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_solicitacao: int
+    protocolo: str
+    nome_categoria: str
+    status: str
+    data_registro: datetime
+
+
+# Schema de resposta paginada para listagem de solicitações administrativas
+class PaginacaoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    # Total de registros encontrados com os filtros aplicados
+    total: int
+    # Página atual da listagem
+    pagina: int
+    # Quantidade de itens por página
+    por_pagina: int
+    # Total de páginas calculado com base no total e por_pagina
+    paginas: int
+    # Itens da página atual
+    itens: List[SolicitacaoResponse]

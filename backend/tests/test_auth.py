@@ -4,7 +4,7 @@ USUARIO_BASE = {
     "cpf": "52998224725",
     "nome_usuario": "Teste Silva",
     "email": "teste@email.com",
-    "senha": "senha123",
+    "senha": "Senha@123",
     "data_nascimento": str(date(1995, 6, 15)),
 }
 

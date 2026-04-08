@@ -120,3 +120,14 @@ def fazer_upload_foto(arquivo_bytes: bytes, nome_original: str) -> str:
     url_publica = f"{settings.MINIO_PUBLIC_URL.rstrip('/')}/{chave}"
     return url_publica
 
+
+def apagar_foto_por_url_publica(url: str) -> None:
+    """
+    Novo: remove do bucket o objeto cuja chave corresponde ao último segmento da URL pública
+    retornada por fazer_upload_foto (compensação se o commit no banco falhar após o upload).
+    """
+    chave = url.rstrip("/").split("/")[-1]
+    if not chave:
+        return
+    cliente = get_cliente_minio()
+    cliente.delete_object(Bucket=settings.MINIO_BUCKET_NAME, Key=chave)

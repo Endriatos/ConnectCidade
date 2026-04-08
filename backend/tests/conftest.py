@@ -1,13 +1,22 @@
+import io
 from datetime import date
+from unittest.mock import patch
 
 import pytest
+from passlib.context import CryptContext
+from PIL import Image
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
 from app.main import app
+from app.models.categoria import Categoria
+from app.models.usuario import TipoUsuario, Usuario
 from app.utils.deps import get_db
+
+# Contexto bcrypt reutilizado para gerar hashes de senha nos helpers de teste
+_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def _gerar_cpf(seed: int) -> str:
@@ -67,25 +76,62 @@ def _cadastrar_e_logar(client, cpf: str, email: str) -> str:
             "cpf": cpf,
             "nome_usuario": f"Usuário {cpf}",
             "email": email,
-            "senha": "senha123",
+            "senha": "Senha@123",
             "data_nascimento": str(date(1998, 3, 10)),
         },
     )
     # Realiza login e extrai o token de acesso da resposta
-    resp = client.post("/auth/login", json={"cpf": cpf, "senha": "senha123"})
+    resp = client.post("/auth/login", json={"cpf": cpf, "senha": "Senha@123"})
     return resp.json()["access_token"]
 
 
-def _criar_solicitacao(client, token: str) -> int:
+def _criar_admin_e_logar(client, db, cpf: str, email: str) -> str:
     """
-    Cria uma solicitação com dados fixos usando o token fornecido
-    e retorna o id_solicitacao gerado pelo servidor.
+    Insere um usuário ADMIN diretamente no banco (sem passar pela API,
+    que só permite cadastro de cidadãos) e retorna o token via login.
     """
-    resp = client.post(
-        "/solicitacoes",
-        json=_SOLICITACAO_BASE,
-        headers={"Authorization": f"Bearer {token}"},
+    admin = Usuario(
+        tipo_usuario=TipoUsuario.ADMIN,
+        cpf=cpf,
+        nome_usuario=f"Admin {cpf}",
+        email=email,
+        senha_hash=_pwd_context.hash("Senha@123"),
+        data_nascimento=date(1985, 1, 1),
     )
+    db.add(admin)
+    db.commit()
+
+    # Realiza login pela API para obter o token JWT
+    resp = client.post("/auth/login", json={"cpf": cpf, "senha": "Senha@123"})
+    return resp.json()["access_token"]
+
+
+def _jpeg_bytes() -> bytes:
+    """Gera um JPEG mínimo válido (8x8 px) usando Pillow — usado como fixture de upload nos testes."""
+    img = Image.new("RGB", (8, 8), color=(200, 30, 30))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    return buf.getvalue()
+
+
+def _criar_solicitacao(client, token: str) -> int:
+    data = {
+        "id_categoria": str(_SOLICITACAO_BASE["id_categoria"]),
+        "descricao": _SOLICITACAO_BASE["descricao"],
+        "endereco_referencia": _SOLICITACAO_BASE["endereco_referencia"],
+        "latitude": str(_SOLICITACAO_BASE["latitude"]),
+        "longitude": str(_SOLICITACAO_BASE["longitude"]),
+        "confirmar_duplicata": "true" if _SOLICITACAO_BASE.get("confirmar_duplicata") else "false",
+    }
+    with patch("app.routers.solicitacoes.garantir_bucket_publico"), patch(
+        "app.routers.solicitacoes.fazer_upload_foto", return_value="http://minio-fake/foto.jpg"
+    ):
+        resp = client.post(
+            "/solicitacoes",
+            data=data,
+            files=[("fotos", ("t.jpg", _jpeg_bytes(), "image/jpeg"))],
+            headers={"Authorization": f"Bearer {token}"},
+        )
     assert resp.status_code == 201
     return resp.json()["id_solicitacao"]
 
@@ -101,6 +147,22 @@ def test_engine():
     )
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+    # Insere a categoria padrão usada por _criar_solicitacao (id_categoria=1)
+    # Necessário porque SQLite não aplica FK constraints — sem isso, JOINs com
+    # categoria retornam vazio mesmo que as solicitações tenham sido criadas
+    seed_session = sessionmaker(bind=engine)()
+    try:
+        seed_session.add(Categoria(
+            id_categoria=1,
+            nome_categoria="Iluminação Pública",
+            descricao="Problemas com postes e iluminação",
+            cor_hex="#F5A623",
+        ))
+        seed_session.commit()
+    finally:
+        seed_session.close()
+
     yield engine
     Base.metadata.drop_all(bind=engine)
     engine.dispose()

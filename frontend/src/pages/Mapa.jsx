@@ -5,6 +5,7 @@ import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Ca
 import api from '../services/api'
 import Lottie from 'lottie-react'
 import typing from '../assets/Typing.json'
+import { STATUS_ICONE, STATUS_LABEL } from '../utils/solicitacaoStatus'
 
 const LIBRARIES = ['places']
 
@@ -14,21 +15,6 @@ const iconeCategoria = (nome) => {
   if (nome?.includes('Acessib'))    return Accessibility
   if (nome?.includes('Manutenção')) return Construction
   return MapPin
-}
-
-const STATUS_LABEL = {
-  PENDENTE: 'Pendente',
-  EM_ANALISE: 'Em Análise',
-  EM_ANDAMENTO: 'Em Andamento',
-  RESOLVIDO: 'Resolvido',
-}
-
-const STATUS_COR = {
-  PENDENTE:     'hsl(221, 83%, 53%)',
-  EM_ANALISE:   'hsl(45, 93%, 47%)',
-  EM_ANDAMENTO: 'hsl(25, 95%, 53%)',
-  RESOLVIDO:    'hsl(142, 71%, 45%)',
-  CANCELADO:    'hsl(0, 72%, 50%)',
 }
 
 const formatarData = (iso) => {
@@ -298,6 +284,7 @@ export default function Mapa() {
 
   const cat = selecionada ? categorias[selecionada.id_categoria] : null
   const Icone = cat ? iconeCategoria(cat.nome_categoria) : MapPin
+  const IconeStatus = STATUS_ICONE[selecionada?.status] ?? MapPin
 
   if (!isLoaded) return (
     <div className="h-full w-full flex items-center justify-center">
@@ -392,19 +379,17 @@ export default function Mapa() {
           <div className="px-6 pt-5 pb-4 border-b border-black/5 shrink-0">
             <div className="flex items-start justify-between">
               <div className="flex flex-col gap-2 min-w-0 overflow-hidden">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                   <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-medium border-2"
-                    style={{ borderColor: cat.cor_hex, color: cat.cor_hex, backgroundColor: `${cat.cor_hex}15` }}
+                    className="inline-flex min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70"
+                    style={{ borderColor: cat.cor_hex }}
                   >
-                    <Icone className="h-4 w-4" />
-                    {cat.nome_categoria}
+                    <Icone className="h-4 w-4 shrink-0" style={{ color: cat.cor_hex }} />
+                    <span className="truncate">{cat.nome_categoria}</span>
                   </span>
-                  <span
-                    className="text-[14px] font-medium px-3 py-1.5 rounded-full text-white"
-                    style={{ backgroundColor: STATUS_COR[selecionada.status] }}
-                  >
-                    {STATUS_LABEL[selecionada.status]}
+                  <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70">
+                    <IconeStatus className="h-4 w-4 text-[#2a2a2a]/55" aria-hidden />
+                    {STATUS_LABEL[selecionada.status] ?? selecionada.status}
                   </span>
                 </div>
                 <div className="flex items-start gap-1.5 text-sm text-[#2a2a2a]/50">

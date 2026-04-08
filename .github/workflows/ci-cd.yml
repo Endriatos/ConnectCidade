@@ -93,6 +93,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug SSH reachability
+        run: |
+          echo "HOST=${{ secrets.SSH_HOST }}"
+          nslookup ${{ secrets.SSH_HOST }} || true
+          nc -zvw5 ${{ secrets.SSH_HOST }} 22
+
       # SSH na VM: git pull + grava secrets nos .env
       - name: Deploy to GCP VM via SSH
         uses: appleboy/ssh-action@v1.2.0

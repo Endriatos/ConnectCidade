@@ -7,7 +7,15 @@ import Lottie from 'lottie-react'
 import typing from '../assets/Typing.json'
 import { STATUS_ICONE, STATUS_LABEL } from '../utils/solicitacaoStatus'
 
-const LIBRARIES = ['places']
+const LIBRARIES = ['places', 'marker']
+
+const conteudoSVG = (svgStr, width, height) => {
+  const div = document.createElement('div')
+  div.innerHTML = svgStr
+  div.style.width = `${width}px`
+  div.style.height = `${height}px`
+  return div
+}
 
 const iconeCategoria = (nome) => {
   if (nome?.includes('Iluminação')) return Lightbulb
@@ -23,13 +31,13 @@ const formatarData = (iso) => {
 }
 
 const pinSVG = (cor) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">` +
+  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 32 42">` +
   `<path d="M16 0C7.163 0 0 7.163 0 16C0 26.5 16 42 16 42C16 42 32 26.5 32 16C32 7.163 24.837 0 16 0Z" fill="${cor}"/>` +
   `<circle cx="16" cy="16" r="5" fill="white"/>` +
   `</svg>`
 
 const pinSVGAnimado = (cor) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="52" viewBox="0 0 32 52">` +
+  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="40" viewBox="0 0 32 52">` +
   `<g><animateTransform attributeName="transform" type="translate" values="0,10;0,0;0,10" dur="1.4s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1"/>` +
   `<path d="M16 0C7.163 0 0 7.163 0 16C0 26.5 16 42 16 42C16 42 32 26.5 32 16C32 7.163 24.837 0 16 0Z" fill="${cor}"/>` +
   `<circle cx="16" cy="16" r="5" fill="white"/>` +
@@ -126,19 +134,17 @@ export default function Mapa() {
 
   useEffect(() => {
     if (!mapa || !posicao) return
-    if (localizacaoMarkerRef.current) localizacaoMarkerRef.current.setMap(null)
-    localizacaoMarkerRef.current = new window.google.maps.Marker({
+    if (localizacaoMarkerRef.current) localizacaoMarkerRef.current.map = null
+    const dotContent = conteudoSVG(LOC_DOT_SVG, 36, 36)
+    dotContent.style.transform = 'translateY(50%)'
+    dotContent.style.pointerEvents = 'none'
+    localizacaoMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
       position: { lat: posicao[0], lng: posicao[1] },
       map: mapa,
-      icon: {
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(LOC_DOT_SVG)}`,
-        scaledSize: new window.google.maps.Size(36, 36),
-        anchor: new window.google.maps.Point(18, 18),
-      },
-      clickable: false,
+      content: dotContent,
       zIndex: 500,
     })
-    return () => { if (localizacaoMarkerRef.current) localizacaoMarkerRef.current.setMap(null) }
+    return () => { if (localizacaoMarkerRef.current) localizacaoMarkerRef.current.map = null }
   }, [mapa, posicao])
 
   const solicitacoesFiltradas = useMemo(
@@ -160,13 +166,9 @@ export default function Mapa() {
     const novos = solicitacoesFiltradas.map((sol) => {
       const c = categorias[sol.id_categoria]
       const cor = c?.cor_hex ?? '#3cb478'
-      const m = new window.google.maps.Marker({
+      const m = new window.google.maps.marker.AdvancedMarkerElement({
         position: { lat: sol.latitude, lng: sol.longitude },
-        icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(pinSVG(cor))}`,
-          scaledSize: new window.google.maps.Size(32, 42),
-          anchor: new window.google.maps.Point(16, 42),
-        },
+        content: conteudoSVG(pinSVG(cor), 24, 32),
       })
       m._cor = cor
       m.addListener('click', () => setSelecionada(sol))
@@ -177,11 +179,7 @@ export default function Mapa() {
 
     const idSelecionada = selecionadaRef.current?.id_solicitacao
     if (idSelecionada && porId[idSelecionada]) {
-      porId[idSelecionada].setIcon({
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(pinSVGAnimado(porId[idSelecionada]._cor))}`,
-        scaledSize: new window.google.maps.Size(32, 52),
-        anchor: new window.google.maps.Point(16, 52),
-      })
+      porId[idSelecionada].content = conteudoSVG(pinSVGAnimado(porId[idSelecionada]._cor), 24, 40)
     }
 
     clustererRef.current = new MarkerClusterer({
@@ -190,13 +188,11 @@ export default function Mapa() {
       renderer: {
         render({ count, position }) {
           const s = count < 10 ? 36 : count < 100 ? 42 : 48
-          return new window.google.maps.Marker({
+          const content = conteudoSVG(clusterSVG(count), s, s)
+          content.style.transform = 'translateY(50%)'
+          return new window.google.maps.marker.AdvancedMarkerElement({
             position,
-            icon: {
-              url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(clusterSVG(count))}`,
-              scaledSize: new window.google.maps.Size(s, s),
-              anchor: new window.google.maps.Point(s / 2, s / 2),
-            },
+            content,
             zIndex: 1000,
           })
         },
@@ -211,11 +207,7 @@ export default function Mapa() {
 
     if (anteriorSelecionadaRef.current && marcadores[anteriorSelecionadaRef.current]) {
       const m = marcadores[anteriorSelecionadaRef.current]
-      m.setIcon({
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(pinSVG(m._cor))}`,
-        scaledSize: new window.google.maps.Size(32, 42),
-        anchor: new window.google.maps.Point(16, 42),
-      })
+      m.content = conteudoSVG(pinSVG(m._cor), 32, 42)
     }
 
     anteriorSelecionadaRef.current = selecionada?.id_solicitacao ?? null
@@ -224,11 +216,7 @@ export default function Mapa() {
     const marker = marcadores[selecionada.id_solicitacao]
     if (!marker) return
 
-    marker.setIcon({
-      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(pinSVGAnimado(marker._cor))}`,
-      scaledSize: new window.google.maps.Size(32, 52),
-      anchor: new window.google.maps.Point(16, 52),
-    })
+    marker.content = conteudoSVG(pinSVGAnimado(marker._cor), 24, 40)
   }, [selecionada?.id_solicitacao])
 
   const handleMapaLoad = useCallback((map) => {
@@ -313,6 +301,7 @@ export default function Mapa() {
           mapTypeControl: false,
           fullscreenControl: false,
           gestureHandling: 'greedy',
+          mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? 'DEMO_MAP_ID',
         }}
       />
 
@@ -329,7 +318,7 @@ export default function Mapa() {
 
       {/* Filtro de categorias */}
       {catsArr.length > 0 && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm shadow-md rounded-full px-1.5 py-1.5">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm shadow-md transition-all duration-300 rounded-2xl px-1.5 pt-1.5 pb-3">
           <div className="relative flex items-center" style={{ gap }}>
             <div
               className="absolute rounded-full transition-all duration-300 ease-in-out"
@@ -346,7 +335,7 @@ export default function Mapa() {
               return (
                 <button
                   key={opcao.id ?? 'todos'}
-                  onClick={() => setCategoriaFiltro(opcao.id)}
+                  onClick={() => setCategoriaFiltro(categoriaFiltro === opcao.id ? null : opcao.id)}
                   className="relative z-10 flex items-center justify-center transition-colors duration-300"
                   style={{ width: tamanho, height: tamanho }}
                 >
@@ -369,6 +358,14 @@ export default function Mapa() {
                 </button>
               )
             })}
+          </div>
+
+          <div className="mt-2 px-1.5">
+            <span className="text-sm font-medium text-[#2a2a2a]/50 block text-center">
+              {categoriaFiltro === null
+                ? 'Todas as categorias'
+                : catsArr.find(c => c.id_categoria === categoriaFiltro)?.nome_categoria}
+            </span>
           </div>
         </div>
       )}

@@ -5,7 +5,7 @@ import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import api from '../services/api'
 import Header from '../components/Header'
 
-const LIBRARIES = ['places']
+const LIBRARIES = ['places', 'marker']
 
 const CENTRO_MODAL_PADRAO = { lat: -29.1678, lng: -51.1794 }
 
@@ -138,15 +138,16 @@ export default function NovaSolicitacao() {
       setBuscaModal(end)
     })
     if (latitude != null && longitude != null) {
-      localizacaoMarkerModalRef.current = new window.google.maps.Marker({
+      const dotContent = document.createElement('div')
+      dotContent.innerHTML = LOC_DOT_SVG
+      dotContent.style.width = '36px'
+      dotContent.style.height = '36px'
+      dotContent.style.transform = 'translateY(50%)'
+      dotContent.style.pointerEvents = 'none'
+      localizacaoMarkerModalRef.current = new window.google.maps.marker.AdvancedMarkerElement({
         position: { lat: latitude, lng: longitude },
         map,
-        icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(LOC_DOT_SVG)}`,
-          scaledSize: new window.google.maps.Size(36, 36),
-          anchor: new window.google.maps.Point(18, 18),
-        },
-        clickable: false,
+        content: dotContent,
         zIndex: 500,
       })
     }
@@ -337,6 +338,7 @@ export default function NovaSolicitacao() {
                   mapTypeControl: false,
                   fullscreenControl: false,
                   gestureHandling: 'greedy',
+                  mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? 'DEMO_MAP_ID',
                 }}
               />
 

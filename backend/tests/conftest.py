@@ -153,12 +153,13 @@ def test_engine():
     # categoria retornam vazio mesmo que as solicitações tenham sido criadas
     seed_session = sessionmaker(bind=engine)()
     try:
-        seed_session.add(Categoria(
-            id_categoria=1,
-            nome_categoria="Iluminação Pública",
-            descricao="Problemas com postes e iluminação",
-            cor_hex="#F5A623",
-        ))
+        # As 4 categorias base do sistema — necessárias para JOINs e para o dashboard
+        seed_session.add_all([
+            Categoria(id_categoria=1, nome_categoria="Coleta de Resíduos",   descricao="Problemas com coleta de lixo",           cor_hex="#66BB6A"),
+            Categoria(id_categoria=2, nome_categoria="Iluminação Pública",   descricao="Problemas com postes e iluminação",      cor_hex="#FFCA28"),
+            Categoria(id_categoria=3, nome_categoria="Acessibilidade",       descricao="Barreiras para pessoas com mobilidade reduzida", cor_hex="#42A5F5"),
+            Categoria(id_categoria=4, nome_categoria="Manutenção de Vias",   descricao="Buracos e calçadas danificadas",         cor_hex="#FF7043"),
+        ])
         seed_session.commit()
     finally:
         seed_session.close()

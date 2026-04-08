@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers.admin.dashboard import router as admin_dashboard_router
 from app.routers.admin.usuarios import router as admin_usuarios_router
 from app.routers.admin.solicitacoes import router as admin_solicitacoes_router
 from app.routers.apoios import router as apoios_router
@@ -47,6 +48,7 @@ app.include_router(notificacoes_router)
 # Painel admin
 app.include_router(admin_solicitacoes_router)
 app.include_router(admin_usuarios_router)
+app.include_router(admin_dashboard_router)
 
 
 

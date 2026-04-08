@@ -10,6 +10,9 @@ export default function Home() {
   const location = useLocation();
 
   const primeiroNome = nome ? nome.split(' ')[0] : 'Usuário';
+  const nomeSaudacao = primeiroNome
+    ? `${primeiroNome.charAt(0).toUpperCase()}${primeiroNome.slice(1)}`
+    : 'Usuário';
   const [modalAberto, setModalAberto] = useState(
     location.state?.recemCadastrado === true,
   );
@@ -27,7 +30,7 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-[#2a2a2a]">
-                Olá, {primeiroNome}!
+                Olá, {nomeSaudacao}!
               </h1>
               <p className="text-sm text-[#2a2a2a]/50 mt-0.5">
                 Veja os problemas reportados na sua região

@@ -11,6 +11,9 @@ export default function Header() {
   const menuRef = useRef(null)
 
   const primeiroNome = nome ? nome.split(' ')[0] : 'Usuário'
+  const nomePerfil = primeiroNome
+    ? `${primeiroNome.charAt(0).toUpperCase()}${primeiroNome.slice(1)}`
+    : 'Usuário'
 
   useEffect(() => {
     function handleClickFora(e) {
@@ -59,7 +62,7 @@ export default function Header() {
               className="inline-flex items-center gap-1.5 sm:gap-2 max-w-[min(100%,11rem)] sm:max-w-none h-9 px-2.5 sm:px-3 rounded-lg border border-[#2a2a2a]/10 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
             >
               <User className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
-              <span className="truncate">{primeiroNome}</span>
+              <span className="truncate">{nomePerfil}</span>
               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#2a2a2a]/40" />
             </button>
 

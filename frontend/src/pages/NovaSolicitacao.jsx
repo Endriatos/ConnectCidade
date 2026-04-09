@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapPin, Loader2, Camera, Upload, X, AlertTriangle, CheckCircle, Lightbulb, Trash2, Accessibility, Construction, Search, Pencil, LocateFixed } from 'lucide-react'
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
+import Lottie from 'lottie-react'
+import catLoading from '../assets/CatLoading.json'
 import api from '../services/api'
 import Header from '../components/Header'
 
@@ -67,6 +69,7 @@ export default function NovaSolicitacao() {
   const [geoStatus, setGeoStatus] = useState('idle')
 
   const [modalMapa, setModalMapa] = useState(false)
+  const [mapaModalPronto, setMapaModalPronto] = useState(false)
   const [posModal, setPosModal] = useState([-29.1678, -51.1794])
   const [enderecoModal, setEnderecoModal] = useState('')
   const [buscaModal, setBuscaModal] = useState('')
@@ -125,11 +128,13 @@ export default function NovaSolicitacao() {
     setSugestoes([])
     setBuscaModal(enderecoReferencia)
     setEnderecoModal(enderecoReferencia)
+    setMapaModalPronto(false)
     setModalMapa(true)
   }
 
   const handleMapaModalLoad = (map) => {
     mapaRef.current = map
+    map.addListener('tilesloaded', () => setMapaModalPronto(true))
     map.setCenter({ lat: posModal[0], lng: posModal[1] })
     map.addListener('dragend', async () => {
       const center = map.getCenter()
@@ -328,6 +333,14 @@ export default function NovaSolicitacao() {
             </div>
 
             <div className="flex-1 relative overflow-hidden">
+              {!mapaModalPronto && (
+                <div className="absolute inset-0 z-[9999] bg-white flex flex-col items-center justify-center gap-1">
+                  <div className="w-36 h-36">
+                    <Lottie animationData={catLoading} loop />
+                  </div>
+                  <p className="text-sm font-medium text-[#2a2a2a]/50">Carregando mapa...</p>
+                </div>
+              )}
               <GoogleMap
                 mapContainerClassName="h-full w-full"
                 center={CENTRO_MODAL_PADRAO}

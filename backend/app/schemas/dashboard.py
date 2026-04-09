@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 # Item de distribuição de solicitações por categoria
@@ -25,6 +26,20 @@ class GraficoMensalItem(BaseModel):
     mes: str
     criadas: int
     resolvidas: int
+
+
+class FilaAtencaoItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_solicitacao: int
+    protocolo: str
+    nome_categoria: str
+    cor_hex: str
+    status: str
+    contador_apoios: int
+    data_registro: datetime
+    endereco_referencia: str
+    score: int
 
 
 class DashboardResponse(BaseModel):

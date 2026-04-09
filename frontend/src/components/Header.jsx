@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, ChevronDown, LogOut, ClipboardList, Bell } from 'lucide-react'
+import { User, ChevronDown, LogOut, ClipboardList, Bell, LayoutDashboard } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import iconCC from '../assets/iconCC.png'
 
 export default function Header() {
-  const { nome, logout } = useAuthStore()
+  const { nome, logout, tipoUsuario } = useAuthStore()
   const navigate = useNavigate()
   const [menuAberto, setMenuAberto] = useState(false)
   const menuRef = useRef(null)
@@ -48,6 +48,15 @@ export default function Header() {
         <div className="flex-1 min-w-[100px]" />
 
         <div className="flex items-center gap-2 min-w-0">
+          {tipoUsuario === 'ADMIN' && (
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#3cb478]/40 text-sm font-medium text-[#3cb478] hover:bg-[#3cb478]/8 transition-colors"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Painel</span>
+            </Link>
+          )}
           <button
             type="button"
             aria-label="Notificações"

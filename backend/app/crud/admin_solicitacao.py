@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -74,6 +74,9 @@ def listar_solicitacoes(
     id_categoria: Optional[int] = None,
     protocolo: Optional[str] = None,
     id_autor: Optional[int] = None,
+    endereco: Optional[str] = None,
+    data_inicio: Optional[date] = None,
+    data_fim: Optional[date] = None,
     ordem: Optional[OrdemSolicitacao] = None,
     pagina: int = 1,
     por_pagina: int = 20,
@@ -112,6 +115,20 @@ def listar_solicitacoes(
     # Aplica filtro por autor apenas se informado
     if id_autor is not None:
         query = query.filter(Solicitacao.id_autor == id_autor)
+
+    # Busca parcial por endereço de referência
+    if endereco is not None:
+        query = query.filter(Solicitacao.endereco_referencia.ilike(f"%{endereco}%"))
+
+    # Filtra solicitações criadas a partir de data_inicio (inclusive)
+    if data_inicio is not None:
+        inicio_dt = datetime(data_inicio.year, data_inicio.month, data_inicio.day, tzinfo=timezone.utc)
+        query = query.filter(Solicitacao.data_registro >= inicio_dt)
+
+    # Filtra solicitações criadas até data_fim (inclusive — avança ao início do dia seguinte)
+    if data_fim is not None:
+        fim_dt = datetime(data_fim.year, data_fim.month, data_fim.day, tzinfo=timezone.utc) + timedelta(days=1)
+        query = query.filter(Solicitacao.data_registro < fim_dt)
 
     # Define a ordenação conforme o parâmetro recebido
     if ordem == OrdemSolicitacao.mais_apoiados:

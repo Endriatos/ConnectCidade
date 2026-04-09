@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -25,6 +26,12 @@ def listar_solicitacoes_admin(
     protocolo: Optional[str] = Query(None),
     # Filtro opcional pelo id do cidadão autor das solicitações
     id_autor: Optional[int] = Query(None),
+    # Busca parcial pelo endereço de referência da solicitação
+    endereco: Optional[str] = Query(None),
+    # Filtra solicitações criadas a partir desta data (formato YYYY-MM-DD)
+    data_inicio: Optional[date] = Query(None),
+    # Filtra solicitações criadas até esta data (formato YYYY-MM-DD, inclusive)
+    data_fim: Optional[date] = Query(None),
     # Critério de ordenação: mais_recentes (padrão), mais_antigos ou mais_apoiados
     ordem: Optional[OrdemSolicitacao] = Query(None),
     # Número da página desejada (começa em 1)
@@ -46,6 +53,9 @@ def listar_solicitacoes_admin(
         id_categoria=id_categoria,
         protocolo=protocolo,
         id_autor=id_autor,
+        endereco=endereco,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
         ordem=ordem,
         pagina=pagina,
         por_pagina=por_pagina,

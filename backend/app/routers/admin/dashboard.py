@@ -13,13 +13,13 @@ from app.models.usuario import TipoUsuario, Usuario
 from app.schemas.dashboard import (
     CategoriaStatusItem,
     DashboardResponse,
+    FilaAtencaoItem,
     GraficoMensalItem,
     MediaAvaliacaoCategoria,
 )
 from app.utils.deps import get_admin_atual, get_db
 
 router = APIRouter(prefix="/admin/dashboard", tags=["Admin - Dashboard"])
-
 
 # Opções de período para filtro do dashboard
 class PeriodoDashboard(str, enum.Enum):
@@ -59,6 +59,50 @@ def _filtro_periodo(query, campo, data_inicio: Optional[datetime]):
     if data_inicio is not None:
         return query.filter(campo >= data_inicio)
     return query
+
+
+@router.get("/fila-atencao", response_model=List[FilaAtencaoItem])
+def get_fila_atencao(
+    db: Session = Depends(get_db),
+    _admin: Usuario = Depends(get_admin_atual),
+):
+    """Retorna as 5 solicitações em aberto com maior score de atenção.
+
+    Score = contador_apoios + (dias_desde_registro // 3).
+    Considera apenas os status PENDENTE, EM_ANALISE e EM_ANDAMENTO.
+    """
+    agora = datetime.now(timezone.utc)
+
+    rows = (
+        db.query(Solicitacao, Categoria)
+        .join(Categoria, Solicitacao.id_categoria == Categoria.id_categoria)
+        .filter(Solicitacao.status.in_(_STATUS_ABERTOS))
+        .all()
+    )
+
+    def _score(sol: Solicitacao) -> int:
+        reg = sol.data_registro
+        if reg.tzinfo is None:
+            reg = reg.replace(tzinfo=timezone.utc)
+        dias = (agora - reg).days
+        return sol.contador_apoios + (dias // 3)
+
+    top5 = sorted(rows, key=lambda r: _score(r[0]), reverse=True)[:5]
+
+    return [
+        FilaAtencaoItem(
+            id_solicitacao=sol.id_solicitacao,
+            protocolo=sol.protocolo,
+            nome_categoria=cat.nome_categoria,
+            cor_hex=cat.cor_hex,
+            status=sol.status.value,
+            contador_apoios=sol.contador_apoios,
+            data_registro=sol.data_registro,
+            endereco_referencia=sol.endereco_referencia,
+            score=_score(sol),
+        )
+        for sol, cat in top5
+    ]
 
 
 @router.get("", response_model=DashboardResponse)

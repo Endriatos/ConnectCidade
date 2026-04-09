@@ -178,7 +178,7 @@ export default function Mapa() {
         content: conteudoSVG(pinSVG(cor), 24, 32),
       })
       m._cor = cor
-      m.addListener('click', () => setSelecionada(sol))
+      m.addListener('gmp-click', () => setSelecionada(sol))
       porId[sol.id_solicitacao] = m
       return m
     })

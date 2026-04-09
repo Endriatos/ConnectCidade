@@ -486,9 +486,9 @@ export default function NovaSolicitacao() {
             <form onSubmit={handleSubmit} className="space-y-6">
 
               <div>
-                <label className="block text-sm font-medium text-[#2a2a2a] mb-3">
+                <p className="block text-sm font-medium text-[#2a2a2a] mb-3">
                   Categoria <span className="text-red-400">*</span>
-                </label>
+                </p>
                 {erros.categoria && <p className="text-xs text-red-500 mb-2">{erros.categoria}</p>}
                 <div className={`grid grid-cols-2 gap-3 rounded-xl transition-all ${erros.categoria ? 'ring-2 ring-red-300 p-1' : ''}`}>
                   {categorias.map((cat) => (
@@ -527,9 +527,9 @@ export default function NovaSolicitacao() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#2a2a2a] mb-2">
+                <p className="block text-sm font-medium text-[#2a2a2a] mb-2">
                   Endereço <span className="text-red-400">*</span>
-                </label>
+                </p>
                 {erros.endereco && <p className="text-xs text-red-500 mb-1">{erros.endereco}</p>}
                 <div className={`flex items-center rounded-xl border ${erros.endereco ? 'border-red-300' : 'border-[#2a2a2a]/10'}`}>
                   <p onClick={abrirModalMapa} className="flex-1 px-4 py-3 text-sm text-[#2a2a2a] truncate cursor-pointer">
@@ -559,9 +559,9 @@ export default function NovaSolicitacao() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#2a2a2a] mb-2">
+                <p className="block text-sm font-medium text-[#2a2a2a] mb-2">
                   Fotos <span className="text-[#2a2a2a]/40 font-normal">(mín. 1, máx. 5)</span> <span className="text-red-400">*</span>
-                </label>
+                </p>
                 {erros.fotos && <p className="text-xs text-red-500 mb-2">{erros.fotos}</p>}
                 <div className={`flex gap-3 mb-3 ${erros.fotos ? 'ring-2 ring-red-300 rounded-xl p-1' : ''}`}>
                   <button

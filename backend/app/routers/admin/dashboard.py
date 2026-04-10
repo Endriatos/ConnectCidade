@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import cast, func, Integer
+from sqlalchemy import case, cast, func, Integer
 from sqlalchemy.orm import Session
 
 from app.models.avaliacao import Avaliacao
@@ -21,44 +21,157 @@ from app.utils.deps import get_admin_atual, get_db
 
 router = APIRouter(prefix="/admin/dashboard", tags=["Admin - Dashboard"])
 
-# Opções de período para filtro do dashboard
+
 class PeriodoDashboard(str, enum.Enum):
-    d7 = "7d"
-    d30 = "30d"
-    d90 = "90d"
+    d7   = "7d"
+    d15  = "15d"
+    d30  = "30d"
+    d90  = "90d"
+    d180 = "180d"
+    d365 = "365d"
     tudo = "tudo"
 
 
-# Status considerados "em aberto" para o KPI total_abertos
 _STATUS_ABERTOS = [
     StatusSolicitacao.PENDENTE,
     StatusSolicitacao.EM_ANALISE,
     StatusSolicitacao.EM_ANDAMENTO,
 ]
 
+_DIAS_POR_PERIODO = {
+    PeriodoDashboard.d7:   7,
+    PeriodoDashboard.d15:  15,
+    PeriodoDashboard.d30:  30,
+    PeriodoDashboard.d90:  90,
+    PeriodoDashboard.d180: 180,
+    PeriodoDashboard.d365: 365,
+}
+
+_MESES_POR_PERIODO = {
+    PeriodoDashboard.d90:  3,
+    PeriodoDashboard.d180: 6,
+    PeriodoDashboard.d365: 12,
+}
+
 
 def _arredondar(valor: Optional[float]) -> Optional[float]:
-    """Arredonda para 1 casa decimal ou retorna None se o valor for None."""
     return round(valor, 1) if valor is not None else None
 
 
 def _calcular_data_inicio(periodo: PeriodoDashboard) -> Optional[datetime]:
-    """Retorna o datetime de início do período, ou None para 'tudo'."""
     agora = datetime.now(timezone.utc)
-    mapa = {
-        PeriodoDashboard.d7: timedelta(days=7),
-        PeriodoDashboard.d30: timedelta(days=30),
-        PeriodoDashboard.d90: timedelta(days=90),
-    }
-    delta = mapa.get(periodo)
-    return (agora - delta) if delta else None
+    delta = _DIAS_POR_PERIODO.get(periodo)
+    return (agora - timedelta(days=delta)) if delta else None
 
 
 def _filtro_periodo(query, campo, data_inicio: Optional[datetime]):
-    """Aplica o filtro de data_inicio a uma query SQLAlchemy se definido."""
     if data_inicio is not None:
         return query.filter(campo >= data_inicio)
     return query
+
+
+def _aware(dt: datetime) -> datetime:
+    return dt if (dt.tzinfo is not None) else dt.replace(tzinfo=timezone.utc)
+
+
+def _gerar_tendencia(
+    db: Session,
+    periodo: PeriodoDashboard,
+    agora: datetime,
+) -> List[GraficoMensalItem]:
+    """
+    Retorna pontos de tendência (criadas vs. resolvidas) adaptados ao período:
+    - ≤ 30 dias → granularidade diária, label "DD/MM"
+    - > 30 dias → granularidade mensal, label "YYYY-MM"
+    Um único SELECT com date_trunc + CASE é feito para cada granularidade.
+    """
+    # --- granularidade diária ---
+    if periodo in (PeriodoDashboard.d7, PeriodoDashboard.d15, PeriodoDashboard.d30):
+        n_dias = _DIAS_POR_PERIODO[periodo]
+        data_inicio = agora - timedelta(days=n_dias)
+
+        rows = (
+            db.query(
+                func.date_trunc("day", Solicitacao.data_registro).label("ponto"),
+                func.count(Solicitacao.id_solicitacao).label("criadas"),
+                func.count(
+                    case(
+                        (Solicitacao.status == StatusSolicitacao.RESOLVIDO, 1),
+                        else_=None,
+                    )
+                ).label("resolvidas"),
+            )
+            .filter(Solicitacao.data_registro >= data_inicio)
+            .group_by("ponto")
+            .all()
+        )
+
+        by_day = {
+            (_aware(r.ponto).year, _aware(r.ponto).month, _aware(r.ponto).day): (r.criadas, r.resolvidas)
+            for r in rows
+        }
+
+        resultado = []
+        for i in range(n_dias - 1, -1, -1):
+            dia = agora - timedelta(days=i)
+            criadas, resolvidas = by_day.get((dia.year, dia.month, dia.day), (0, 0))
+            resultado.append(GraficoMensalItem(
+                mes=dia.strftime("%d/%m"),
+                criadas=criadas,
+                resolvidas=resolvidas,
+            ))
+        return resultado
+
+    # --- granularidade mensal ---
+    if periodo == PeriodoDashboard.tudo:
+        min_data_raw = db.query(func.min(Solicitacao.data_registro)).scalar()
+        if min_data_raw:
+            min_data = _aware(min_data_raw)
+            meses = (agora.year - min_data.year) * 12 + (agora.month - min_data.month) + 1
+            n_meses = min(meses, 36)
+        else:
+            n_meses = 12
+    else:
+        n_meses = _MESES_POR_PERIODO.get(periodo, 6)
+
+    total_meses_inicio = agora.year * 12 + (agora.month - 1) - (n_meses - 1)
+    ano_ini = total_meses_inicio // 12
+    mes_ini = total_meses_inicio % 12 + 1
+    data_range_inicio = datetime(ano_ini, mes_ini, 1, tzinfo=timezone.utc)
+
+    rows = (
+        db.query(
+            func.date_trunc("month", Solicitacao.data_registro).label("ponto"),
+            func.count(Solicitacao.id_solicitacao).label("criadas"),
+            func.count(
+                case(
+                    (Solicitacao.status == StatusSolicitacao.RESOLVIDO, 1),
+                    else_=None,
+                )
+            ).label("resolvidas"),
+        )
+        .filter(Solicitacao.data_registro >= data_range_inicio)
+        .group_by("ponto")
+        .all()
+    )
+
+    by_month = {
+        (_aware(r.ponto).year, _aware(r.ponto).month): (r.criadas, r.resolvidas)
+        for r in rows
+    }
+
+    resultado = []
+    for i in range(n_meses - 1, -1, -1):
+        total_m = agora.year * 12 + (agora.month - 1) - i
+        ano_m = total_m // 12
+        mes_m = total_m % 12 + 1
+        criadas, resolvidas = by_month.get((ano_m, mes_m), (0, 0))
+        resultado.append(GraficoMensalItem(
+            mes=f"{ano_m:04d}-{mes_m:02d}",
+            criadas=criadas,
+            resolvidas=resolvidas,
+        ))
+    return resultado
 
 
 @router.get("/fila-atencao", response_model=List[FilaAtencaoItem])
@@ -66,19 +179,14 @@ def get_fila_atencao(
     db: Session = Depends(get_db),
     _admin: Usuario = Depends(get_admin_atual),
 ):
-    """Retorna as 5 solicitações em aberto com maior score de atenção.
-
-    Score = contador_apoios + (dias_desde_registro // 3).
-    Considera apenas os status PENDENTE, EM_ANALISE e EM_ANDAMENTO.
-    """
     ultima = func.coalesce(Solicitacao.data_atualizacao, Solicitacao.data_registro)
     score_expr = (
         Solicitacao.contador_apoios
-        + cast(func.floor(func.extract('day', func.now() - ultima) / 3), Integer)
+        + cast(func.floor(func.extract("day", func.now() - ultima) / 3), Integer)
     )
 
     rows = (
-        db.query(Solicitacao, Categoria, score_expr.label('score'))
+        db.query(Solicitacao, Categoria, score_expr.label("score"))
         .join(Categoria, Solicitacao.id_categoria == Categoria.id_categoria)
         .filter(Solicitacao.status.in_(_STATUS_ABERTOS))
         .order_by(score_expr.desc())
@@ -110,57 +218,21 @@ def get_fila_atencao(
 def get_dashboard(
     periodo: PeriodoDashboard = Query(PeriodoDashboard.d30),
     db: Session = Depends(get_db),
-    # Apenas admins autenticados podem acessar o dashboard
     _admin: Usuario = Depends(get_admin_atual),
 ):
-    """Retorna KPIs e métricas do painel administrativo, opcionalmente filtrados por período."""
+    agora = datetime.now(timezone.utc)
     data_inicio = _calcular_data_inicio(periodo)
 
     # -----------------------------------------------------------------------
-    # KPIs fixos (independem do período)
+    # KPIs fixos (snapshot atual, sem filtro de período)
     # -----------------------------------------------------------------------
 
-    # Total de solicitações nos status considerados em aberto
     total_abertos: int = (
         db.query(func.count(Solicitacao.id_solicitacao))
         .filter(Solicitacao.status.in_(_STATUS_ABERTOS))
         .scalar() or 0
     )
 
-    # Contagem por status — inicializa todos os 5 com zero para garantir chaves completas
-    por_status: dict = {s.value: 0 for s in StatusSolicitacao}
-    for status_val, contagem in db.query(
-        Solicitacao.status, func.count(Solicitacao.id_solicitacao)
-    ).group_by(Solicitacao.status).all():
-        por_status[status_val.value] = contagem
-
-    # Solicitações não canceladas agrupadas por categoria (LEFT JOIN para incluir categorias vazias)
-    rows_categoria = (
-        db.query(
-            Categoria.id_categoria,
-            Categoria.nome_categoria,
-            Categoria.cor_hex,
-            func.count(Solicitacao.id_solicitacao).label("total"),
-        )
-        .outerjoin(
-            Solicitacao,
-            (Solicitacao.id_categoria == Categoria.id_categoria)
-            & (Solicitacao.status != StatusSolicitacao.CANCELADO),
-        )
-        .group_by(Categoria.id_categoria, Categoria.nome_categoria, Categoria.cor_hex)
-        .all()
-    )
-    por_categoria: List[CategoriaStatusItem] = [
-        CategoriaStatusItem(
-            id_categoria=r.id_categoria,
-            nome_categoria=r.nome_categoria,
-            cor_hex=r.cor_hex,
-            total=r.total,
-        )
-        for r in rows_categoria
-    ]
-
-    # Total de cidadãos ativos (status_ativo=True)
     total_cidadaos: int = (
         db.query(func.count(Usuario.id_usuario))
         .filter(
@@ -170,7 +242,11 @@ def get_dashboard(
         .scalar() or 0
     )
 
-    # Média de avaliações por categoria — exclui categorias sem nenhuma avaliação
+    media_geral_raw = db.query(func.avg(Avaliacao.nota)).scalar()
+    media_avaliacao_geral: Optional[float] = _arredondar(
+        float(media_geral_raw) if media_geral_raw is not None else None
+    )
+
     rows_media_cat = (
         db.query(
             Categoria.id_categoria,
@@ -192,24 +268,55 @@ def get_dashboard(
         for r in rows_media_cat
     ]
 
-    # Média geral de todas as avaliações
-    media_geral_raw = db.query(func.avg(Avaliacao.nota)).scalar()
-    media_avaliacao_geral: Optional[float] = _arredondar(
-        float(media_geral_raw) if media_geral_raw is not None else None
+    # -----------------------------------------------------------------------
+    # Distribuições filtradas pelo período
+    # -----------------------------------------------------------------------
+
+    por_status: dict = {s.value: 0 for s in StatusSolicitacao}
+    q_status = db.query(Solicitacao.status, func.count(Solicitacao.id_solicitacao)).group_by(Solicitacao.status)
+    if data_inicio is not None:
+        q_status = q_status.filter(Solicitacao.data_registro >= data_inicio)
+    for status_val, contagem in q_status.all():
+        por_status[status_val.value] = contagem
+
+    join_cond = (
+        (Solicitacao.id_categoria == Categoria.id_categoria)
+        & (Solicitacao.status != StatusSolicitacao.CANCELADO)
     )
+    if data_inicio is not None:
+        join_cond = join_cond & (Solicitacao.data_registro >= data_inicio)
+
+    rows_categoria = (
+        db.query(
+            Categoria.id_categoria,
+            Categoria.nome_categoria,
+            Categoria.cor_hex,
+            func.count(Solicitacao.id_solicitacao).label("total"),
+        )
+        .outerjoin(Solicitacao, join_cond)
+        .group_by(Categoria.id_categoria, Categoria.nome_categoria, Categoria.cor_hex)
+        .all()
+    )
+    por_categoria: List[CategoriaStatusItem] = [
+        CategoriaStatusItem(
+            id_categoria=r.id_categoria,
+            nome_categoria=r.nome_categoria,
+            cor_hex=r.cor_hex,
+            total=r.total,
+        )
+        for r in rows_categoria
+    ]
 
     # -----------------------------------------------------------------------
-    # Dados filtrados pelo período
+    # KPIs filtrados pelo período
     # -----------------------------------------------------------------------
 
-    # Total de solicitações criadas no período
     total_abertas_periodo: int = _filtro_periodo(
         db.query(func.count(Solicitacao.id_solicitacao)),
         Solicitacao.data_registro,
         data_inicio,
     ).scalar() or 0
 
-    # Solicitações resolvidas criadas no período
     total_resolvidas_periodo: int = _filtro_periodo(
         db.query(func.count(Solicitacao.id_solicitacao)).filter(
             Solicitacao.status == StatusSolicitacao.RESOLVIDO
@@ -218,7 +325,6 @@ def get_dashboard(
         data_inicio,
     ).scalar() or 0
 
-    # Tempo médio de resolução em dias — calculado em Python para portabilidade entre bancos
     q_resolvidas = _filtro_periodo(
         db.query(Solicitacao.data_registro, Solicitacao.data_resolucao).filter(
             Solicitacao.status == StatusSolicitacao.RESOLVIDO,
@@ -230,17 +336,12 @@ def get_dashboard(
 
     tempo_medio_resolucao_dias: Optional[float] = None
     if q_resolvidas:
-        # Garante que ambos os campos são timezone-aware antes de subtrair
-        def _aware(dt: datetime) -> datetime:
-            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-
-        dias = [
+        dias_lista = [
             (_aware(r.data_resolucao) - _aware(r.data_registro)).total_seconds() / 86400
             for r in q_resolvidas
         ]
-        tempo_medio_resolucao_dias = _arredondar(sum(dias) / len(dias))
+        tempo_medio_resolucao_dias = _arredondar(sum(dias_lista) / len(dias_lista))
 
-    # Avaliações de solicitações criadas no período (JOIN para acessar data_registro)
     q_avals = _filtro_periodo(
         db.query(Avaliacao.foi_resolvido, Avaliacao.nota)
         .join(Solicitacao, Avaliacao.id_solicitacao == Solicitacao.id_solicitacao),
@@ -251,62 +352,16 @@ def get_dashboard(
     indice_resolucao_efetiva: Optional[float] = None
     media_avaliacao_periodo: Optional[float] = None
     if q_avals:
-        # Índice de resolução efetiva: % de avaliações com foi_resolvido=True
         total_avals = len(q_avals)
         resolvidas_ok = sum(1 for a in q_avals if a.foi_resolvido)
         indice_resolucao_efetiva = _arredondar(resolvidas_ok / total_avals * 100)
-
-        # Média de notas no período
-        media_avaliacao_periodo = _arredondar(
-            sum(a.nota for a in q_avals) / total_avals
-        )
+        media_avaliacao_periodo = _arredondar(sum(a.nota for a in q_avals) / total_avals)
 
     # -----------------------------------------------------------------------
-    # Gráfico mensal — últimos 6 meses calendário, independente do período
+    # Gráfico de tendência — granularidade adaptada ao período
     # -----------------------------------------------------------------------
 
-    agora = datetime.now(timezone.utc)
-    grafico_mensal: List[GraficoMensalItem] = []
-
-    for i in range(5, -1, -1):
-        # Calcula ano e mês do mês i meses atrás usando aritmética de meses
-        total_meses = agora.year * 12 + (agora.month - 1) - i
-        ano_m = total_meses // 12
-        mes_m = total_meses % 12 + 1
-
-        inicio_mes = datetime(ano_m, mes_m, 1, tzinfo=timezone.utc)
-        fim_mes = (
-            datetime(ano_m + 1, 1, 1, tzinfo=timezone.utc)
-            if mes_m == 12
-            else datetime(ano_m, mes_m + 1, 1, tzinfo=timezone.utc)
-        )
-
-        criadas_mes: int = (
-            db.query(func.count(Solicitacao.id_solicitacao))
-            .filter(
-                Solicitacao.data_registro >= inicio_mes,
-                Solicitacao.data_registro < fim_mes,
-            )
-            .scalar() or 0
-        )
-
-        resolvidas_mes: int = (
-            db.query(func.count(Solicitacao.id_solicitacao))
-            .filter(
-                Solicitacao.data_registro >= inicio_mes,
-                Solicitacao.data_registro < fim_mes,
-                Solicitacao.status == StatusSolicitacao.RESOLVIDO,
-            )
-            .scalar() or 0
-        )
-
-        grafico_mensal.append(
-            GraficoMensalItem(
-                mes=f"{ano_m:04d}-{mes_m:02d}",
-                criadas=criadas_mes,
-                resolvidas=resolvidas_mes,
-            )
-        )
+    grafico_mensal = _gerar_tendencia(db, periodo, agora)
 
     return DashboardResponse(
         total_abertos=total_abertos,

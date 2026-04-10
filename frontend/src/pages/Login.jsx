@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { Eye, EyeOff, X } from 'lucide-react'
 import Lottie from 'lottie-react'
@@ -26,9 +26,13 @@ export default function Login() {
   const [carregando, setCarregando] = useState(false)
   const [modalSenha, setModalSenha] = useState(false)
 
-  const { login, setNome } = useAuthStore()
+  const { login, setNome, token } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
+
+  useEffect(() => {
+    if (token) navigate('/home', { replace: true })
+  }, [token, navigate])
 
   const sessaoExpirada = new URLSearchParams(location.search).get('sessao') === 'expirada'
   const avisoLogin = location.state?.avisoLogin

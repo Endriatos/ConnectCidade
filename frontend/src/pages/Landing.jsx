@@ -3,6 +3,8 @@ import { MapPin, FileText, Users, Shield, ArrowRight } from 'lucide-react';
 import Lottie from 'lottie-react';
 import logoCC from '../assets/logoCC.png';
 import cityAnimation from '../assets/City.json';
+import Header from '../components/Header';
+import useAuthStore from '../store/authStore';
 
 // Cards de funcionalidades exibidos na seção "Como Funciona"
 const funcionalidades = [
@@ -32,33 +34,39 @@ const funcionalidades = [
 ];
 
 export default function Landing() {
+  const token = useAuthStore((s) => s.token)
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header fixo no topo */}
-      <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-        <div
-          className="mx-auto px-8 h-16 flex items-center justify-between"
-          style={{ maxWidth: '1400px' }}
-        >
-          <Link to="/" className="flex items-center">
-            <img src={logoCC} alt="Connect Cidade" className="h-9" />
-          </Link>
-          <div className="flex items-center gap-3 translate-y-px">
-            <Link
-              to="/login"
-              className="text-sm font-medium text-[#2a2a2a]/60 hover:text-[#2a2a2a] transition-colors"
-            >
-              Entrar
+      {token ? (
+        <Header />
+      ) : (
+        <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
+          <div
+            className="mx-auto px-8 h-16 flex items-center justify-between"
+            style={{ maxWidth: '1400px' }}
+          >
+            <Link to="/" className="flex items-center">
+              <img src={logoCC} alt="Connect Cidade" className="h-9" />
             </Link>
-            <Link
-              to="/cadastro"
-              className="text-sm font-medium px-4 py-2 rounded-lg bg-[#3cb478] text-white hover:bg-[#349d69] transition-colors"
-            >
-              Cadastrar
-            </Link>
+            <div className="flex items-center gap-3 translate-y-px">
+              <Link
+                to="/login"
+                className="text-sm font-medium text-[#2a2a2a]/60 hover:text-[#2a2a2a] transition-colors"
+              >
+                Entrar
+              </Link>
+              <Link
+                to="/cadastro"
+                className="text-sm font-medium px-4 py-2 rounded-lg bg-[#3cb478] text-white hover:bg-[#349d69] transition-colors"
+              >
+                Cadastrar
+              </Link>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Hero — chamada principal com fundo verde escuro */}
       <section

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff, X } from 'lucide-react'
 import api from '../services/api'
@@ -288,8 +288,12 @@ export default function Cadastro() {
   const [carregando, setCarregando] = useState(false)
   const [modalPrivacidade, setModalPrivacidade] = useState(false)
   const [privacidadeAceita, setPrivacidadeAceita] = useState(false)
-  const { login, setNome } = useAuthStore()
+  const { login, setNome, token } = useAuthStore()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (token) navigate('/home', { replace: true })
+  }, [token, navigate])
 
   // Define o erro de um campo específico
   const setErro = (field, msg) =>

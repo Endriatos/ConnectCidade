@@ -20,8 +20,11 @@ api.interceptors.request.use((config) => {
       localStorage.removeItem('token')
       localStorage.removeItem('tipoUsuario')
       localStorage.removeItem('nomeUsuario')
-      window.location.href = '/login?sessao=expirada'
-      return Promise.reject(new Error('sessao_expirada'))
+      if (config.url !== '/auth/login') {
+        window.location.href = '/login?sessao=expirada'
+        return Promise.reject(new Error('sessao_expirada'))
+      }
+      return config
     }
     config.headers.Authorization = `Bearer ${token}`
   }

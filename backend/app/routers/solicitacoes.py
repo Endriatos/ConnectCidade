@@ -18,6 +18,7 @@ from app.crud.solicitacao import (
     get_solicitacoes_por_autor,
     verificar_duplicata,
 )
+from app.models.avaliacao import Avaliacao
 from app.models.solicitacao import StatusSolicitacao
 from app.schemas.solicitacao import AtualizacaoResponse, SolicitacaoCreate, SolicitacaoResponse
 from app.utils.deps import get_db, get_usuario_atual
@@ -140,11 +141,15 @@ def detalhar_solicitacao(
     if not solicitacao:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada.")
 
-    # Monta a resposta incluindo ja_apoiado, calculado para o usuário autenticado,
-    # passando diretamente no model_validate para evitar mutação do objeto
-    return SolicitacaoResponse.model_validate(
-        {**solicitacao.__dict__, "ja_apoiado": ja_apoiou(db, id_solicitacao, usuario_atual.id_usuario)}
-    )
+    extra = {
+        "ja_apoiado": ja_apoiou(db, id_solicitacao, usuario_atual.id_usuario),
+        "ja_avaliado": None,
+    }
+    if solicitacao.id_autor == usuario_atual.id_usuario:
+        extra["ja_avaliado"] = (
+            db.query(Avaliacao).filter(Avaliacao.id_solicitacao == id_solicitacao).first() is not None
+        )
+    return SolicitacaoResponse.model_validate({**solicitacao.__dict__, **extra})
 
 
 @router.get("/{id_solicitacao}/timeline", response_model=List[AtualizacaoResponse])

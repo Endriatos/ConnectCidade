@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -8,7 +9,7 @@ from app.crud.admin_solicitacao import atualizar_status, get_solicitacao_por_id,
 from app.crud.notificacao import criar_notificacao
 from app.crud.usuario import get_usuario_por_id
 from app.utils.email_utils import enviar_email
-from app.models.solicitacao import OrdemSolicitacao, StatusSolicitacao
+from app.models.solicitacao import StatusSolicitacao
 from app.schemas.solicitacao import PaginacaoResponse, SolicitacaoResponse
 from app.utils.deps import get_admin_atual, get_db
 
@@ -25,8 +26,12 @@ def listar_solicitacoes_admin(
     protocolo: Optional[str] = Query(None),
     # Filtro opcional pelo id do cidadão autor das solicitações
     id_autor: Optional[int] = Query(None),
-    # Critério de ordenação: mais_recentes (padrão), mais_antigos ou mais_apoiados
-    ordem: Optional[OrdemSolicitacao] = Query(None),
+    # Busca parcial pelo endereço de referência da solicitação
+    endereco: Optional[str] = Query(None),
+    # Filtra solicitações criadas a partir desta data (formato YYYY-MM-DD)
+    data_inicio: Optional[date] = Query(None),
+    # Filtra solicitações criadas até esta data (formato YYYY-MM-DD, inclusive)
+    data_fim: Optional[date] = Query(None),
     # Número da página desejada (começa em 1)
     pagina: int = Query(1, ge=1),
     # Quantidade de itens por página
@@ -46,7 +51,9 @@ def listar_solicitacoes_admin(
         id_categoria=id_categoria,
         protocolo=protocolo,
         id_autor=id_autor,
-        ordem=ordem,
+        endereco=endereco,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
         pagina=pagina,
         por_pagina=por_pagina,
     )
@@ -73,7 +80,9 @@ def detalhar_solicitacao_admin(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada.")
 
     # Monta a resposta incluindo ja_apoiado=None, que não se aplica ao contexto admin
-    return SolicitacaoResponse.model_validate({**solicitacao.__dict__, "ja_apoiado": None})
+    return SolicitacaoResponse.model_validate(
+        {**solicitacao.__dict__, "ja_apoiado": None, "ja_avaliado": None}
+    )
 
 
 class AtualizarStatusRequest(BaseModel):

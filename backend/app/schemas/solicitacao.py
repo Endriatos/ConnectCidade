@@ -34,6 +34,8 @@ class SolicitacaoResponse(BaseModel):
     # Indica se o usuário autenticado já apoiou esta solicitação;
     # preenchido manualmente no endpoint de detalhe (não vem do ORM)
     ja_apoiado: Optional[bool] = None
+    # Somente para o autor: se já existe avaliação para esta solicitação
+    ja_avaliado: Optional[bool] = None
 
 
 class AtualizacaoResponse(BaseModel):

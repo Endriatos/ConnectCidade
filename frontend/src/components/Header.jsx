@@ -1,16 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, ChevronDown, LogOut, ClipboardList, Bell } from 'lucide-react'
+import { User, ChevronDown, LogOut, ClipboardList, Bell, Shield } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import iconCC from '../assets/iconCC.png'
 
 export default function Header() {
-  const { nome, logout } = useAuthStore()
+  const { nome, logout, tipoUsuario } = useAuthStore()
   const navigate = useNavigate()
   const [menuAberto, setMenuAberto] = useState(false)
   const menuRef = useRef(null)
 
   const primeiroNome = nome ? nome.split(' ')[0] : 'Usuário'
+  const nomePerfil = primeiroNome
+    ? `${primeiroNome.charAt(0).toUpperCase()}${primeiroNome.slice(1)}`
+    : 'Usuário'
 
   useEffect(() => {
     function handleClickFora(e) {
@@ -45,6 +48,15 @@ export default function Header() {
         <div className="flex-1 min-w-[100px]" />
 
         <div className="flex items-center gap-2 min-w-0">
+          {tipoUsuario === 'ADMIN' && (
+            <Link
+              to="/admin/solicitacoes"
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#3cb478]/40 text-sm font-medium text-[#3cb478] hover:bg-[#3cb478]/8 transition-colors"
+            >
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">Painel administrativo</span>
+            </Link>
+          )}
           <button
             type="button"
             aria-label="Notificações"
@@ -59,7 +71,7 @@ export default function Header() {
               className="inline-flex items-center gap-1.5 sm:gap-2 max-w-[min(100%,11rem)] sm:max-w-none h-9 px-2.5 sm:px-3 rounded-lg border border-[#2a2a2a]/10 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
             >
               <User className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
-              <span className="truncate">{primeiroNome}</span>
+              <span className="truncate">{nomePerfil}</span>
               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#2a2a2a]/40" />
             </button>
 

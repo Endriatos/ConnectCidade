@@ -1,16 +1,17 @@
 import { useState } from 'react'
-import { ChevronDown, SlidersHorizontal } from 'lucide-react'
-import { opcoesFiltro } from '../../../utils/solicitacaoStatus'
+import { ChevronDown, SlidersHorizontal, Circle } from 'lucide-react'
+import { opcoesFiltro, STATUS_ICONE } from '../../../utils/solicitacaoStatus'
+import { iconeCategoria } from '../../../utils/categoriaIcone'
 
 const estiloPillCategoria = (ativo) =>
-  `inline-flex max-w-full min-w-0 shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium transition-colors ${
-    ativo ? 'border-[#2a2a2a]/20 bg-[#f5f5f5] text-[#2a2a2a]' : 'border-transparent text-[#2a2a2ab3]'
+  `inline-flex max-w-full min-w-0 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium transition-colors ${
+    ativo ? 'border-[#2a2a2a]/20 bg-[#f5f5f5] text-[#2a2a2ab3]' : 'border-black/10 bg-white text-[#2a2a2ab3] hover:border-black/20 hover:bg-[#fafafa]'
   }`
 
 const estiloPillStatus = (ativo) => ({
-  backgroundColor: ativo ? '#f5f5f5' : 'transparent',
+  backgroundColor: ativo ? '#f5f5f5' : '#ffffff',
   color: ativo ? '#2a2a2a' : '#2a2a2ab3',
-  borderColor: ativo ? '#2a2a2a18' : 'transparent',
+  borderColor: ativo ? '#2a2a2a18' : '#2a2a2a1a',
 })
 
 function RotuloSecao({ titulo }) {
@@ -79,14 +80,18 @@ export default function Filtro({
                   <div className="flex min-w-0 max-w-full flex-wrap gap-1.5">
                     {opcoesFiltro.map((opcao) => {
                       const ativo = statusFiltro === opcao.id
+                      const IconeStatus = STATUS_ICONE[opcao.id] ?? Circle
                       return (
                         <button
                           key={opcao.id}
                           type="button"
                           onClick={() => onStatusFiltroChange(opcao.id)}
-                          className="inline-flex shrink-0 items-center rounded-full border px-2 py-1 text-xs font-medium transition-colors"
+                          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium transition-colors hover:bg-[#fafafa]"
                           style={estiloPillStatus(ativo)}
                         >
+                          {opcao.id !== 'TODOS' && (
+                            <IconeStatus className="h-3.5 w-3.5 text-[#2a2a2a]/55" aria-hidden />
+                          )}
                           {opcao.label}
                         </button>
                       )
@@ -119,21 +124,24 @@ export default function Filtro({
                         </span>
                         <span className="max-w-[12rem] truncate">Todas as categorias</span>
                       </button>
-                      {categorias.map((c) => (
-                        <button
-                          key={c.id_categoria}
-                          type="button"
-                          onClick={() => onCategoriaFiltroChange(c.id_categoria)}
-                          className={estiloPillCategoria(categoriaFiltro === c.id_categoria)}
-                        >
-                          <span
-                            className="h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: c.cor_hex ?? '#3cb478' }}
-                            aria-hidden
-                          />
-                          <span className="max-w-[12rem] truncate">{c.nome_categoria}</span>
-                        </button>
-                      ))}
+                      {categorias.map((c) => {
+                        const IconeCategoria = iconeCategoria(c.nome_categoria)
+                        return (
+                          <button
+                            key={c.id_categoria}
+                            type="button"
+                            onClick={() => onCategoriaFiltroChange(c.id_categoria)}
+                            className={estiloPillCategoria(categoriaFiltro === c.id_categoria)}
+                          >
+                            <IconeCategoria
+                              className="h-3.5 w-3.5 shrink-0"
+                              style={{ color: c.cor_hex ?? '#3cb478' }}
+                              aria-hidden
+                            />
+                            <span className="max-w-[12rem] truncate">{c.nome_categoria}</span>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 )}

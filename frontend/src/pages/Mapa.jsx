@@ -1,12 +1,22 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
-import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Calendar, ChevronLeft, ChevronRight, LocateFixed } from 'lucide-react'
+import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Calendar, ChevronLeft, ChevronRight, LocateFixed, Navigation } from 'lucide-react'
 import api from '../services/api'
 import Lottie from 'lottie-react'
 import typing from '../assets/Typing.json'
+import catLoading from '../assets/CatLoading.json'
+import { STATUS_ICONE, STATUS_LABEL } from '../utils/solicitacaoStatus'
 
-const LIBRARIES = ['places']
+const LIBRARIES = ['places', 'marker']
+
+const conteudoSVG = (svgStr, width, height) => {
+  const div = document.createElement('div')
+  div.innerHTML = svgStr
+  div.style.width = `${width}px`
+  div.style.height = `${height}px`
+  return div
+}
 
 const iconeCategoria = (nome) => {
   if (nome?.includes('Iluminação')) return Lightbulb
@@ -16,34 +26,19 @@ const iconeCategoria = (nome) => {
   return MapPin
 }
 
-const STATUS_LABEL = {
-  PENDENTE: 'Pendente',
-  EM_ANALISE: 'Em Análise',
-  EM_ANDAMENTO: 'Em Andamento',
-  RESOLVIDO: 'Resolvido',
-}
-
-const STATUS_COR = {
-  PENDENTE:     'hsl(221, 83%, 53%)',
-  EM_ANALISE:   'hsl(45, 93%, 47%)',
-  EM_ANDAMENTO: 'hsl(25, 95%, 53%)',
-  RESOLVIDO:    'hsl(142, 71%, 45%)',
-  CANCELADO:    'hsl(0, 72%, 50%)',
-}
-
 const formatarData = (iso) => {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR')
 }
 
 const pinSVG = (cor) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">` +
+  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 32 42">` +
   `<path d="M16 0C7.163 0 0 7.163 0 16C0 26.5 16 42 16 42C16 42 32 26.5 32 16C32 7.163 24.837 0 16 0Z" fill="${cor}"/>` +
   `<circle cx="16" cy="16" r="5" fill="white"/>` +
   `</svg>`
 
 const pinSVGAnimado = (cor) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="52" viewBox="0 0 32 52">` +
+  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="40" viewBox="0 0 32 52">` +
   `<g><animateTransform attributeName="transform" type="translate" values="0,10;0,0;0,10" dur="1.4s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1"/>` +
   `<path d="M16 0C7.163 0 0 7.163 0 16C0 26.5 16 42 16 42C16 42 32 26.5 32 16C32 7.163 24.837 0 16 0Z" fill="${cor}"/>` +
   `<circle cx="16" cy="16" r="5" fill="white"/>` +
@@ -81,6 +76,9 @@ export default function Mapa() {
   const [modalEmBreve, setModalEmBreve] = useState(false)
   const [mapa, setMapa] = useState(null)
   const [pulseApoio, setPulseApoio] = useState(false)
+  const [catCarregada, setCatCarregada] = useState(false)
+  const [solicitacoesCarregadas, setSolicitacoesCarregadas] = useState(false)
+  const [tilesCarregados, setTilesCarregados] = useState(false)
 
   const clustererRef = useRef(null)
   const localizacaoMarkerRef = useRef(null)
@@ -95,6 +93,9 @@ export default function Mapa() {
     libraries: LIBRARIES,
   })
 
+  const dadosCarregados = catCarregada && solicitacoesCarregadas
+  const carregandoMapa = !isLoaded || !tilesCarregados || !dadosCarregados
+
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
       (pos) => setPosicao([pos.coords.latitude, pos.coords.longitude]),
@@ -107,8 +108,8 @@ export default function Mapa() {
       const obj = {}
       res.data.forEach((c) => { obj[c.id_categoria] = c })
       setCategorias(obj)
-    }).catch(() => {})
-    api.get('/mapa/solicitacoes').then((res) => setSolicitacoes(res.data)).catch(() => {})
+    }).catch(() => {}).finally(() => setCatCarregada(true))
+    api.get('/mapa/solicitacoes').then((res) => setSolicitacoes(res.data)).catch(() => {}).finally(() => setSolicitacoesCarregadas(true))
   }, [])
 
   useEffect(() => {
@@ -140,19 +141,17 @@ export default function Mapa() {
 
   useEffect(() => {
     if (!mapa || !posicao) return
-    if (localizacaoMarkerRef.current) localizacaoMarkerRef.current.setMap(null)
-    localizacaoMarkerRef.current = new window.google.maps.Marker({
+    if (localizacaoMarkerRef.current) localizacaoMarkerRef.current.map = null
+    const dotContent = conteudoSVG(LOC_DOT_SVG, 36, 36)
+    dotContent.style.transform = 'translateY(50%)'
+    dotContent.style.pointerEvents = 'none'
+    localizacaoMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
       position: { lat: posicao[0], lng: posicao[1] },
       map: mapa,
-      icon: {
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(LOC_DOT_SVG)}`,
-        scaledSize: new window.google.maps.Size(36, 36),
-        anchor: new window.google.maps.Point(18, 18),
-      },
-      clickable: false,
+      content: dotContent,
       zIndex: 500,
     })
-    return () => { if (localizacaoMarkerRef.current) localizacaoMarkerRef.current.setMap(null) }
+    return () => { if (localizacaoMarkerRef.current) localizacaoMarkerRef.current.map = null }
   }, [mapa, posicao])
 
   const solicitacoesFiltradas = useMemo(
@@ -174,16 +173,12 @@ export default function Mapa() {
     const novos = solicitacoesFiltradas.map((sol) => {
       const c = categorias[sol.id_categoria]
       const cor = c?.cor_hex ?? '#3cb478'
-      const m = new window.google.maps.Marker({
+      const m = new window.google.maps.marker.AdvancedMarkerElement({
         position: { lat: sol.latitude, lng: sol.longitude },
-        icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(pinSVG(cor))}`,
-          scaledSize: new window.google.maps.Size(32, 42),
-          anchor: new window.google.maps.Point(16, 42),
-        },
+        content: conteudoSVG(pinSVG(cor), 24, 32),
       })
       m._cor = cor
-      m.addListener('click', () => setSelecionada(sol))
+      m.addListener('gmp-click', () => setSelecionada(sol))
       porId[sol.id_solicitacao] = m
       return m
     })
@@ -191,11 +186,7 @@ export default function Mapa() {
 
     const idSelecionada = selecionadaRef.current?.id_solicitacao
     if (idSelecionada && porId[idSelecionada]) {
-      porId[idSelecionada].setIcon({
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(pinSVGAnimado(porId[idSelecionada]._cor))}`,
-        scaledSize: new window.google.maps.Size(32, 52),
-        anchor: new window.google.maps.Point(16, 52),
-      })
+      porId[idSelecionada].content = conteudoSVG(pinSVGAnimado(porId[idSelecionada]._cor), 24, 40)
     }
 
     clustererRef.current = new MarkerClusterer({
@@ -204,13 +195,11 @@ export default function Mapa() {
       renderer: {
         render({ count, position }) {
           const s = count < 10 ? 36 : count < 100 ? 42 : 48
-          return new window.google.maps.Marker({
+          const content = conteudoSVG(clusterSVG(count), s, s)
+          content.style.transform = 'translateY(50%)'
+          return new window.google.maps.marker.AdvancedMarkerElement({
             position,
-            icon: {
-              url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(clusterSVG(count))}`,
-              scaledSize: new window.google.maps.Size(s, s),
-              anchor: new window.google.maps.Point(s / 2, s / 2),
-            },
+            content,
             zIndex: 1000,
           })
         },
@@ -225,11 +214,7 @@ export default function Mapa() {
 
     if (anteriorSelecionadaRef.current && marcadores[anteriorSelecionadaRef.current]) {
       const m = marcadores[anteriorSelecionadaRef.current]
-      m.setIcon({
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(pinSVG(m._cor))}`,
-        scaledSize: new window.google.maps.Size(32, 42),
-        anchor: new window.google.maps.Point(16, 42),
-      })
+      m.content = conteudoSVG(pinSVG(m._cor), 32, 42)
     }
 
     anteriorSelecionadaRef.current = selecionada?.id_solicitacao ?? null
@@ -238,16 +223,13 @@ export default function Mapa() {
     const marker = marcadores[selecionada.id_solicitacao]
     if (!marker) return
 
-    marker.setIcon({
-      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(pinSVGAnimado(marker._cor))}`,
-      scaledSize: new window.google.maps.Size(32, 52),
-      anchor: new window.google.maps.Point(16, 52),
-    })
+    marker.content = conteudoSVG(pinSVGAnimado(marker._cor), 24, 40)
   }, [selecionada?.id_solicitacao])
 
   const handleMapaLoad = useCallback((map) => {
     setMapa(map)
     map.addListener('click', () => setSelecionada(null))
+    map.addListener('tilesloaded', () => setTilesCarregados(true))
   }, [])
 
   const apoiarSolicitacao = (idSolicitacao) => {
@@ -298,12 +280,7 @@ export default function Mapa() {
 
   const cat = selecionada ? categorias[selecionada.id_categoria] : null
   const Icone = cat ? iconeCategoria(cat.nome_categoria) : MapPin
-
-  if (!isLoaded) return (
-    <div className="h-full w-full flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#3cb478] border-t-transparent" />
-    </div>
-  )
+  const IconeStatus = STATUS_ICONE[selecionada?.status] ?? MapPin
 
   const catsArr = Object.values(categorias)
   const opcoes = [
@@ -315,242 +292,274 @@ export default function Mapa() {
   const gap = 6
 
   return (
-    <div className="relative h-full w-full">
-      <GoogleMap
-        mapContainerClassName="h-full w-full"
-        center={CENTRO_PADRAO}
-        zoom={14}
-        onLoad={handleMapaLoad}
-        options={{
-          streetViewControl: false,
-          mapTypeControl: false,
-          fullscreenControl: false,
-          gestureHandling: 'greedy',
-        }}
-      />
-
-      {/* Botão centralizar */}
-      {posicao && (
-        <button
-          onClick={() => mapa?.setCenter({ lat: posicao[0], lng: posicao[1] })}
-          className="absolute bottom-[72px] right-[10px] z-[1000] bg-white/90 backdrop-blur-sm shadow-md rounded-xl p-2.5 text-[#2a2a2a]/60 hover:text-[#3cb478] transition-colors"
-          title="Centralizar na minha localização"
-        >
-          <LocateFixed className="h-5 w-5" />
-        </button>
-      )}
-
-      {/* Filtro de categorias */}
-      {catsArr.length > 0 && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm shadow-md rounded-full px-1.5 py-1.5">
-          <div className="relative flex items-center" style={{ gap }}>
-            <div
-              className="absolute rounded-full transition-all duration-300 ease-in-out"
-              style={{
-                width: tamanho,
-                height: tamanho,
-                transform: `translateX(${idxAtivo * (tamanho + gap)}px)`,
-                backgroundColor: opcoes[idxAtivo]?.cor ? `${opcoes[idxAtivo].cor}25` : '#3cb47825',
-                border: `2px solid ${opcoes[idxAtivo]?.cor ?? '#3cb478'}`,
-              }}
-            />
-            {opcoes.map((opcao) => {
-              const ativo = categoriaFiltro === opcao.id
-              return (
-                <button
-                  key={opcao.id ?? 'todos'}
-                  onClick={() => setCategoriaFiltro(opcao.id)}
-                  className="relative z-10 flex items-center justify-center transition-colors duration-300"
-                  style={{ width: tamanho, height: tamanho }}
-                >
-                  {opcao.Icone ? (
-                    <opcao.Icone
-                      className="h-4 w-4 transition-colors duration-300"
-                      style={{ color: ativo ? opcao.cor : '#2a2a2a40' }}
-                    />
-                  ) : (
-                    <div className="grid grid-cols-2 gap-px w-4 h-4 rounded-sm overflow-hidden">
-                      {catsArr.slice(0, 4).map((c) => (
-                        <div
-                          key={c.id_categoria}
-                          className="transition-opacity duration-300"
-                          style={{ backgroundColor: c.cor_hex, opacity: ativo ? 1 : 0.25 }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </button>
-              )
-            })}
+    <div className="relative h-full w-full overflow-hidden">
+      {/* Overlay de carregamento */}
+      {carregandoMapa && (
+        <div className="absolute inset-0 z-[9999] bg-white flex flex-col items-center justify-center gap-1">
+          <div className="w-44 h-44">
+            <Lottie animationData={catLoading} loop />
           </div>
+          <p className="text-sm font-medium text-[#2a2a2a]/50">Carregando mapa...</p>
         </div>
       )}
 
-      {/* Bottom sheet */}
-      {selecionada && cat && (
-        <div className="absolute bottom-0 left-0 right-0 z-[1000] bg-white rounded-t-2xl shadow-2xl max-h-[70vh] flex flex-col">
-          <div className="px-6 pt-5 pb-4 border-b border-black/5 shrink-0">
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col gap-2 min-w-0 overflow-hidden">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-medium border-2"
-                    style={{ borderColor: cat.cor_hex, color: cat.cor_hex, backgroundColor: `${cat.cor_hex}15` }}
-                  >
-                    <Icone className="h-4 w-4" />
-                    {cat.nome_categoria}
-                  </span>
-                  <span
-                    className="text-[14px] font-medium px-3 py-1.5 rounded-full text-white"
-                    style={{ backgroundColor: STATUS_COR[selecionada.status] }}
-                  >
-                    {STATUS_LABEL[selecionada.status]}
-                  </span>
-                </div>
-                <div className="flex items-start gap-1.5 text-sm text-[#2a2a2a]/50">
-                  <span className="font-mono shrink-0">#{selecionada.protocolo}</span>
-                  <span className="text-[#2a2a2a]/40 shrink-0">·</span>
-                  <span className="break-words">{selecionada.descricao}</span>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelecionada(null)}
-                className="text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors shrink-0 ml-2"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
+      {isLoaded && (
+        <>
+          <GoogleMap
+            mapContainerClassName="h-full w-full"
+            center={CENTRO_PADRAO}
+            zoom={14}
+            onLoad={handleMapaLoad}
+            options={{
+              streetViewControl: false,
+              mapTypeControl: false,
+              fullscreenControl: false,
+              gestureHandling: 'greedy',
+              mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? 'DEMO_MAP_ID',
+            }}
+          />
 
-          <div className="overflow-y-auto">
-            <div className="px-6 py-4 space-y-2.5">
-              <div className="flex items-start gap-2 text-sm text-[#2a2a2a]/70">
-                <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>{selecionada.endereco_referencia}</span>
+          {/* Botão centralizar */}
+          {posicao && (
+            <button
+              onClick={() => mapa?.setCenter({ lat: posicao[0], lng: posicao[1] })}
+              className="absolute bottom-[72px] right-[10px] z-[1000] bg-white/90 backdrop-blur-sm shadow-md rounded-xl p-2.5 text-[#2a2a2a]/60 hover:text-[#3cb478] transition-colors"
+              title="Centralizar na minha localização"
+            >
+              <LocateFixed className="h-5 w-5" />
+            </button>
+          )}
+
+          {/* Filtro de categorias */}
+          {catsArr.length > 0 && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm shadow-md transition-all duration-300 rounded-2xl px-1.5 pt-1.5 pb-3">
+              <div className="relative flex items-center" style={{ gap }}>
+                <div
+                  className="absolute rounded-full transition-all duration-300 ease-in-out"
+                  style={{
+                    width: tamanho,
+                    height: tamanho,
+                    transform: `translateX(${idxAtivo * (tamanho + gap)}px)`,
+                    backgroundColor: opcoes[idxAtivo]?.cor ? `${opcoes[idxAtivo].cor}25` : '#3cb47825',
+                    border: `2px solid ${opcoes[idxAtivo]?.cor ?? '#3cb478'}`,
+                  }}
+                />
+                {opcoes.map((opcao) => {
+                  const ativo = categoriaFiltro === opcao.id
+                  return (
+                    <button
+                      key={opcao.id ?? 'todos'}
+                      onClick={() => setCategoriaFiltro(categoriaFiltro === opcao.id ? null : opcao.id)}
+                      className="relative z-10 flex items-center justify-center transition-colors duration-300"
+                      style={{ width: tamanho, height: tamanho }}
+                    >
+                      {opcao.Icone ? (
+                        <opcao.Icone
+                          className="h-4 w-4 transition-colors duration-300"
+                          style={{ color: ativo ? opcao.cor : '#2a2a2a40' }}
+                        />
+                      ) : (
+                        <div className="grid grid-cols-2 gap-px w-4 h-4 rounded-sm overflow-hidden">
+                          {catsArr.slice(0, 4).map((c) => (
+                            <div
+                              key={c.id_categoria}
+                              className="transition-opacity duration-300"
+                              style={{ backgroundColor: c.cor_hex, opacity: ativo ? 1 : 0.25 }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
-              <div className="flex items-center justify-between text-sm text-[#2a2a2a]/70">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>{formatarData(selecionada.data_registro)}</span>
-                </div>
-                <button
-                  type="button"
-                  className="flex items-center gap-2 hover:text-[#3cb478] transition-colors"
-                  onClick={handleToggleApoio}
-                >
-                  <span
-                    className={`inline-flex shrink-0 transition-[color,transform] duration-150 ease-out ${selecionada?.ja_apoiado ? 'text-[#3cb478]' : ''} ${pulseApoio ? 'scale-110' : 'scale-100'}`}
-                  >
-                    <ThumbsUp className="h-4 w-4" fill={selecionada?.ja_apoiado ? 'currentColor' : 'none'} />
-                  </span>
-                  <span>
-                    {selecionada.contador_apoios} apoio{selecionada.contador_apoios !== 1 ? 's' : ''}
-                  </span>
-                </button>
+
+              <div className="mt-2 px-1.5">
+                <span className="text-sm font-medium text-[#2a2a2a]/50 block text-center">
+                  {categoriaFiltro === null
+                    ? 'Todas as categorias'
+                    : catsArr.find(c => c.id_categoria === categoriaFiltro)?.nome_categoria}
+                </span>
               </div>
             </div>
+          )}
 
-            {(carregandoFotos || fotos.length > 0) && (
-              <div className="pb-5">
-                {carregandoFotos ? (
-                  <div className="flex gap-3 px-6 overflow-x-auto">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="shrink-0 w-24 h-24 rounded-xl bg-black/5 animate-pulse" />
-                    ))}
+          {/* Bottom sheet */}
+          {selecionada && cat && (
+            <div className="absolute bottom-0 left-0 right-0 z-[1000] bg-white rounded-t-2xl shadow-2xl max-h-[70vh] flex flex-col">
+              <div className="px-6 pt-5 pb-4 border-b border-black/5 shrink-0">
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-2 min-w-0 overflow-hidden">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                      <span
+                        className="inline-flex min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70"
+                        style={{ borderColor: cat.cor_hex }}
+                      >
+                        <Icone className="h-4 w-4 shrink-0" style={{ color: cat.cor_hex }} />
+                        <span className="truncate">{cat.nome_categoria}</span>
+                      </span>
+                      <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70">
+                        <IconeStatus className="h-4 w-4 text-[#2a2a2a]/55" aria-hidden />
+                        {STATUS_LABEL[selecionada.status] ?? selecionada.status}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-1.5 text-sm text-[#2a2a2a]/50">
+                      <span className="font-mono shrink-0">#{selecionada.protocolo}</span>
+                      <span className="text-[#2a2a2a]/40 shrink-0">·</span>
+                      <span className="break-words">{selecionada.descricao}</span>
+                    </div>
                   </div>
-                ) : (
-                  <div className="flex gap-3 px-6 overflow-x-auto">
-                    {fotos.map((foto, idx) => (
-                      <img
-                        key={foto.id_foto}
-                        src={foto.caminho_arquivo}
-                        alt={`Foto ${foto.ordem}`}
-                        className="shrink-0 w-24 h-24 rounded-xl object-cover cursor-pointer"
-                        onClick={() => setFotoAtiva(idx)}
+                  <button
+                    onClick={() => setSelecionada(null)}
+                    className="text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors shrink-0 ml-2"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-y-auto">
+                <div className="px-6 py-4 space-y-2.5">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-start gap-2 text-sm text-[#2a2a2a]/70">
+                      <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span>{selecionada.endereco_referencia}</span>
+                    </div>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${selecionada.latitude},${selecionada.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#3b82f6]/40 bg-white px-3 py-1.5 text-sm font-medium text-[#3b82f6] hover:bg-[#3b82f6]/8 transition-colors"
+                    >
+                      <Navigation className="h-4 w-4 shrink-0" />
+                      Rotas
+                    </a>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-[#2a2a2a]/70">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>{formatarData(selecionada.data_registro)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 hover:text-[#3cb478] transition-colors"
+                      onClick={handleToggleApoio}
+                    >
+                      <span
+                        className={`inline-flex shrink-0 transition-[color,transform] duration-150 ease-out ${selecionada?.ja_apoiado ? 'text-[#3cb478]' : ''} ${pulseApoio ? 'scale-110' : 'scale-100'}`}
+                      >
+                        <ThumbsUp className="h-4 w-4" fill={selecionada?.ja_apoiado ? 'currentColor' : 'none'} />
+                      </span>
+                      <span>
+                        {selecionada.contador_apoios} apoio{selecionada.contador_apoios !== 1 ? 's' : ''}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {(carregandoFotos || fotos.length > 0) && (
+                  <div className="pb-5">
+                    {carregandoFotos ? (
+                      <div className="flex gap-3 px-6 overflow-x-auto">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="shrink-0 w-24 h-24 rounded-xl bg-black/5 animate-pulse" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex gap-3 px-6 overflow-x-auto">
+                        {fotos.map((foto, idx) => (
+                          <img
+                            key={foto.id_foto}
+                            src={foto.caminho_arquivo}
+                            alt={`Foto ${foto.ordem}`}
+                            className="shrink-0 w-24 h-24 rounded-xl object-cover cursor-pointer"
+                            onClick={() => setFotoAtiva(idx)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Lightbox */}
+          {fotoAtiva !== null && (
+            <div
+              className="absolute inset-0 z-[2000] flex items-center justify-center bg-black/50"
+              onClick={() => setFotoAtiva(null)}
+            >
+              <div
+                className="relative bg-black/90 mx-6 rounded-xl overflow-hidden shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  className="absolute top-3 right-3 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                  onClick={() => setFotoAtiva(null)}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="relative flex items-center justify-center">
+                  {fotoAtiva > 0 && (
+                    <button
+                      className="absolute left-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                      onClick={() => setFotoAtiva(fotoAtiva - 1)}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                  )}
+                  <img
+                    src={fotos[fotoAtiva].caminho_arquivo}
+                    alt={`Foto ${fotoAtiva + 1}`}
+                    className="max-h-[60vh] max-w-[85vw] object-contain"
+                  />
+                  {fotoAtiva < fotos.length - 1 && (
+                    <button
+                      className="absolute right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                      onClick={() => setFotoAtiva(fotoAtiva + 1)}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
+                {fotos.length > 1 && (
+                  <div className="flex justify-center gap-1.5 py-3">
+                    {fotos.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={`h-1.5 rounded-full transition-all ${idx === fotoAtiva ? 'w-4 bg-white' : 'w-1.5 bg-white/40'}`}
                       />
                     ))}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Lightbox */}
-      {fotoAtiva !== null && (
-        <div
-          className="absolute inset-0 z-[2000] flex items-center justify-center bg-black/50"
-          onClick={() => setFotoAtiva(null)}
-        >
-          <div
-            className="relative bg-black/90 mx-6 rounded-xl overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="absolute top-3 right-3 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
-              onClick={() => setFotoAtiva(null)}
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="relative flex items-center justify-center">
-              {fotoAtiva > 0 && (
-                <button
-                  className="absolute left-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
-                  onClick={() => setFotoAtiva(fotoAtiva - 1)}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-              )}
-              <img
-                src={fotos[fotoAtiva].caminho_arquivo}
-                alt={`Foto ${fotoAtiva + 1}`}
-                className="max-h-[60vh] max-w-[85vw] object-contain"
-              />
-              {fotoAtiva < fotos.length - 1 && (
-                <button
-                  className="absolute right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
-                  onClick={() => setFotoAtiva(fotoAtiva + 1)}
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              )}
             </div>
-            {fotos.length > 1 && (
-              <div className="flex justify-center gap-1.5 py-3">
-                {fotos.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`h-1.5 rounded-full transition-all ${idx === fotoAtiva ? 'w-4 bg-white' : 'w-1.5 bg-white/40'}`}
-                  />
-                ))}
+          )}
+
+          {/* Modal em breve */}
+          {modalEmBreve && (
+            <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl shadow-xl px-8 py-10 w-full max-w-sm text-center mx-4">
+                <div className="w-40 h-40 mx-auto">
+                  <Lottie animationData={typing} loop />
+                </div>
+                <p className="text-xl font-semibold text-[#2a2a2a] tracking-tight mt-2">
+                  Coisas boas estão chegando!
+                </p>
+                <p className="mt-2 text-sm text-[#2a2a2a]/50">
+                  A função de apoiar solicitações ainda está sendo desenvolvida.
+                </p>
+                <button
+                  onClick={() => setModalEmBreve(false)}
+                  className="mt-6 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all"
+                >
+                  Entendido
+                </button>
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal em breve */}
-      {modalEmBreve && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl px-8 py-10 w-full max-w-sm text-center mx-4">
-            <div className="w-40 h-40 mx-auto">
-              <Lottie animationData={typing} loop />
             </div>
-            <p className="text-xl font-semibold text-[#2a2a2a] tracking-tight mt-2">
-              Coisas boas estão chegando!
-            </p>
-            <p className="mt-2 text-sm text-[#2a2a2a]/50">
-              A função de apoiar solicitações ainda está sendo desenvolvida.
-            </p>
-            <button
-              onClick={() => setModalEmBreve(false)}
-              className="mt-6 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all"
-            >
-              Entendido
-            </button>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   )

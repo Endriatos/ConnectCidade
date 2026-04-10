@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Circle, MapPin, ThumbsUp } from 'lucide-react'
 import { STATUS_ICONE, STATUS_LABEL, formatarData } from '../../../utils/solicitacaoStatus'
+import { iconeCategoria } from '../../../utils/categoriaIcone'
 
 export default function Card({ solicitacao, categoria }) {
   const nome_categoria = categoria?.nome_categoria
@@ -17,6 +18,7 @@ export default function Card({ solicitacao, categoria }) {
   } = solicitacao ?? {}
 
   const IconeStatus = STATUS_ICONE[status] ?? Circle
+  const IconeCategoria = iconeCategoria(nome_categoria)
   const labelStatus = STATUS_LABEL[status] ?? status
   const nApoios = contador_apoios ?? 0
 
@@ -39,10 +41,13 @@ export default function Card({ solicitacao, categoria }) {
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           {categoria && (
             <>
-              <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 font-medium text-[#2a2a2ab3]">
-                <span
-                  className="inline-flex h-3.5 w-3.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: corCategoria }}
+              <span
+                className="inline-flex min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-2.5 py-1 text-xs font-medium text-[#2a2a2a]/70"
+                style={{ borderColor: corCategoria }}
+              >
+                <IconeCategoria
+                  className="h-3.5 w-3.5 shrink-0"
+                  style={{ color: corCategoria }}
                   aria-hidden
                 />
                 <span className="truncate">{nome_categoria}</span>

@@ -1,5 +1,7 @@
 import { Check, Clock3, Search, Wrench, X } from 'lucide-react'
 
+export const COR_MARCADOR_HISTORICO = '#3cb478'
+
 export const STATUS_ICONE = {
   PENDENTE: Clock3,
   EM_ANALISE: Search,
@@ -122,9 +124,27 @@ export function construirEventosPrevistos(statusAtual) {
     titulo: passo.titulo,
     descricao: passo.descricao,
     autor: null,
-    cor: STATUS_COR[passo.status] ?? '#2a2a2a',
+    cor: COR_MARCADOR_HISTORICO,
     estado: passo.estado,
+    status: passo.status,
   }))
+}
+
+const ORDEM_TIPO_NA_MESMA_DATA = { criacao: 0, estado_inicial_pendente: 1, atualizacao: 2 }
+
+function compararEventosTimeline(a, b) {
+  const ta = a.data ? new Date(a.data).getTime() : 0
+  const tb = b.data ? new Date(b.data).getTime() : 0
+  if (ta !== tb) return ta - tb
+  return (ORDEM_TIPO_NA_MESMA_DATA[a.tipo] ?? 9) - (ORDEM_TIPO_NA_MESMA_DATA[b.tipo] ?? 9)
+}
+
+export function ultimoCodigoStatusNaTimeline(eventos) {
+  for (let i = eventos.length - 1; i >= 0; i--) {
+    const s = eventos[i].status
+    if (s != null) return s
+  }
+  return null
 }
 
 export function montarEventosTimeline(solicitacao, atualizacoes) {
@@ -136,23 +156,43 @@ export function montarEventosTimeline(solicitacao, atualizacoes) {
       titulo: 'Solicitação registrada',
       descricao: 'Sua solicitação foi recebida pela plataforma.',
       autor: null,
-      cor: '#3cb478',
+      cor: COR_MARCADOR_HISTORICO,
+    },
+    {
+      key: `pendente-inicial-${solicitacao.id_solicitacao}`,
+      tipo: 'estado_inicial_pendente',
+      data: solicitacao.data_registro,
+      titulo: STATUS_LABEL.PENDENTE,
+      descricao: RESUMO_STATUS.PENDENTE,
+      autor: null,
+      cor: COR_MARCADOR_HISTORICO,
+      status: 'PENDENTE',
     },
   ]
   for (const a of atualizacoes) {
-    const ant = STATUS_LABEL[a.status_anterior] ?? a.status_anterior
     const novo = STATUS_LABEL[a.status_novo] ?? a.status_novo
     eventos.push({
       key: `at-${a.id_atualizacao}`,
       tipo: 'atualizacao',
       data: a.data_atualizacao,
-      titulo: `${ant} → ${novo}`,
+      titulo: novo,
       descricao: a.comentario || 'Sem comentário adicional.',
       autor: a.nome_administrador,
-      cor: STATUS_COR[a.status_novo] ?? '#3cb478',
+      cor: COR_MARCADOR_HISTORICO,
+      status: a.status_novo,
     })
   }
-  return eventos.sort(
-    (x, y) => new Date(x.data).getTime() - new Date(y.data).getTime(),
-  )
+  return eventos.sort(compararEventosTimeline)
+}
+
+export function destacarUltimoEventoComStatusIgual(eventos, codigoStatus) {
+  let idx = -1
+  for (let i = eventos.length - 1; i >= 0; i--) {
+    if (eventos[i].status === codigoStatus) {
+      idx = i
+      break
+    }
+  }
+  if (idx < 0) return eventos
+  return eventos.map((ev, i) => (i === idx ? { ...ev, estado: 'atual' } : ev))
 }

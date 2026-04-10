@@ -6,10 +6,6 @@ import Erro from '../components/minhasSolicitacoes/card/Erro'
 import VazioLista from '../components/minhasSolicitacoes/card/VazioLista'
 import Filtro from '../components/minhasSolicitacoes/filtro/Filtro'
 import SemResultados from '../components/minhasSolicitacoes/filtro/SemResultados'
-import {
-  EXIBIR_MOCK_EXEMPLOS_STATUS_NA_MINHAS,
-  SOLICITACOES_EXEMPLO_MINHAS,
-} from '../mocks/minhasSolicitacoesExemplos'
 import api from '../services/api'
 
 const MENSAGEM_ERRO_LISTA = 'Não foi possível carregar suas solicitações.'
@@ -36,10 +32,7 @@ function ListaMinhasSolicitacoes({ categoriasPorId }) {
     try {
       const res = await api.get('/solicitacoes/minhas')
       const payload = res.data
-      const listaBase = Array.isArray(payload) ? payload : []
-      const lista = EXIBIR_MOCK_EXEMPLOS_STATUS_NA_MINHAS
-        ? [...SOLICITACOES_EXEMPLO_MINHAS, ...listaBase]
-        : listaBase
+      const lista = Array.isArray(payload) ? payload : []
       setItens(lista)
     } catch (e) {
       if (e?.message === 'sessao_expirada' || e?.response?.status === 401) {

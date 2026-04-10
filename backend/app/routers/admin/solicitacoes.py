@@ -73,7 +73,9 @@ def detalhar_solicitacao_admin(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada.")
 
     # Monta a resposta incluindo ja_apoiado=None, que não se aplica ao contexto admin
-    return SolicitacaoResponse.model_validate({**solicitacao.__dict__, "ja_apoiado": None})
+    return SolicitacaoResponse.model_validate(
+        {**solicitacao.__dict__, "ja_apoiado": None, "ja_avaliado": None}
+    )
 
 
 class AtualizarStatusRequest(BaseModel):

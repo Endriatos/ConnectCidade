@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Users, FolderOpen, CheckCircle, Clock, TrendingUp, Star, ThumbsUp, Flame } from 'lucide-react'
+import { Users, FolderOpen, CheckCircle, Clock, TrendingUp, Star } from 'lucide-react'
 import api from '../../services/api'
-import MapaMini from '../../components/admin/MapaMini'
-import { STATUS_LABEL, STATUS_ESTILO, formatarData } from '../../utils/solicitacaoStatus'
-import { iconeCategoria } from '../../utils/categoriaIcone'
 
 const PERIODOS = [
   { valor: '7d', label: '7 dias' },
@@ -32,17 +28,9 @@ function CardKpi({ icone: Icone, label, valor, sub, cor }) {
   )
 }
 
-function diasDesde(iso) {
-  if (!iso) return 0
-  const diff = Date.now() - new Date(iso).getTime()
-  return Math.floor(diff / 86400000)
-}
-
 export default function Dashboard() {
-  const navigate = useNavigate()
   const [periodo, setPeriodo] = useState('30d')
   const [dados, setDados] = useState(null)
-  const [fila, setFila] = useState([])
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
@@ -52,12 +40,6 @@ export default function Dashboard() {
       .catch(() => {})
       .finally(() => setCarregando(false))
   }, [periodo])
-
-  useEffect(() => {
-    api.get('/admin/dashboard/fila-atencao')
-      .then((res) => setFila(res.data))
-      .catch(() => {})
-  }, [])
 
   const kpis = dados
     ? [
@@ -143,75 +125,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Mapa + Fila de atenção */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Mapa — ocupa 2/5 */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-black/8 p-4 flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-[#2a2a2a]">Mapa de solicitações</h2>
-          <div className="flex-1 min-h-[280px]">
-            <MapaMini />
-          </div>
-        </div>
-
-        {/* Fila de atenção — ocupa 3/5 */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-black/8 p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <Flame className="h-4 w-4 text-[#f97316]" />
-            <h2 className="text-sm font-medium text-[#2a2a2a]">Mais quentes</h2>
-            <span className="text-xs text-[#2a2a2a]/40 ml-auto">score = apoios + dias/3</span>
-          </div>
-
-          {fila.length === 0 ? (
-            <p className="text-sm text-[#2a2a2a]/40 py-4 text-center">Nenhuma solicitação em aberto.</p>
-          ) : (
-            <div className="space-y-2">
-              {fila.map((item, idx) => {
-                const Icone = iconeCategoria(item.nome_categoria)
-                const estilo = STATUS_ESTILO[item.status] ?? {}
-                const dias = diasDesde(item.data_registro)
-                return (
-                  <button
-                    key={item.id_solicitacao}
-                    onClick={() => navigate(`/admin/solicitacoes?protocolo=${item.protocolo}`)}
-                    className="w-full text-left flex items-start gap-3 p-3 rounded-xl hover:bg-[#2a2a2a]/4 transition-colors group"
-                  >
-                    <span className="text-xs font-bold text-[#2a2a2a]/25 w-4 shrink-0 pt-0.5">
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-xs text-[#2a2a2a]/60">#{item.protocolo}</span>
-                        <span
-                          className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
-                          style={{ backgroundColor: `${item.cor_hex}18`, color: item.cor_hex, borderColor: `${item.cor_hex}35` }}
-                        >
-                          <Icone className="h-3 w-3" />
-                          {item.nome_categoria}
-                        </span>
-                        <span
-                          className="text-xs px-2 py-0.5 rounded-full border"
-                          style={{ backgroundColor: estilo.bg, color: estilo.text, borderColor: estilo.border }}
-                        >
-                          {STATUS_LABEL[item.status]}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#2a2a2a]/50 truncate">{item.endereco_referencia}</p>
-                    </div>
-                    <div className="shrink-0 flex flex-col items-end gap-1 text-xs text-[#2a2a2a]/40">
-                      <div className="flex items-center gap-1">
-                        <ThumbsUp className="h-3 w-3" />
-                        {item.contador_apoios}
-                      </div>
-                      <span>{dias}d</span>
-                      <span className="font-semibold text-[#f97316]">#{item.score}</span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   )
 }

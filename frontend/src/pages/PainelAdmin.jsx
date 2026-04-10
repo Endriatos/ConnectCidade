@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { LayoutDashboard, ClipboardList } from 'lucide-react'
+import { LayoutDashboard, Settings2 } from 'lucide-react'
 import Header from '../components/Header'
 
 const navItem = ({ isActive }) =>
@@ -21,8 +21,8 @@ export default function PainelAdmin() {
               Dashboard
             </NavLink>
             <NavLink to="/admin/solicitacoes" className={navItem}>
-              <ClipboardList className="h-4 w-4 shrink-0" />
-              Solicitações
+              <Settings2 className="h-4 w-4 shrink-0" />
+              Gerenciar
             </NavLink>
           </nav>
         </aside>

@@ -9,7 +9,7 @@ from app.crud.admin_solicitacao import atualizar_status, get_solicitacao_por_id,
 from app.crud.notificacao import criar_notificacao
 from app.crud.usuario import get_usuario_por_id
 from app.utils.email_utils import enviar_email
-from app.models.solicitacao import OrdemSolicitacao, StatusSolicitacao
+from app.models.solicitacao import StatusSolicitacao
 from app.schemas.solicitacao import PaginacaoResponse, SolicitacaoResponse
 from app.utils.deps import get_admin_atual, get_db
 
@@ -32,8 +32,6 @@ def listar_solicitacoes_admin(
     data_inicio: Optional[date] = Query(None),
     # Filtra solicitações criadas até esta data (formato YYYY-MM-DD, inclusive)
     data_fim: Optional[date] = Query(None),
-    # Critério de ordenação: mais_recentes (padrão), mais_antigos ou mais_apoiados
-    ordem: Optional[OrdemSolicitacao] = Query(None),
     # Número da página desejada (começa em 1)
     pagina: int = Query(1, ge=1),
     # Quantidade de itens por página
@@ -56,7 +54,6 @@ def listar_solicitacoes_admin(
         endereco=endereco,
         data_inicio=data_inicio,
         data_fim=data_fim,
-        ordem=ordem,
         pagina=pagina,
         por_pagina=por_pagina,
     )

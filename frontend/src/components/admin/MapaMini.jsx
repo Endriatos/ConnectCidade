@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
+import Lottie from 'lottie-react'
+import catLoading from '../../assets/CatLoading.json'
 import api from '../../services/api'
 
 const LIBRARIES = ['places', 'marker']
@@ -110,8 +112,11 @@ export default function MapaMini() {
   return (
     <div className="relative w-full h-full rounded-xl overflow-hidden border border-black/8">
       {carregando && (
-        <div className="absolute inset-0 z-10 bg-white/80 flex items-center justify-center">
-          <div className="w-5 h-5 border-2 border-[#3cb478] border-t-transparent rounded-full animate-spin" />
+        <div className="absolute inset-0 z-10 bg-white flex flex-col items-center justify-center gap-1">
+          <div className="w-32 h-32">
+            <Lottie animationData={catLoading} loop />
+          </div>
+          <p className="text-sm font-medium text-[#2a2a2a]/50">Carregando mapa...</p>
         </div>
       )}
       {isLoaded && (

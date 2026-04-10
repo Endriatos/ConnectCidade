@@ -99,6 +99,7 @@ def get_fila_atencao(
             contador_apoios=sol.contador_apoios,
             data_registro=sol.data_registro,
             endereco_referencia=sol.endereco_referencia,
+            descricao=sol.descricao,
             score=_score(sol),
         )
         for sol, cat in top5

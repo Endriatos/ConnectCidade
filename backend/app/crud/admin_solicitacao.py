@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.models.atualizacao import Atualizacao
-from app.models.solicitacao import OrdemSolicitacao, Solicitacao, StatusSolicitacao
+from app.models.solicitacao import Solicitacao, StatusSolicitacao
 
 
 def atualizar_status(
@@ -77,7 +77,6 @@ def listar_solicitacoes(
     endereco: Optional[str] = None,
     data_inicio: Optional[date] = None,
     data_fim: Optional[date] = None,
-    ordem: Optional[OrdemSolicitacao] = None,
     pagina: int = 1,
     por_pagina: int = 20,
 ) -> dict:
@@ -130,14 +129,7 @@ def listar_solicitacoes(
         fim_dt = datetime(data_fim.year, data_fim.month, data_fim.day, tzinfo=timezone.utc) + timedelta(days=1)
         query = query.filter(Solicitacao.data_registro < fim_dt)
 
-    # Define a ordenação conforme o parâmetro recebido
-    if ordem == OrdemSolicitacao.mais_apoiados:
-        query = query.order_by(Solicitacao.contador_apoios.desc())
-    elif ordem == OrdemSolicitacao.mais_antigos:
-        query = query.order_by(Solicitacao.data_registro.asc())
-    else:
-        # Padrão (None ou mais_recentes): mais recentes primeiro
-        query = query.order_by(Solicitacao.data_registro.desc())
+    query = query.order_by(Solicitacao.data_registro.desc())
 
     # Conta o total de registros antes de aplicar a paginação
     total = query.count()

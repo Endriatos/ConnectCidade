@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp } from 'lucide-react'
 import api from '../../services/api'
-import { STATUS_LABEL, STATUS_ESTILO, formatarData } from '../../utils/solicitacaoStatus'
+import MapaMini from '../../components/admin/MapaMini'
+import { STATUS_LABEL, STATUS_ESTILO, STATUS_ICONE, formatarData } from '../../utils/solicitacaoStatus'
 import { iconeCategoria } from '../../utils/categoriaIcone'
+
+function diasDesde(iso) {
+  if (!iso) return 0
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
+}
 
 const STATUS_OPCOES = [
   { valor: '', label: 'Todos os status' },
@@ -17,7 +23,9 @@ const STATUS_OPCOES = [
 const inputCls = 'h-9 px-3 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60 placeholder:text-[#2a2a2a]/30 w-full'
 
 export default function Solicitacoes() {
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const [fila, setFila] = useState([])
 
   const [categorias, setCategorias] = useState([])
   const [itens, setItens] = useState([])
@@ -25,6 +33,7 @@ export default function Solicitacoes() {
   const [paginas, setPaginas] = useState(1)
   const [pagina, setPagina] = useState(1)
   const [carregando, setCarregando] = useState(false)
+  const [buscaRealizada, setBuscaRealizada] = useState(false)
 
   const [protocolo, setProtocolo] = useState(searchParams.get('protocolo') ?? '')
   const [endereco, setEndereco] = useState('')
@@ -41,12 +50,14 @@ export default function Solicitacoes() {
 
   useEffect(() => {
     api.get('/categorias').then((res) => setCategorias(res.data)).catch(() => {})
+    api.get('/admin/dashboard/fila-atencao').then((res) => setFila(res.data)).catch(() => {})
   }, [])
 
   const catMap = Object.fromEntries(categorias.map((c) => [c.id_categoria, c]))
 
   const buscar = useCallback((pag = 1) => {
     setCarregando(true)
+    setBuscaRealizada(true)
     const params = new URLSearchParams()
     if (protocolo) params.set('protocolo', protocolo)
     if (endereco) params.set('endereco', endereco)
@@ -67,8 +78,6 @@ export default function Solicitacoes() {
       .catch(() => {})
       .finally(() => setCarregando(false))
   }, [protocolo, endereco, idCategoria, status, dataInicio, dataFim])
-
-  useEffect(() => { buscar(1) }, [])
 
   const handleSubmitFiltros = (e) => {
     e.preventDefault()
@@ -124,10 +133,73 @@ export default function Solicitacoes() {
   const temFiltroAtivo = protocolo || endereco || idCategoria || status || dataInicio || dataFim
 
   return (
-    <div className="p-6 space-y-5 max-w-[1400px]">
-      <h1 className="text-xl font-semibold text-[#2a2a2a] tracking-tight">Solicitações</h1>
+    <div className="p-6 space-y-5">
+      <h1 className="text-xl font-semibold text-[#2a2a2a] tracking-tight">Gerenciar</h1>
 
-      {/* Filtros */}
+      {/* Mapa + Precisa de atenção */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-2 rounded-2xl overflow-hidden min-h-[480px]">
+          <MapaMini />
+        </div>
+
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-black/8 p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-[#f97316]" />
+            <h2 className="text-sm font-medium text-[#2a2a2a]">Precisa de atenção</h2>
+          </div>
+
+          {fila.length === 0 ? (
+            <p className="text-sm text-[#2a2a2a]/40 py-4 text-center">Nenhuma solicitação em aberto.</p>
+          ) : (
+            <div className="flex flex-col justify-between flex-1 gap-1">
+              {fila.map((item, idx) => {
+                const Icone = iconeCategoria(item.nome_categoria)
+                const IconeStatus = STATUS_ICONE[item.status]
+                const dias = diasDesde(item.data_registro)
+                return (
+                  <button
+                    key={item.id_solicitacao}
+                    onClick={() => {
+                      setProtocolo(item.protocolo)
+                      window.scrollTo({ top: 9999, behavior: 'smooth' })
+                    }}
+                    className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl border border-black/8 hover:bg-[#2a2a2a]/4 transition-colors"
+                  >
+                    <span className="text-sm font-bold text-[#2a2a2a]/25 w-5 shrink-0 text-center">{idx + 1}</span>
+                    <div className="flex-1 min-w-0 flex flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-sm text-[#2a2a2a]/50">#{item.protocolo}</span>
+                        <span
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70"
+                          style={{ borderColor: item.cor_hex }}
+                        >
+                          <Icone className="h-3.5 w-3.5 shrink-0" style={{ color: item.cor_hex }} />
+                          {item.nome_categoria}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70">
+                          {IconeStatus && <IconeStatus className="h-3.5 w-3.5 text-[#2a2a2a]/55" />}
+                          {STATUS_LABEL[item.status]}
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#2a2a2a]/40 truncate"><span className="mr-1">·</span>{item.descricao}</p>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-3 text-sm text-[#2a2a2a]/40">
+                      <div className="flex items-center gap-1">
+                        <ThumbsUp className="h-3.5 w-3.5" />
+                        {item.contador_apoios}
+                      </div>
+                      <span>{dias}d</span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Pesquisar */}
+      <h2 className="text-base font-semibold text-[#2a2a2a] tracking-tight">Pesquisar</h2>
       <form
         onSubmit={handleSubmitFiltros}
         className="bg-white border border-black/8 rounded-2xl p-4 space-y-3"
@@ -204,9 +276,11 @@ export default function Solicitacoes() {
         </div>
       </form>
 
-      {/* Tabela */}
+      {/* Lista */}
       <div className="bg-white border border-black/8 rounded-2xl overflow-hidden">
-        {carregando ? (
+        {!buscaRealizada ? (
+          <p className="text-sm text-[#2a2a2a]/40 text-center py-16">Selecione ao menos um filtro e clique em Buscar.</p>
+        ) : carregando ? (
           <div className="flex items-center justify-center py-16">
             <div className="w-5 h-5 border-2 border-[#3cb478] border-t-transparent rounded-full animate-spin" />
           </div>
@@ -231,7 +305,7 @@ export default function Solicitacoes() {
                   {itens.map((item) => {
                     const cat = catMap[item.id_categoria]
                     const Icone = iconeCategoria(cat?.nome_categoria)
-                    const estilo = STATUS_ESTILO[item.status] ?? {}
+                    const IconeStatus = STATUS_ICONE[item.status]
                     return (
                       <tr key={item.id_solicitacao} className="hover:bg-[#2a2a2a]/2 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs text-[#2a2a2a]/60">
@@ -240,27 +314,17 @@ export default function Solicitacoes() {
                         <td className="px-4 py-3">
                           {cat && (
                             <span
-                              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border"
-                              style={{
-                                backgroundColor: `${cat.cor_hex}18`,
-                                color: cat.cor_hex,
-                                borderColor: `${cat.cor_hex}35`,
-                              }}
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70"
+                              style={{ borderColor: cat.cor_hex }}
                             >
-                              <Icone className="h-3 w-3" />
+                              <Icone className="h-3.5 w-3.5 shrink-0" style={{ color: cat.cor_hex }} />
                               {cat.nome_categoria}
                             </span>
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <span
-                            className="text-xs px-2.5 py-1 rounded-full border"
-                            style={{
-                              backgroundColor: estilo.bg,
-                              color: estilo.text,
-                              borderColor: estilo.border,
-                            }}
-                          >
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70">
+                            {IconeStatus && <IconeStatus className="h-3.5 w-3.5 text-[#2a2a2a]/55" />}
                             {STATUS_LABEL[item.status] ?? item.status}
                           </span>
                         </td>

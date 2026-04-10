@@ -41,6 +41,8 @@ class FilaAtencaoItem(BaseModel):
     endereco_referencia: str
     descricao: str
     score: int
+    latitude: float
+    longitude: float
 
 
 class DashboardResponse(BaseModel):

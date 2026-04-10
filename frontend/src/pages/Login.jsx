@@ -52,7 +52,7 @@ export default function Login() {
 
       // Redireciona para o painel correto conforme o tipo de usuário
       if (data.tipo_usuario === 'ADMIN') {
-        navigate('/admin')
+        navigate('/admin/solicitacoes')
       } else {
         navigate('/home')
       }

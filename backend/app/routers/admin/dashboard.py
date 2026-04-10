@@ -101,6 +101,8 @@ def get_fila_atencao(
             endereco_referencia=sol.endereco_referencia,
             descricao=sol.descricao,
             score=_score(sol),
+            latitude=float(sol.latitude),
+            longitude=float(sol.longitude),
         )
         for sol, cat in top5
     ]

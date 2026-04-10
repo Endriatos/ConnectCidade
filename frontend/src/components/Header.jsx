@@ -50,11 +50,11 @@ export default function Header() {
         <div className="flex items-center gap-2 min-w-0">
           {tipoUsuario === 'ADMIN' && (
             <Link
-              to="/admin"
+              to="/admin/solicitacoes"
               className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#3cb478]/40 text-sm font-medium text-[#3cb478] hover:bg-[#3cb478]/8 transition-colors"
             >
               <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Painel</span>
+              <span className="hidden sm:inline">Painel administrativo</span>
             </Link>
           )}
           <button

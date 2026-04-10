@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Settings2 } from 'lucide-react'
+import { LayoutDashboard, Settings2, Users } from 'lucide-react'
 import Header from '../components/Header'
 
 const navItem = ({ isActive }) =>
@@ -16,13 +16,17 @@ export default function PainelAdmin() {
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-52 shrink-0 border-r border-black/8 bg-white flex flex-col">
           <nav className="flex-1 py-4 px-3 space-y-1">
+            <NavLink to="/admin/solicitacoes" className={navItem}>
+              <Settings2 className="h-4 w-4 shrink-0" />
+              Solicitações
+            </NavLink>
+            <NavLink to="/admin/usuarios" className={navItem}>
+              <Users className="h-4 w-4 shrink-0" />
+              Usuários
+            </NavLink>
             <NavLink to="/admin" end className={navItem}>
               <LayoutDashboard className="h-4 w-4 shrink-0" />
               Dashboard
-            </NavLink>
-            <NavLink to="/admin/solicitacoes" className={navItem}>
-              <Settings2 className="h-4 w-4 shrink-0" />
-              Gerenciar
             </NavLink>
           </nav>
         </aside>

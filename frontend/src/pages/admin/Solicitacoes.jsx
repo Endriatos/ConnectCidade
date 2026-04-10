@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp } from 'lucide-react'
+import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, RefreshCw } from 'lucide-react'
 import api from '../../services/api'
 import MapaMini from '../../components/admin/MapaMini'
 import { STATUS_LABEL, STATUS_ESTILO, STATUS_ICONE, formatarData } from '../../utils/solicitacaoStatus'
@@ -42,16 +42,21 @@ export default function Solicitacoes() {
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
 
+  const [focoSolicitacao, setFocoSolicitacao] = useState(null)
   const [selecionada, setSelecionada] = useState(null)
   const [statusNovo, setStatusNovo] = useState('')
   const [comentario, setComentario] = useState('')
   const [atualizando, setAtualizando] = useState(false)
   const [erroModal, setErroModal] = useState('')
 
-  useEffect(() => {
-    api.get('/categorias').then((res) => setCategorias(res.data)).catch(() => {})
+  const carregarFila = useCallback(() => {
     api.get('/admin/dashboard/fila-atencao').then((res) => setFila(res.data)).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    api.get('/categorias').then((res) => setCategorias(res.data)).catch(() => {})
+    carregarFila()
+  }, [carregarFila])
 
   const catMap = Object.fromEntries(categorias.map((c) => [c.id_categoria, c]))
 
@@ -59,7 +64,12 @@ export default function Solicitacoes() {
     setCarregando(true)
     setBuscaRealizada(true)
     const params = new URLSearchParams()
-    if (protocolo) params.set('protocolo', protocolo)
+    if (protocolo) {
+      const normalizado = /^\d{8,9}$/.test(protocolo.replace(/-/g, ''))
+        ? protocolo.replace(/-/g, '').replace(/^(\d{4})(\d+)$/, '$1-$2')
+        : protocolo
+      params.set('protocolo', normalizado)
+    }
     if (endereco) params.set('endereco', endereco)
     if (idCategoria) params.set('id_categoria', idCategoria)
     if (status) params.set('status', status)
@@ -134,18 +144,28 @@ export default function Solicitacoes() {
 
   return (
     <div className="p-6 space-y-5">
-      <h1 className="text-xl font-semibold text-[#2a2a2a] tracking-tight">Gerenciar</h1>
+      <h1 className="text-xl font-semibold text-[#2a2a2a] tracking-tight">Solicitações</h1>
 
       {/* Mapa + Precisa de atenção */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className="lg:col-span-2 rounded-2xl overflow-hidden min-h-[480px]">
-          <MapaMini />
+          <MapaMini focoSolicitacao={focoSolicitacao} />
         </div>
 
         <div className="lg:col-span-3 bg-white rounded-2xl border border-black/8 p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-[#f97316]" />
-            <h2 className="text-sm font-medium text-[#2a2a2a]">Precisa de atenção</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-[#f97316]" />
+              <h2 className="text-base font-semibold text-[#2a2a2a]">Precisa de atenção</h2>
+            </div>
+            <button
+              onClick={carregarFila}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs text-[#2a2a2a]/50 hover:text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
+              title="Atualizar fila"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Atualizar
+            </button>
           </div>
 
           {fila.length === 0 ? (
@@ -157,25 +177,27 @@ export default function Solicitacoes() {
                 const IconeStatus = STATUS_ICONE[item.status]
                 const dias = diasDesde(item.data_registro)
                 return (
-                  <button
+                  <div
                     key={item.id_solicitacao}
                     onClick={() => {
-                      setProtocolo(item.protocolo)
-                      window.scrollTo({ top: 9999, behavior: 'smooth' })
+                      if (focoSolicitacao?.id !== item.id_solicitacao)
+                        setFocoSolicitacao({ id: item.id_solicitacao, lat: item.latitude, lng: item.longitude })
                     }}
-                    className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl border border-black/8 hover:bg-[#2a2a2a]/4 transition-colors"
+                    className="w-full text-left flex items-start gap-3 px-3 py-2 rounded-xl border border-black/8 hover:bg-[#2a2a2a]/4 transition-colors cursor-pointer"
                   >
-                    <span className="text-sm font-bold text-[#2a2a2a]/25 w-5 shrink-0 text-center">{idx + 1}</span>
+                    <span className="text-sm font-bold text-[#2a2a2a]/25 w-5 shrink-0 text-center pt-1">{idx + 1}</span>
                     <div className="flex-1 min-w-0 flex flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-sm text-[#2a2a2a]/50">#{item.protocolo}</span>
-                        <span
-                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70"
-                          style={{ borderColor: item.cor_hex }}
-                        >
-                          <Icone className="h-3.5 w-3.5 shrink-0" style={{ color: item.cor_hex }} />
-                          {item.nome_categoria}
-                        </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm text-[#2a2a2a]/50 shrink-0 w-[104px]">#{item.protocolo}</span>
+                        <div className="shrink-0 min-w-[185px]">
+                          <span
+                            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70"
+                            style={{ borderColor: item.cor_hex }}
+                          >
+                            <Icone className="h-3.5 w-3.5 shrink-0" style={{ color: item.cor_hex }} />
+                            {item.nome_categoria}
+                          </span>
+                        </div>
                         <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70">
                           {IconeStatus && <IconeStatus className="h-3.5 w-3.5 text-[#2a2a2a]/55" />}
                           {STATUS_LABEL[item.status]}
@@ -183,14 +205,20 @@ export default function Solicitacoes() {
                       </div>
                       <p className="text-sm text-[#2a2a2a]/40 truncate"><span className="mr-1">·</span>{item.descricao}</p>
                     </div>
-                    <div className="shrink-0 flex items-center gap-3 text-sm text-[#2a2a2a]/40">
+                    <div className="shrink-0 flex items-start gap-3 text-sm text-[#2a2a2a]/40 pt-0.5">
                       <div className="flex items-center gap-1">
                         <ThumbsUp className="h-3.5 w-3.5" />
                         {item.contador_apoios}
                       </div>
                       <span>{dias}d</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); abrirModal(item) }}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-[#3cb478]/40 text-[#3cb478] hover:bg-[#3cb478]/8 transition-colors font-medium"
+                      >
+                        Gerenciar
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -292,9 +320,9 @@ export default function Solicitacoes() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-black/8 text-xs text-[#2a2a2a]/40 uppercase tracking-wide">
-                    <th className="text-left px-4 py-3 font-medium">Protocolo</th>
-                    <th className="text-left px-4 py-3 font-medium">Categoria</th>
-                    <th className="text-left px-4 py-3 font-medium">Status</th>
+                    <th className="text-left px-4 py-3 font-medium w-px whitespace-nowrap">Protocolo</th>
+                    <th className="text-left px-4 py-3 font-medium w-px whitespace-nowrap">Categoria</th>
+                    <th className="text-left px-4 py-3 font-medium w-px whitespace-nowrap">Status</th>
                     <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Endereço</th>
                     <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Data</th>
                     <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Apoios</th>
@@ -307,11 +335,18 @@ export default function Solicitacoes() {
                     const Icone = iconeCategoria(cat?.nome_categoria)
                     const IconeStatus = STATUS_ICONE[item.status]
                     return (
-                      <tr key={item.id_solicitacao} className="hover:bg-[#2a2a2a]/2 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs text-[#2a2a2a]/60">
-                          {item.protocolo}
+                      <tr
+                        key={item.id_solicitacao}
+                        onClick={() => {
+                          if (item.status !== 'RESOLVIDO' && item.status !== 'CANCELADO' && focoSolicitacao?.id !== item.id_solicitacao)
+                            setFocoSolicitacao({ id: item.id_solicitacao, lat: item.latitude, lng: item.longitude })
+                        }}
+                        className="hover:bg-[#2a2a2a]/2 transition-colors cursor-pointer"
+                      >
+                        <td className="px-4 py-3 font-mono text-xs text-[#2a2a2a]/60 w-px whitespace-nowrap">
+                          #{item.protocolo}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 w-px whitespace-nowrap">
                           {cat && (
                             <span
                               className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70"
@@ -322,13 +357,13 @@ export default function Solicitacoes() {
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 w-px whitespace-nowrap">
                           <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70">
                             {IconeStatus && <IconeStatus className="h-3.5 w-3.5 text-[#2a2a2a]/55" />}
                             {STATUS_LABEL[item.status] ?? item.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-[#2a2a2a]/60 max-w-[200px] truncate hidden md:table-cell">
+                        <td className="px-4 py-3 text-[#2a2a2a]/60 hidden md:table-cell">
                           {item.endereco_referencia}
                         </td>
                         <td className="px-4 py-3 text-[#2a2a2a]/50 whitespace-nowrap hidden lg:table-cell">
@@ -339,7 +374,12 @@ export default function Solicitacoes() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
-                            onClick={() => abrirModal(item)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (item.status !== 'RESOLVIDO' && item.status !== 'CANCELADO' && focoSolicitacao?.id !== item.id_solicitacao)
+                                setFocoSolicitacao({ id: item.id_solicitacao, lat: item.latitude, lng: item.longitude })
+                              abrirModal(item)
+                            }}
                             className="text-xs px-3 py-1.5 rounded-lg border border-[#3cb478]/40 text-[#3cb478] hover:bg-[#3cb478]/8 transition-colors font-medium"
                           >
                             Gerenciar

@@ -8,6 +8,8 @@ import api from '../../services/api'
 
 const LIBRARIES = ['places', 'marker']
 const CENTRO_PADRAO = { lat: -29.1678, lng: -51.1794 }
+const ZOOM_PADRAO = 13
+const ZOOM_FOCO = 17
 
 const conteudoSVG = (svgStr, width, height) => {
   const div = document.createElement('div')
@@ -18,10 +20,17 @@ const conteudoSVG = (svgStr, width, height) => {
 }
 
 const pinSVG = (cor) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="27" viewBox="0 0 32 42">` +
+  `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 32 42">` +
   `<path d="M16 0C7.163 0 0 7.163 0 16C0 26.5 16 42 16 42C16 42 32 26.5 32 16C32 7.163 24.837 0 16 0Z" fill="${cor}"/>` +
   `<circle cx="16" cy="16" r="5" fill="white"/>` +
   `</svg>`
+
+const pinSVGAnimado = (cor) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="48" viewBox="0 0 32 52">` +
+  `<g><animateTransform attributeName="transform" type="translate" values="0,10;0,0;0,10" dur="1.4s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1"/>` +
+  `<path d="M16 0C7.163 0 0 7.163 0 16C0 26.5 16 42 16 42C16 42 32 26.5 32 16C32 7.163 24.837 0 16 0Z" fill="${cor}"/>` +
+  `<circle cx="16" cy="16" r="5" fill="white"/>` +
+  `</g></svg>`
 
 const clusterSVG = (count) => {
   const s = count < 10 ? 30 : count < 100 ? 36 : 42
@@ -32,7 +41,7 @@ const clusterSVG = (count) => {
     `</svg>`
 }
 
-export default function MapaMini() {
+export default function MapaMini({ focoSolicitacao }) {
   const navigate = useNavigate()
   const [solicitacoes, setSolicitacoes] = useState([])
   const [categorias, setCategorias] = useState({})
@@ -41,6 +50,9 @@ export default function MapaMini() {
   const [dadosCarregados, setDadosCarregados] = useState(false)
 
   const clustererRef = useRef(null)
+  const marcadoresPorIdRef = useRef({})
+  const focoAnteriorIdRef = useRef(null)
+  const idleListenerRef = useRef(null)
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -71,18 +83,30 @@ export default function MapaMini() {
     if (!mapa) return
     if (clustererRef.current) clustererRef.current.clearMarkers()
 
+    const porId = {}
     const novos = solicitacoes.map((sol) => {
       const c = categorias[sol.id_categoria]
       const cor = c?.cor_hex ?? '#3cb478'
       const m = new window.google.maps.marker.AdvancedMarkerElement({
         position: { lat: sol.latitude, lng: sol.longitude },
-        content: conteudoSVG(pinSVG(cor), 20, 27),
+        content: conteudoSVG(pinSVG(cor), 26, 34),
       })
+      m._cor = cor
+      m._id = sol.id_solicitacao
       m.addListener('gmp-click', () => {
         navigate(`/admin/solicitacoes?protocolo=${sol.protocolo}`)
       })
+      porId[sol.id_solicitacao] = m
       return m
     })
+    marcadoresPorIdRef.current = porId
+
+    // Restaura animação do pin focado após re-render dos marcadores
+    const idFocado = focoAnteriorIdRef.current
+    if (idFocado && porId[idFocado]) {
+      const m = porId[idFocado]
+      m.content = conteudoSVG(pinSVGAnimado(m._cor), 30, 48)
+    }
 
     clustererRef.current = new MarkerClusterer({
       map: mapa,
@@ -104,6 +128,58 @@ export default function MapaMini() {
     return () => { if (clustererRef.current) clustererRef.current.clearMarkers() }
   }, [mapa, marcadorKey, categorias, navigate])
 
+  useEffect(() => {
+    if (!mapa || !focoSolicitacao) return
+
+    const marcadores = marcadoresPorIdRef.current
+
+    // Restaura o pin anterior ao normal
+    const idAnterior = focoAnteriorIdRef.current
+    if (idAnterior && marcadores[idAnterior]) {
+      const m = marcadores[idAnterior]
+      m.content = conteudoSVG(pinSVG(m._cor), 26, 34)
+    }
+
+    // Anima o novo pin focado
+    const idNovo = focoSolicitacao.id
+    focoAnteriorIdRef.current = idNovo
+    if (idNovo && marcadores[idNovo]) {
+      const m = marcadores[idNovo]
+      m.content = conteudoSVG(pinSVGAnimado(m._cor), 30, 48)
+    }
+
+    // Remove listener anterior para evitar acúmulo
+    if (idleListenerRef.current) {
+      window.google.maps.event.removeListener(idleListenerRef.current)
+      idleListenerRef.current = null
+    }
+
+    const destino = { lat: focoSolicitacao.lat, lng: focoSolicitacao.lng }
+    const zoomAtual = mapa.getZoom() ?? ZOOM_PADRAO
+
+    if (zoomAtual < ZOOM_FOCO - 1) {
+      // Já está num zoom baixo — pan direto e depois zoom
+      mapa.panTo(destino)
+      idleListenerRef.current = mapa.addListener('idle', () => {
+        window.google.maps.event.removeListener(idleListenerRef.current)
+        idleListenerRef.current = null
+        mapa.setZoom(ZOOM_FOCO)
+      })
+    } else {
+      // Está com zoom alto — zoom out, pan, zoom in
+      mapa.setZoom(ZOOM_PADRAO)
+      idleListenerRef.current = mapa.addListener('idle', () => {
+        window.google.maps.event.removeListener(idleListenerRef.current)
+        mapa.panTo(destino)
+        idleListenerRef.current = mapa.addListener('idle', () => {
+          window.google.maps.event.removeListener(idleListenerRef.current)
+          idleListenerRef.current = null
+          mapa.setZoom(ZOOM_FOCO)
+        })
+      })
+    }
+  }, [mapa, focoSolicitacao])
+
   const handleMapaLoad = useCallback((map) => {
     setMapa(map)
     map.addListener('tilesloaded', () => setTilesCarregados(true))
@@ -123,7 +199,7 @@ export default function MapaMini() {
         <GoogleMap
           mapContainerClassName="h-full w-full"
           center={CENTRO_PADRAO}
-          zoom={13}
+          zoom={ZOOM_PADRAO}
           onLoad={handleMapaLoad}
           options={{
             streetViewControl: false,

@@ -100,6 +100,8 @@ npm run dev
 
 App: `http://localhost:5173`. A URL da API vem de `VITE_API_URL` ou, se não estiver definida, de `http://localhost:8000` (ver `frontend/src/services/api.js`).
 
+Para o Google Maps no dev, copie `frontend/.env.example` para `frontend/.env` e defina `VITE_GOOGLE_MAPS_API_KEY`. O `VITE_GOOGLE_MAPS_MAP_ID` pode ficar no `frontend/.env`, nos **repository secrets** do GitHub Actions e nos build args do Docker (`docker-compose.local.yml`) para o pipeline já receber o valor quando o front passar a usar no código; hoje o bundle só depende da API key. No deploy, configure os secrets `VITE_GOOGLE_MAPS_API_KEY` e `VITE_GOOGLE_MAPS_MAP_ID` (este último pode ficar vazio).
+
 MinIO: API `http://localhost:9000` · console `http://localhost:9001`
 
 Comandos úteis:

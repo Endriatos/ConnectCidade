@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, RefreshCw } from 'lucide-react'
+import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, RefreshCw, MapPin, Calendar, Navigation } from 'lucide-react'
 import api from '../../services/api'
 import MapaMini from '../../components/admin/MapaMini'
-import { STATUS_LABEL, STATUS_ESTILO, STATUS_ICONE, formatarData } from '../../utils/solicitacaoStatus'
+import { STATUS_LABEL, STATUS_ICONE, formatarData } from '../../utils/solicitacaoStatus'
 import { iconeCategoria } from '../../utils/categoriaIcone'
 
 function diasDesde(iso) {
@@ -44,6 +44,9 @@ export default function Solicitacoes() {
 
   const [focoSolicitacao, setFocoSolicitacao] = useState(null)
   const [selecionada, setSelecionada] = useState(null)
+  const [fotosModal, setFotosModal] = useState([])
+  const [carregandoFotos, setCarregandoFotos] = useState(false)
+  const [fotoAtiva, setFotoAtiva] = useState(null)
   const [statusNovo, setStatusNovo] = useState('')
   const [comentario, setComentario] = useState('')
   const [atualizando, setAtualizando] = useState(false)
@@ -108,6 +111,12 @@ export default function Solicitacoes() {
     setStatusNovo(item.status)
     setComentario('')
     setErroModal('')
+    setFotosModal([])
+    setCarregandoFotos(true)
+    api.get(`/solicitacoes/${item.id_solicitacao}/fotos`)
+      .then((res) => setFotosModal(res.data))
+      .catch(() => {})
+      .finally(() => setCarregandoFotos(false))
   }
 
   const fecharModal = () => {
@@ -115,6 +124,8 @@ export default function Solicitacoes() {
     setStatusNovo('')
     setComentario('')
     setErroModal('')
+    setFotosModal([])
+    setFotoAtiva(null)
   }
 
   const handleAtualizarStatus = () => {
@@ -430,32 +441,111 @@ export default function Solicitacoes() {
           onClick={fecharModal}
         >
           <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-md"
+            className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 pt-5 pb-4 border-b border-black/8">
+            {/* Cabeçalho */}
+            <div className="px-6 pt-5 pb-4 border-b border-black/8 shrink-0">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-mono text-xs text-[#2a2a2a]/50">#{selecionada.protocolo}</p>
-                  <p className="text-sm font-medium text-[#2a2a2a] mt-0.5 line-clamp-2">
-                    {selecionada.descricao}
-                  </p>
-                  <p className="text-xs text-[#2a2a2a]/40 mt-1">{selecionada.endereco_referencia}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-mono text-xs text-[#2a2a2a]/40 mb-1">#{selecionada.protocolo}</p>
+                  <p className="text-base font-semibold text-[#2a2a2a] leading-snug">{selecionada.descricao}</p>
                 </div>
                 <button
                   onClick={fecharModal}
-                  className="text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors shrink-0"
+                  className="text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors shrink-0 mt-0.5"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                {(() => {
+                  const cat = catMap[selecionada.id_categoria] ??
+                    (selecionada.nome_categoria ? { nome_categoria: selecionada.nome_categoria, cor_hex: selecionada.cor_hex } : null)
+                  const Icone = iconeCategoria(cat?.nome_categoria)
+                  return cat ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full border-2 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70"
+                      style={{ borderColor: cat.cor_hex }}
+                    >
+                      <Icone className="h-4 w-4 shrink-0" style={{ color: cat.cor_hex }} />
+                      {cat.nome_categoria}
+                    </span>
+                  ) : null
+                })()}
+                {(() => {
+                  const IconeStatus = STATUS_ICONE[selecionada.status]
+                  return (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70">
+                      {IconeStatus && <IconeStatus className="h-4 w-4 text-[#2a2a2a]/55" />}
+                      {STATUS_LABEL[selecionada.status]}
+                    </span>
+                  )
+                })()}
+                <span className="inline-flex items-center gap-1.5 text-xs text-[#2a2a2a]/45">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {formatarData(selecionada.data_registro)}
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs text-[#2a2a2a]/45">
+                  <ThumbsUp className="h-3.5 w-3.5" />
+                  {selecionada.contador_apoios} apoio{selecionada.contador_apoios !== 1 ? 's' : ''}
+                </span>
+              </div>
             </div>
 
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-[#2a2a2a]/60 mb-1.5">
-                  Novo status
-                </label>
+            {/* Corpo com scroll */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Localização */}
+              <div className="px-6 py-4 space-y-2.5 border-b border-black/8">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-start gap-2 text-sm text-[#2a2a2a]/70">
+                    <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{selecionada.endereco_referencia}</span>
+                  </div>
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${selecionada.latitude},${selecionada.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#3b82f6]/40 bg-white px-3 py-1.5 text-sm font-medium text-[#3b82f6] hover:bg-[#3b82f6]/8 transition-colors"
+                  >
+                    <Navigation className="h-4 w-4 shrink-0" />
+                    Rotas
+                  </a>
+                </div>
+                <div className="font-mono text-xs text-[#2a2a2a]/40 pl-6">
+                  {selecionada.latitude.toFixed(6)}, {selecionada.longitude.toFixed(6)}
+                </div>
+              </div>
+
+              {/* Fotos */}
+              {(carregandoFotos || fotosModal.length > 0) && (
+                <div className="py-4 border-b border-black/8">
+                  <p className="text-xs font-medium text-[#2a2a2a]/50 mb-3 px-6">Fotos</p>
+                  {carregandoFotos ? (
+                    <div className="flex gap-3 px-6 overflow-x-auto">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="shrink-0 w-24 h-24 rounded-xl bg-black/5 animate-pulse" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex gap-3 px-6 overflow-x-auto pb-1">
+                      {fotosModal.map((foto, idx) => (
+                        <img
+                          key={foto.id_foto}
+                          src={foto.caminho_arquivo}
+                          alt={`Foto ${idx + 1}`}
+                          className="shrink-0 w-24 h-24 rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setFotoAtiva(idx)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Atualizar status */}
+              <div className="px-6 py-5 space-y-4">
+                <p className="text-xs font-medium text-[#2a2a2a]/50">Atualizar status</p>
                 <select
                   value={statusNovo}
                   onChange={(e) => setStatusNovo(e.target.value)}
@@ -465,29 +555,28 @@ export default function Solicitacoes() {
                     <option key={s.valor} value={s.valor}>{s.label}</option>
                   ))}
                 </select>
+                <div>
+                  <label className="block text-xs font-medium text-[#2a2a2a]/60 mb-1.5">
+                    Comentário <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={comentario}
+                    onChange={(e) => setComentario(e.target.value)}
+                    rows={3}
+                    placeholder="Descreva a ação tomada ou justifique a mudança de status..."
+                    className="w-full px-3 py-2.5 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white resize-none focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60 placeholder:text-[#2a2a2a]/30"
+                  />
+                </div>
+                {erroModal && (
+                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                    {erroModal}
+                  </p>
+                )}
               </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#2a2a2a]/60 mb-1.5">
-                  Comentário <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={comentario}
-                  onChange={(e) => setComentario(e.target.value)}
-                  rows={3}
-                  placeholder="Descreva a ação tomada ou justifique a mudança de status..."
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white resize-none focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60 placeholder:text-[#2a2a2a]/30"
-                />
-              </div>
-
-              {erroModal && (
-                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-                  {erroModal}
-                </p>
-              )}
             </div>
 
-            <div className="px-6 pb-5 flex items-center justify-end gap-2">
+            {/* Rodapé */}
+            <div className="px-6 py-4 border-t border-black/8 flex items-center justify-end gap-2 shrink-0">
               <button
                 onClick={fecharModal}
                 className="h-9 px-4 rounded-xl text-sm text-[#2a2a2a]/60 hover:text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
@@ -503,6 +592,59 @@ export default function Solicitacoes() {
               </button>
             </div>
           </div>
+
+          {/* Lightbox */}
+          {fotoAtiva !== null && (
+            <div
+              className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70"
+              onClick={() => setFotoAtiva(null)}
+            >
+              <div
+                className="relative bg-black/90 mx-6 rounded-xl overflow-hidden shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  className="absolute top-3 right-3 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                  onClick={() => setFotoAtiva(null)}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="relative flex items-center justify-center">
+                  {fotoAtiva > 0 && (
+                    <button
+                      className="absolute left-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                      onClick={() => setFotoAtiva(fotoAtiva - 1)}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                  )}
+                  <img
+                    src={fotosModal[fotoAtiva].caminho_arquivo}
+                    alt={`Foto ${fotoAtiva + 1}`}
+                    className="max-h-[70vh] max-w-[85vw] object-contain"
+                  />
+                  {fotoAtiva < fotosModal.length - 1 && (
+                    <button
+                      className="absolute right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                      onClick={() => setFotoAtiva(fotoAtiva + 1)}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
+                {fotosModal.length > 1 && (
+                  <div className="flex justify-center gap-1.5 py-3">
+                    {fotosModal.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={`h-1.5 rounded-full transition-all ${idx === fotoAtiva ? 'w-4 bg-white' : 'w-1.5 bg-white/40'}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

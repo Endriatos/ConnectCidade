@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, ChevronDown, LogOut, ClipboardList, Bell, LayoutDashboard } from 'lucide-react'
+import { User, ChevronDown, LogOut, ClipboardList, Bell, Shield } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import iconCC from '../assets/iconCC.png'
 
@@ -53,7 +53,7 @@ export default function Header() {
               to="/admin/solicitacoes"
               className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#3cb478]/40 text-sm font-medium text-[#3cb478] hover:bg-[#3cb478]/8 transition-colors"
             >
-              <LayoutDashboard className="h-4 w-4" />
+              <Shield className="h-4 w-4" />
               <span className="hidden sm:inline">Painel administrativo</span>
             </Link>
           )}

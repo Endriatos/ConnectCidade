@@ -51,9 +51,26 @@ export default function Solicitacoes() {
   const [comentario, setComentario] = useState('')
   const [atualizando, setAtualizando] = useState(false)
   const [erroModal, setErroModal] = useState('')
+  const [toast, setToast] = useState(null)
 
-  const carregarFila = useCallback(() => {
-    api.get('/admin/dashboard/fila-atencao').then((res) => setFila(res.data)).catch(() => {})
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3500)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  const [filaAtualizada, setFilaAtualizada] = useState(false)
+
+  const carregarFila = useCallback((mostrarFeedback = false) => {
+    api.get('/admin/dashboard/fila-atencao')
+      .then((res) => {
+        setFila(res.data)
+        if (mostrarFeedback) {
+          setFilaAtualizada(true)
+          setTimeout(() => setFilaAtualizada(false), 2500)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -144,9 +161,11 @@ export default function Solicitacoes() {
           prev.map((i) => (i.id_solicitacao === res.data.id_solicitacao ? res.data : i))
         )
         fecharModal()
+        setToast({ tipo: 'sucesso', mensagem: 'Status atualizado com sucesso.' })
       })
       .catch((err) => {
         setErroModal(err?.response?.data?.detail ?? 'Erro ao atualizar status.')
+        setToast({ tipo: 'erro', mensagem: err?.response?.data?.detail ?? 'Erro ao atualizar status.' })
       })
       .finally(() => setAtualizando(false))
   }
@@ -169,14 +188,23 @@ export default function Solicitacoes() {
               <AlertTriangle className="h-5 w-5 text-[#f97316]" />
               <h2 className="text-base font-semibold text-[#2a2a2a]">Precisa de atenção</h2>
             </div>
-            <button
-              onClick={carregarFila}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs text-[#2a2a2a]/50 hover:text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
-              title="Atualizar fila"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Atualizar
-            </button>
+            {filaAtualizada ? (
+              <span className="flex items-center gap-1.5 h-8 px-3 text-xs text-[#3cb478] animate-fade-in-up">
+                <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Atualizado
+              </span>
+            ) : (
+              <button
+                onClick={() => carregarFila(true)}
+                className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs text-[#2a2a2a]/50 hover:text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
+                title="Atualizar fila"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Atualizar
+              </button>
+            )}
           </div>
 
           {fila.length === 0 ? (
@@ -186,7 +214,7 @@ export default function Solicitacoes() {
               {fila.map((item, idx) => {
                 const Icone = iconeCategoria(item.nome_categoria)
                 const IconeStatus = STATUS_ICONE[item.status]
-                const dias = diasDesde(item.data_registro)
+                const dias = diasDesde(item.data_atualizacao || item.data_registro)
                 return (
                   <div
                     key={item.id_solicitacao}
@@ -194,7 +222,11 @@ export default function Solicitacoes() {
                       if (focoSolicitacao?.id !== item.id_solicitacao)
                         setFocoSolicitacao({ id: item.id_solicitacao, lat: item.latitude, lng: item.longitude })
                     }}
-                    className="w-full text-left flex items-start gap-3 px-3 py-2 rounded-xl border border-black/8 hover:bg-[#2a2a2a]/4 transition-colors cursor-pointer"
+                    className={`w-full text-left flex items-start gap-3 px-3 py-2 rounded-xl border border-black/8 transition-colors cursor-pointer ${
+                      focoSolicitacao?.id === item.id_solicitacao
+                        ? 'border-l-[3px] border-l-[#3cb478] hover:bg-[#2a2a2a]/4'
+                        : 'hover:bg-[#2a2a2a]/4'
+                    }`}
                   >
                     <span className="text-sm font-bold text-[#2a2a2a]/25 w-5 shrink-0 text-center pt-1">{idx + 1}</span>
                     <div className="flex-1 min-w-0 flex flex-col gap-1">
@@ -352,7 +384,11 @@ export default function Solicitacoes() {
                           if (item.status !== 'RESOLVIDO' && item.status !== 'CANCELADO' && focoSolicitacao?.id !== item.id_solicitacao)
                             setFocoSolicitacao({ id: item.id_solicitacao, lat: item.latitude, lng: item.longitude })
                         }}
-                        className="hover:bg-[#2a2a2a]/2 transition-colors cursor-pointer"
+                        className={`transition-colors cursor-pointer hover:bg-[#2a2a2a]/2 ${
+                          focoSolicitacao?.id === item.id_solicitacao
+                            ? 'border-l-2 border-l-[#3cb478]'
+                            : ''
+                        }`}
                       >
                         <td className="px-4 py-3 font-mono text-xs text-[#2a2a2a]/60 w-px whitespace-nowrap">
                           #{item.protocolo}
@@ -645,6 +681,24 @@ export default function Solicitacoes() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-in-up ${
+          toast.tipo === 'sucesso'
+            ? 'bg-[#2a2a2a] text-white'
+            : 'bg-red-600 text-white'
+        }`}>
+          {toast.tipo === 'sucesso' ? (
+            <svg className="h-4 w-4 shrink-0 text-[#3cb478]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <X className="h-4 w-4 shrink-0" />
+          )}
+          {toast.mensagem}
         </div>
       )}
     </div>

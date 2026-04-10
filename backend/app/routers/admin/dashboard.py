@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func
+from sqlalchemy import cast, func, Integer
 from sqlalchemy.orm import Session
 
 from app.models.avaliacao import Avaliacao
@@ -71,23 +71,20 @@ def get_fila_atencao(
     Score = contador_apoios + (dias_desde_registro // 3).
     Considera apenas os status PENDENTE, EM_ANALISE e EM_ANDAMENTO.
     """
-    agora = datetime.now(timezone.utc)
-
-    rows = (
-        db.query(Solicitacao, Categoria)
-        .join(Categoria, Solicitacao.id_categoria == Categoria.id_categoria)
-        .filter(Solicitacao.status.in_(_STATUS_ABERTOS))
-        .all()
+    ultima = func.coalesce(Solicitacao.data_atualizacao, Solicitacao.data_registro)
+    score_expr = (
+        Solicitacao.contador_apoios
+        + cast(func.floor(func.extract('day', func.now() - ultima) / 3), Integer)
     )
 
-    def _score(sol: Solicitacao) -> int:
-        reg = sol.data_registro
-        if reg.tzinfo is None:
-            reg = reg.replace(tzinfo=timezone.utc)
-        dias = (agora - reg).days
-        return sol.contador_apoios + (dias // 3)
-
-    top5 = sorted(rows, key=lambda r: _score(r[0]), reverse=True)[:5]
+    rows = (
+        db.query(Solicitacao, Categoria, score_expr.label('score'))
+        .join(Categoria, Solicitacao.id_categoria == Categoria.id_categoria)
+        .filter(Solicitacao.status.in_(_STATUS_ABERTOS))
+        .order_by(score_expr.desc())
+        .limit(5)
+        .all()
+    )
 
     return [
         FilaAtencaoItem(
@@ -98,13 +95,14 @@ def get_fila_atencao(
             status=sol.status.value,
             contador_apoios=sol.contador_apoios,
             data_registro=sol.data_registro,
+            data_atualizacao=sol.data_atualizacao or sol.data_registro,
             endereco_referencia=sol.endereco_referencia,
             descricao=sol.descricao,
-            score=_score(sol),
+            score=score,
             latitude=float(sol.latitude),
             longitude=float(sol.longitude),
         )
-        for sol, cat in top5
+        for sol, cat, score in rows
     ]
 
 

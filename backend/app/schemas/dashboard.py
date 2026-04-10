@@ -38,6 +38,7 @@ class FilaAtencaoItem(BaseModel):
     status: str
     contador_apoios: int
     data_registro: datetime
+    data_atualizacao: datetime
     endereco_referencia: str
     descricao: str
     score: int

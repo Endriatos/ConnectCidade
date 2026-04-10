@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -47,31 +47,41 @@ def listar_administradores(
 
 
 @router.get("/buscar", response_model=CidadaoBuscaResponse)
-def buscar_usuario_por_cpf(
-    # CPF a ser consultado — obrigatório e validado antes da busca no banco
-    cpf: str = Query(...),
+def buscar_usuario(
+    cpf: Optional[str] = Query(None),
+    email: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    # Apenas admins autenticados podem usar esta busca
     _admin: Usuario = Depends(get_admin_atual),
 ):
-    """Busca um usuário pelo CPF. Retorna 422 se o CPF for inválido e 404 se não encontrado."""
-    # Valida o formato e os dígitos verificadores do CPF antes de consultar o banco
-    if not validar_cpf(cpf):
+    """Busca um usuário por CPF ou e-mail. Exatamente um dos dois deve ser informado."""
+    if not cpf and not email:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="CPF inválido.",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Informe cpf ou email para buscar.",
         )
 
-    usuario = get_usuario_por_cpf(db, cpf)
+    if cpf and email:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Informe apenas um critério de busca: cpf ou email.",
+        )
 
-    # CPF válido mas sem cadastro no sistema
+    if cpf:
+        if not validar_cpf(cpf):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="CPF inválido.",
+            )
+        usuario = get_usuario_por_cpf(db, cpf)
+    else:
+        usuario = get_usuario_por_email(db, email)
+
     if usuario is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado.",
         )
 
-    # Constrói o response explicitamente pois ja_e_admin é calculado, não vem do model
     return CidadaoBuscaResponse(
         id_usuario=usuario.id_usuario,
         nome_usuario=usuario.nome_usuario,

@@ -230,7 +230,14 @@ export default function NovaSolicitacao() {
 
   const handleAdicionarFoto = (e) => {
     const arquivos = Array.from(e.target.files)
-    setFotos((prev) => [...prev, ...arquivos].slice(0, 5))
+    const novaLista = [...fotos, ...arquivos].slice(0, 5)
+    const totalBytes = novaLista.reduce((acc, f) => acc + f.size, 0)
+    if (totalBytes > 50 * 1024 * 1024) {
+      setErros((p) => ({ ...p, fotos: 'O tamanho máximo das fotos não pode ultrapassar 50 MB.' }))
+      e.target.value = ''
+      return
+    }
+    setFotos(novaLista)
     setErros((p) => ({ ...p, fotos: '' }))
     e.target.value = ''
   }

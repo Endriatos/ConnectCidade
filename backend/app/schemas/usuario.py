@@ -34,6 +34,8 @@ class UsuarioResponse(BaseModel):
     cpf: str
     nome_usuario: str
     email: str
+    telefone: Optional[str] = None
+    data_nascimento: date
     status_ativo: bool
     data_cadastro: datetime
 

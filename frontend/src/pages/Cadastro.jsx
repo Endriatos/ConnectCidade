@@ -5,18 +5,17 @@ import api from '../services/api'
 import useAuthStore from '../store/authStore'
 import logoCC from '../assets/logoCC.png'
 import iconCC from '../assets/iconCC.png'
+import {
+  avaliarForca,
+  classeInput,
+  formatCPF,
+  formatTelefone,
+  infoForca,
+  mensagemErroApi,
+  validarCampoDados,
+  validarCampoSenha,
+} from '../utils/meuPerfilForm'
 
-// Formata o CPF digitado para o padrão 000.000.000-00
-function formatCPF(value) {
-  return value
-    .replace(/\D/g, '')
-    .slice(0, 11)
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
-}
-
-// Valida o CPF pelos dígitos verificadores (mesmo algoritmo do backend)
 function validarCPF(cpf) {
   const n = cpf.replace(/\D/g, '')
   if (n.length !== 11) return false
@@ -31,42 +30,6 @@ function validarCPF(cpf) {
   return d2 === parseInt(n[10])
 }
 
-// Formata o telefone digitado para o padrão (00) 00000-0000
-function formatTelefone(value) {
-  const n = value.replace(/\D/g, '').slice(0, 11)
-  if (!n) return ''
-  if (n.length <= 2) return `(${n}`
-  if (n.length <= 7) return `(${n.slice(0, 2)}) ${n.slice(2)}`
-  return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`
-}
-
-// Avalia a força da senha (0 = vazia, 1-2 = fraca, 3 = média, 4-5 = forte)
-function avaliarForca(senha) {
-  if (!senha) return 0
-  let pontos = 0
-  if (senha.length >= 8) pontos++
-  if (/[A-Z]/.test(senha)) pontos++
-  if (/[a-z]/.test(senha)) pontos++
-  if (/[0-9]/.test(senha)) pontos++
-  if (/[^A-Za-z0-9]/.test(senha)) pontos++
-  return pontos
-}
-
-// Retorna rótulo e cor da barra de força da senha
-function infoForca(pontos) {
-  if (pontos <= 2) return { label: 'Fraca', cor: 'bg-red-400', largura: 'w-1/3' }
-  if (pontos <= 4) return { label: 'Média', cor: 'bg-yellow-400', largura: 'w-2/3' }
-  return { label: 'Forte', cor: 'bg-[#3cb478]', largura: 'w-full' }
-}
-
-// Retorna a classe CSS do input, aplicando borda vermelha se houver erro
-function classeInput(erro) {
-  return `w-full px-4 py-3 rounded-xl border text-[#2a2a2a] placeholder-[#2a2a2a]/25 text-sm focus:outline-none transition-colors ${
-    erro ? 'border-red-400 focus:border-red-400' : 'border-[#2a2a2a]/10 focus:border-[#3cb478]'
-  }`
-}
-
-// Modal com a Política de Privacidade completa
 function ModalPrivacidade({ onAceitar, onFechar }) {
   return (
     <div
@@ -314,14 +277,11 @@ export default function Cadastro() {
     setForm(prev => ({ ...prev, [field]: v }))
   }
 
-  // Retorna a mensagem de erro para cada campo ou string vazia se válido
   const validarCampo = (field) => {
     const v = form[field]
     switch (field) {
       case 'nome_usuario':
-        if (!v.trim()) return 'Nome é obrigatório.'
-        if (v.trim().split(/\s+/).length < 2) return 'Informe o nome completo.'
-        return ''
+        return validarCampoDados('nome_usuario', form.nome_usuario, form.telefone, form.data_nascimento)
       case 'cpf': {
         const d = v.replace(/\D/g, '')
         if (!d) return 'CPF é obrigatório.'
@@ -333,32 +293,14 @@ export default function Cadastro() {
         if (!v.trim()) return 'E-mail é obrigatório.'
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'E-mail inválido.'
         return ''
-      case 'data_nascimento': {
-        if (!v) return 'Data de nascimento é obrigatória.'
-        const nascimento = new Date(v)
-        const hoje = new Date()
-        if (nascimento >= hoje) return 'Data deve ser no passado.'
-        const idade = hoje.getFullYear() - nascimento.getFullYear()
-        if (idade > 120) return 'Data inválida.'
-        return ''
-      }
-      case 'telefone': {
-        const d = v.replace(/\D/g, '')
-        if (d && (d.length < 10 || d.length > 11)) return 'Celular inválido.'
-        return ''
-      }
+      case 'data_nascimento':
+        return validarCampoDados('data_nascimento', form.nome_usuario, form.telefone, form.data_nascimento)
+      case 'telefone':
+        return validarCampoDados('telefone', form.nome_usuario, form.telefone, form.data_nascimento)
       case 'senha':
-        if (!v) return 'Senha é obrigatória.'
-        if (v.length < 8) return 'Mínimo de 8 caracteres.'
-        if (!/[A-Z]/.test(v)) return 'Inclua pelo menos uma letra maiúscula.'
-        if (!/[a-z]/.test(v)) return 'Inclua pelo menos uma letra minúscula.'
-        if (!/[0-9]/.test(v)) return 'Inclua pelo menos um número.'
-        if (!/[^A-Za-z0-9]/.test(v)) return 'Inclua pelo menos um caractere especial (!@#$%...).'
-        return ''
+        return validarCampoSenha('senha_nova', '', form.senha, form.confirmar_senha)
       case 'confirmar_senha':
-        if (!v) return 'Confirme sua senha.'
-        if (v !== form.senha) return 'As senhas não coincidem.'
-        return ''
+        return validarCampoSenha('confirmar_senha', '', form.senha, form.confirmar_senha)
       default:
         return ''
     }
@@ -413,14 +355,11 @@ export default function Cadastro() {
       navigate('/home', { state: { recemCadastrado: true } })
     } catch (err) {
       console.error('Erro cadastro:', err.response?.status, err.response?.data)
-      // Trata erros de validação do FastAPI (array) e erros simples (string)
-      const detail = err.response?.data?.detail
-      if (Array.isArray(detail)) {
-        setErroGeral(detail.map(d => d.msg).join(' '))
-      } else if (typeof detail === 'string') {
-        setErroGeral(detail)
+      const msg = mensagemErroApi(err)
+      if (msg === 'Algo deu errado. Tente novamente.' && err.response?.status) {
+        setErroGeral(`Erro ao realizar cadastro. (${err.response.status})`)
       } else {
-        setErroGeral(`Erro ao realizar cadastro. (${err.response?.status ?? 'sem resposta'})`)
+        setErroGeral(msg)
       }
     } finally {
       setCarregando(false)
@@ -564,13 +503,16 @@ export default function Cadastro() {
                 </button>
               </div>
               {form.senha && (() => {
-                const { label, cor, largura } = infoForca(avaliarForca(form.senha))
+                const pontos = avaliarForca(form.senha)
+                const { label, cor, largura } = infoForca(pontos)
+                const corTexto =
+                  pontos <= 2 ? 'text-red-500' : pontos <= 4 ? 'text-amber-600' : 'text-[#2a7a4a]'
                 return (
                   <div className="mt-1.5">
                     <div className="h-1.5 w-full rounded-full bg-[#2a2a2a]/10">
                       <div className={`h-1.5 rounded-full transition-all duration-300 ${cor} ${largura}`} />
                     </div>
-                    <p className={`text-xs mt-0.5 ${cor.replace('bg-', 'text-')}`}>{label}</p>
+                    <p className={`text-xs mt-0.5 ${corTexto}`}>{label}</p>
                   </div>
                 )
               })()}

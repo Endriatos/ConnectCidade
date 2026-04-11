@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, ChevronDown, LogOut, ClipboardList, Bell, Shield } from 'lucide-react'
+import { User, ChevronDown, LogOut, ClipboardList, Bell, Shield, UserCircle } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import iconCC from '../assets/iconCC.png'
 
@@ -84,6 +84,14 @@ export default function Header() {
                 >
                   <ClipboardList className="h-4 w-4 text-[#2a2a2a]/40" />
                   Minhas solicitações
+                </Link>
+                <Link
+                  to="/meu-perfil"
+                  onClick={() => setMenuAberto(false)}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
+                >
+                  <UserCircle className="h-4 w-4 text-[#2a2a2a]/40" />
+                  Meu perfil
                 </Link>
                 <button
                   type="button"

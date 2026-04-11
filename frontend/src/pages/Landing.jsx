@@ -38,7 +38,6 @@ export default function Landing() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header fixo no topo */}
       {token ? (
         <Header />
       ) : (

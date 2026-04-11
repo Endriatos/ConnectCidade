@@ -7,6 +7,7 @@ import Home from './pages/Home'
 import NovaSolicitacao from './pages/NovaSolicitacao'
 import MinhasSolicitacoes from './pages/MinhasSolicitacoes'
 import DetalheMinhaSolicitacao from './pages/DetalheMinhaSolicitacao'
+import MeuPerfil from './pages/MeuPerfil'
 import Health from './pages/Health'
 import PainelAdmin from './pages/PainelAdmin'
 import Dashboard from './pages/admin/Dashboard'
@@ -30,6 +31,7 @@ function App() {
         <Route path="/nova-solicitacao" element={<RotaProtegida><NovaSolicitacao /></RotaProtegida>} />
         <Route path="/minhas-solicitacoes" element={<RotaProtegida><MinhasSolicitacoes /></RotaProtegida>} />
         <Route path="/minhas-solicitacoes/:idSolicitacao" element={<RotaProtegida><DetalheMinhaSolicitacao /></RotaProtegida>} />
+        <Route path="/meu-perfil" element={<RotaProtegida><MeuPerfil /></RotaProtegida>} />
 
         {/* Painel administrativo — exige tipo ADMIN */}
         <Route path="/admin" element={<RotaAdmin><PainelAdmin /></RotaAdmin>}>

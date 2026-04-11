@@ -61,6 +61,13 @@ async def criar_solicitacao(
             detail="Limite de 5 fotos por solicitação.",
         )
 
+    tamanho_total = sum(arquivo.size for arquivo in fotos if arquivo.size is not None)
+    if tamanho_total > 50 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O tamanho máximo das fotos não pode ultrapassar 50 MB.",
+        )
+
     # Se o usuário não confirmou, verifica se já existe solicitação semelhante próxima
     if not dados.confirmar_duplicata:
         duplicata = verificar_duplicata(db, dados.id_categoria, dados.latitude, dados.longitude)

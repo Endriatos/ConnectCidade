@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, RefreshCw, MapPin, Calendar, Navigation } from 'lucide-react'
+import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, RefreshCw, MapPin, Calendar, Navigation, ChevronDown, User } from 'lucide-react'
 import api from '../../services/api'
 import MapaMini from '../../components/admin/MapaMini'
-import { STATUS_LABEL, STATUS_ICONE, formatarData } from '../../utils/solicitacaoStatus'
+import Timeline from '../../components/minhasSolicitacoes/timeline/Timeline'
+import { STATUS_LABEL, STATUS_ICONE, formatarData, montarEventosTimeline, ultimoCodigoStatusNaTimeline, destacarUltimoEventoComStatusIgual } from '../../utils/solicitacaoStatus'
 import { iconeCategoria } from '../../utils/categoriaIcone'
 
 function diasDesde(iso) {
@@ -52,6 +53,9 @@ export default function Solicitacoes() {
   const [atualizando, setAtualizando] = useState(false)
   const [erroModal, setErroModal] = useState('')
   const [toast, setToast] = useState(null)
+  const [timeline, setTimeline] = useState([])
+  const [carregandoTimeline, setCarregandoTimeline] = useState(false)
+  const [historicoAberto, setHistoricoAberto] = useState(false)
 
   useEffect(() => {
     if (!toast) return
@@ -129,11 +133,24 @@ export default function Solicitacoes() {
     setComentario('')
     setErroModal('')
     setFotosModal([])
+    setTimeline([])
+    setHistoricoAberto(false)
     setCarregandoFotos(true)
+    setCarregandoTimeline(true)
+    api.get(`/admin/solicitacoes/${item.id_solicitacao}`)
+      .then((res) => {
+        setSelecionada(res.data)
+        setStatusNovo(res.data.status)
+      })
+      .catch(() => {})
     api.get(`/solicitacoes/${item.id_solicitacao}/fotos`)
       .then((res) => setFotosModal(res.data))
       .catch(() => {})
       .finally(() => setCarregandoFotos(false))
+    api.get(`/solicitacoes/${item.id_solicitacao}/timeline`)
+      .then((res) => setTimeline(res.data))
+      .catch(() => {})
+      .finally(() => setCarregandoTimeline(false))
   }
 
   const fecharModal = () => {
@@ -143,6 +160,8 @@ export default function Solicitacoes() {
     setErroModal('')
     setFotosModal([])
     setFotoAtiva(null)
+    setTimeline([])
+    setHistoricoAberto(false)
   }
 
   const handleAtualizarStatus = () => {
@@ -160,7 +179,15 @@ export default function Solicitacoes() {
         setItens((prev) =>
           prev.map((i) => (i.id_solicitacao === res.data.id_solicitacao ? res.data : i))
         )
-        fecharModal()
+        setSelecionada(res.data)
+        setStatusNovo(res.data.status)
+        setComentario('')
+        setErroModal('')
+        setCarregandoTimeline(true)
+        api.get(`/solicitacoes/${res.data.id_solicitacao}/timeline`)
+          .then((r) => setTimeline(r.data))
+          .catch(() => {})
+          .finally(() => setCarregandoTimeline(false))
         setToast({ tipo: 'sucesso', mensagem: 'Status atualizado com sucesso.' })
       })
       .catch((err) => {
@@ -169,6 +196,15 @@ export default function Solicitacoes() {
       })
       .finally(() => setAtualizando(false))
   }
+
+  const eventosTimeline = useMemo(() => {
+    if (!selecionada || timeline === null) return []
+    const base = montarEventosTimeline(selecionada, timeline)
+    const st = selecionada.status
+    const ultimo = ultimoCodigoStatusNaTimeline(base)
+    if (ultimo === st) return destacarUltimoEventoComStatusIgual(base, st)
+    return base
+  }, [selecionada, timeline])
 
   const temFiltroAtivo = protocolo || endereco || idCategoria || status || dataInicio || dataFim
 
@@ -369,6 +405,7 @@ export default function Solicitacoes() {
                     <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Endereço</th>
                     <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Data</th>
                     <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Apoios</th>
+                    <th className="text-left px-4 py-3 font-medium hidden xl:table-cell">Solicitante</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
@@ -418,6 +455,9 @@ export default function Solicitacoes() {
                         </td>
                         <td className="px-4 py-3 text-[#2a2a2a]/50 hidden lg:table-cell">
                           {item.contador_apoios}
+                        </td>
+                        <td className="px-4 py-3 text-[#2a2a2a]/60 hidden xl:table-cell">
+                          {item.nome_autor ?? '—'}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
@@ -527,6 +567,10 @@ export default function Solicitacoes() {
                   {selecionada.contador_apoios} apoio{selecionada.contador_apoios !== 1 ? 's' : ''}
                 </span>
               </div>
+              <div className="flex items-center gap-1.5 mt-2 text-sm text-[#2a2a2a]/70">
+                <User className="h-4 w-4 shrink-0" />
+                <span className="font-medium">{selecionada.nome_autor ?? '—'}</span>
+              </div>
             </div>
 
             {/* Corpo com scroll */}
@@ -553,10 +597,46 @@ export default function Solicitacoes() {
                 </div>
               </div>
 
+              {/* Atualizar status */}
+              <div className="px-6 py-5 space-y-4 border-b border-black/8">
+                <p className="text-sm font-semibold text-[#2a2a2a]">Atualizar status</p>
+                <div>
+                  <label className="block text-xs font-medium text-[#2a2a2a]/60 mb-1.5">
+                    Selecione o novo status
+                  </label>
+                  <select
+                    value={statusNovo}
+                    onChange={(e) => setStatusNovo(e.target.value)}
+                    className={inputCls}
+                  >
+                    {STATUS_OPCOES.filter((s) => s.valor).map((s) => (
+                      <option key={s.valor} value={s.valor}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[#2a2a2a]/60 mb-1.5">
+                    Comentário <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={comentario}
+                    onChange={(e) => setComentario(e.target.value)}
+                    rows={3}
+                    placeholder="Descreva a ação tomada ou justifique a mudança de status..."
+                    className="w-full px-3 py-2.5 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white resize-none focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60 placeholder:text-[#2a2a2a]/30"
+                  />
+                </div>
+                {erroModal && (
+                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                    {erroModal}
+                  </p>
+                )}
+              </div>
+
               {/* Fotos */}
               {(carregandoFotos || fotosModal.length > 0) && (
                 <div className="py-4 border-b border-black/8">
-                  <p className="text-xs font-medium text-[#2a2a2a]/50 mb-3 px-6">Fotos</p>
+                  <p className="text-sm font-semibold text-[#2a2a2a] mb-3 px-6">Fotos</p>
                   {carregandoFotos ? (
                     <div className="flex gap-3 px-6 overflow-x-auto">
                       {[...Array(3)].map((_, i) => (
@@ -579,34 +659,35 @@ export default function Solicitacoes() {
                 </div>
               )}
 
-              {/* Atualizar status */}
-              <div className="px-6 py-5 space-y-4">
-                <p className="text-xs font-medium text-[#2a2a2a]/50">Atualizar status</p>
-                <select
-                  value={statusNovo}
-                  onChange={(e) => setStatusNovo(e.target.value)}
-                  className={inputCls}
+              {/* Histórico */}
+              <div className="border-t border-black/8">
+                <button
+                  type="button"
+                  onClick={() => setHistoricoAberto((v) => !v)}
+                  className="w-full flex items-center justify-between px-6 py-4 text-sm font-semibold text-[#2a2a2a] hover:bg-[#2a2a2a]/3 transition-colors"
                 >
-                  {STATUS_OPCOES.filter((s) => s.valor).map((s) => (
-                    <option key={s.valor} value={s.valor}>{s.label}</option>
-                  ))}
-                </select>
-                <div>
-                  <label className="block text-xs font-medium text-[#2a2a2a]/60 mb-1.5">
-                    Comentário <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    value={comentario}
-                    onChange={(e) => setComentario(e.target.value)}
-                    rows={3}
-                    placeholder="Descreva a ação tomada ou justifique a mudança de status..."
-                    className="w-full px-3 py-2.5 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white resize-none focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60 placeholder:text-[#2a2a2a]/30"
-                  />
-                </div>
-                {erroModal && (
-                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-                    {erroModal}
-                  </p>
+                  Histórico
+                  <ChevronDown className={`h-4 w-4 text-[#2a2a2a]/40 transition-transform duration-200 ${historicoAberto ? 'rotate-180' : ''}`} />
+                </button>
+                {historicoAberto && (
+                  <div className="px-6 pb-5">
+                    {carregandoTimeline ? (
+                      <div className="space-y-6">
+                        {[...Array(2)].map((_, i) => (
+                          <div key={i} className="flex gap-4">
+                            <div className="w-5 h-5 rounded-full bg-black/8 animate-pulse shrink-0 mt-0.5" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-3 w-24 rounded bg-black/8 animate-pulse" />
+                              <div className="h-4 w-32 rounded bg-black/8 animate-pulse" />
+                              <div className="h-3 w-48 rounded bg-black/8 animate-pulse" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <Timeline eventos={eventosTimeline} />
+                    )}
+                  </div>
                 )}
               </div>
             </div>

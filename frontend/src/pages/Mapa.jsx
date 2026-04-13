@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
-import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Calendar, ChevronLeft, ChevronRight, LocateFixed, Navigation } from 'lucide-react'
+import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Calendar, ChevronLeft, ChevronRight, LocateFixed, Navigation, User } from 'lucide-react'
 import api from '../services/api'
+import useAuthStore from '../store/authStore'
 import Lottie from 'lottie-react'
 import typing from '../assets/Typing.json'
 import catLoading from '../assets/CatLoading.json'
@@ -65,6 +66,7 @@ const clusterSVG = (count) => {
 const CENTRO_PADRAO = { lat: -29.1678, lng: -51.1794 }
 
 export default function Mapa() {
+  const tipoUsuario = useAuthStore((s) => s.tipoUsuario)
   const [solicitacoes, setSolicitacoes] = useState([])
   const [categorias, setCategorias] = useState({})
   const [posicao, setPosicao] = useState(null)
@@ -116,7 +118,9 @@ export default function Mapa() {
     if (!selecionada?.id_solicitacao) return
     api.get(`/solicitacoes/${selecionada.id_solicitacao}`).then((res) => {
       setSelecionada((prev) =>
-        prev?.id_solicitacao === selecionada.id_solicitacao ? { ...prev, ...res.data } : prev
+        prev?.id_solicitacao === selecionada.id_solicitacao
+          ? { ...prev, ...res.data, nome_autor: prev.nome_autor ?? res.data.nome_autor }
+          : prev
       )
     }).catch(() => {})
   }, [selecionada?.id_solicitacao])
@@ -402,6 +406,12 @@ export default function Mapa() {
                         <IconeStatus className="h-4 w-4 text-[#2a2a2a]/55" aria-hidden />
                         {STATUS_LABEL[selecionada.status] ?? selecionada.status}
                       </span>
+                      {tipoUsuario === 'ADMIN' && selecionada.nome_autor && (
+                        <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-[#2a2a2a]/70">
+                          <User className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
+                          {selecionada.nome_autor}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-start gap-1.5 text-sm text-[#2a2a2a]/50">
                       <span className="font-mono shrink-0">#{selecionada.protocolo}</span>

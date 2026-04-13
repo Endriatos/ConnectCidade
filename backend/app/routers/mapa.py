@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.crud.foto import get_fotos_por_solicitacao
 from app.models.solicitacao import Solicitacao, StatusSolicitacao
+from app.models.usuario import Usuario
 from app.schemas.foto import FotoResponse
 from app.schemas.solicitacao import SolicitacaoMapaResponse
 from app.utils.deps import get_db, get_usuario_atual
@@ -32,8 +33,9 @@ def listar_solicitacoes_mapa(
 
     # Busca todas as solicitações que não estão canceladas
     # e que, se resolvidas, foram resolvidas há menos de 48 horas
-    solicitacoes = (
-        db.query(Solicitacao)
+    rows = (
+        db.query(Solicitacao, Usuario.nome_usuario)
+        .outerjoin(Usuario, Solicitacao.id_autor == Usuario.id_usuario)
         .filter(
             # Nunca exibir solicitações canceladas
             Solicitacao.status != StatusSolicitacao.CANCELADO,
@@ -47,7 +49,7 @@ def listar_solicitacoes_mapa(
     )
 
     resultado = []
-    for sol in solicitacoes:
+    for sol, nome_autor in rows:
         # Busca as fotos vinculadas a esta solicitação, ordenadas por ordem
         fotos_db = get_fotos_por_solicitacao(db, sol.id_solicitacao)
         fotos = [FotoResponse.model_validate(f) for f in fotos_db]
@@ -66,6 +68,7 @@ def listar_solicitacoes_mapa(
                 contador_apoios=sol.contador_apoios,
                 data_registro=sol.data_registro,
                 fotos=fotos,
+                nome_autor=nome_autor,
             )
         )
 

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.atualizacao import Atualizacao
 from app.models.solicitacao import Solicitacao, StatusSolicitacao
+from app.models.usuario import Usuario
 
 
 def atualizar_status(
@@ -96,8 +97,10 @@ def listar_solicitacoes(
 
     Retorna um dict compatível com PaginacaoResponse.
     """
-    # Inicia a query base na tabela solicitacao
-    query = db.query(Solicitacao)
+    # Inicia a query com JOIN para trazer o nome do autor
+    query = db.query(Solicitacao, Usuario.nome_usuario).outerjoin(
+        Usuario, Solicitacao.id_autor == Usuario.id_usuario
+    )
 
     # Aplica filtro por status apenas se informado
     if status is not None:
@@ -138,7 +141,9 @@ def listar_solicitacoes(
     paginas = math.ceil(total / por_pagina) if total > 0 else 1
 
     # Aplica offset e limit para retornar apenas a página solicitada
-    itens = query.offset((pagina - 1) * por_pagina).limit(por_pagina).all()
+    rows = query.offset((pagina - 1) * por_pagina).limit(por_pagina).all()
+
+    itens = [{**sol.__dict__, "nome_autor": nome} for sol, nome in rows]
 
     return {
         "total": total,

@@ -36,6 +36,7 @@ class SolicitacaoResponse(BaseModel):
     ja_apoiado: Optional[bool] = None
     # Somente para o autor: se já existe avaliação para esta solicitação
     ja_avaliado: Optional[bool] = None
+    nome_autor: Optional[str] = None
 
 
 class AtualizacaoResponse(BaseModel):
@@ -64,6 +65,7 @@ class SolicitacaoMapaResponse(BaseModel):
     contador_apoios: int
     data_registro: datetime
     fotos: List[FotoResponse]
+    nome_autor: Optional[str] = None
 
 
 # Schema de resumo de solicitação usado no detalhe de um cidadão no painel admin

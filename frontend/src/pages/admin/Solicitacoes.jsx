@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, RefreshCw, MapPin, Calendar, Navigation, ChevronDown, User } from 'lucide-react'
+import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, RefreshCw, MapPin, Calendar, ChevronDown, User, ExternalLink } from 'lucide-react'
+import Lottie from 'lottie-react'
+import typing from '../../assets/Typing.json'
 import api from '../../services/api'
 import MapaMini from '../../components/admin/MapaMini'
 import Timeline from '../../components/minhasSolicitacoes/timeline/Timeline'
@@ -56,6 +58,7 @@ export default function Solicitacoes() {
   const [timeline, setTimeline] = useState([])
   const [carregandoTimeline, setCarregandoTimeline] = useState(false)
   const [historicoAberto, setHistoricoAberto] = useState(false)
+  const [modalEmBreve, setModalEmBreve] = useState(false)
 
   useEffect(() => {
     if (!toast) return
@@ -567,14 +570,21 @@ export default function Solicitacoes() {
                   {selecionada.contador_apoios} apoio{selecionada.contador_apoios !== 1 ? 's' : ''}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 mt-2 text-sm text-[#2a2a2a]/70">
-                <User className="h-4 w-4 shrink-0" />
-                <span className="font-medium">{selecionada.nome_autor ?? '—'}</span>
-              </div>
             </div>
 
             {/* Corpo com scroll */}
             <div className="flex-1 overflow-y-auto">
+              {/* Solicitante */}
+              <div className="px-6 py-3 border-b border-black/8">
+                <button
+                  type="button"
+                  onClick={() => setModalEmBreve(true)}
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 hover:bg-[#2a2a2a]/4 transition-colors"
+                >
+                  <User className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
+                  <span className="text-sm font-medium text-[#2a2a2a]/80">{selecionada.nome_autor ?? '—'}</span>
+                </button>
+              </div>
               {/* Localização */}
               <div className="px-6 py-4 space-y-2.5 border-b border-black/8">
                 <div className="flex items-center gap-3 flex-wrap">
@@ -583,13 +593,13 @@ export default function Solicitacoes() {
                     <span>{selecionada.endereco_referencia}</span>
                   </div>
                   <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${selecionada.latitude},${selecionada.longitude}`}
+                    href={`https://www.google.com/maps?q=${selecionada.latitude},${selecionada.longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#3b82f6]/40 bg-white px-3 py-1.5 text-sm font-medium text-[#3b82f6] hover:bg-[#3b82f6]/8 transition-colors"
+                    className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-[#3cb478] hover:text-[#349d69]"
                   >
-                    <Navigation className="h-4 w-4 shrink-0" />
-                    Rotas
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    Mapa
                   </a>
                 </div>
                 <div className="font-mono text-xs text-[#2a2a2a]/40 pl-6">
@@ -766,6 +776,25 @@ export default function Solicitacoes() {
       )}
 
       {/* Toast */}
+      {/* Modal em breve */}
+      {modalEmBreve && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setModalEmBreve(false)}>
+          <div className="bg-white rounded-2xl shadow-xl px-8 py-10 w-full max-w-sm text-center mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="w-40 h-40 mx-auto">
+              <Lottie animationData={typing} loop />
+            </div>
+            <p className="text-xl font-semibold text-[#2a2a2a] tracking-tight mt-2">Coisas boas estão chegando!</p>
+            <p className="mt-2 text-sm text-[#2a2a2a]/50">Esta funcionalidade ainda está sendo desenvolvida.</p>
+            <button
+              onClick={() => setModalEmBreve(false)}
+              className="mt-6 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
       {toast && (
         <div className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-in-up ${
           toast.tipo === 'sucesso'

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
-import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Calendar, ChevronLeft, ChevronRight, LocateFixed, Navigation, User } from 'lucide-react'
+import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Calendar, ChevronLeft, ChevronRight, LocateFixed, ExternalLink, User } from 'lucide-react'
 import api from '../services/api'
 import useAuthStore from '../store/authStore'
 import Lottie from 'lottie-react'
@@ -406,12 +406,6 @@ export default function Mapa() {
                         <IconeStatus className="h-4 w-4 text-[#2a2a2a]/55" aria-hidden />
                         {STATUS_LABEL[selecionada.status] ?? selecionada.status}
                       </span>
-                      {tipoUsuario === 'ADMIN' && selecionada.nome_autor && (
-                        <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-[#2a2a2a]/70">
-                          <User className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
-                          {selecionada.nome_autor}
-                        </span>
-                      )}
                     </div>
                     <div className="flex items-start gap-1.5 text-sm text-[#2a2a2a]/50">
                       <span className="font-mono shrink-0">#{selecionada.protocolo}</span>
@@ -430,20 +424,32 @@ export default function Mapa() {
 
               <div className="overflow-y-auto">
                 <div className="px-6 py-4 space-y-2.5">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-start gap-2 text-sm text-[#2a2a2a]/70">
-                      <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
-                      <span>{selecionada.endereco_referencia}</span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-wrap min-w-0">
+                      <div className="flex items-start gap-2 text-sm text-[#2a2a2a]/70">
+                        <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                        <span>{selecionada.endereco_referencia}</span>
+                      </div>
+                      <a
+                        href={`https://www.google.com/maps?q=${selecionada.latitude},${selecionada.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-[#3cb478] hover:text-[#349d69]"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                        Mapa
+                      </a>
                     </div>
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${selecionada.latitude},${selecionada.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#3b82f6]/40 bg-white px-3 py-1.5 text-sm font-medium text-[#3b82f6] hover:bg-[#3b82f6]/8 transition-colors"
-                    >
-                      <Navigation className="h-4 w-4 shrink-0" />
-                      Rotas
-                    </a>
+                    {tipoUsuario === 'ADMIN' && selecionada.nome_autor && (
+                      <button
+                        type="button"
+                        onClick={() => setModalEmBreve(true)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70 shrink-0 hover:bg-[#2a2a2a]/4 transition-colors"
+                      >
+                        <User className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
+                        <span>{selecionada.nome_autor}</span>
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center justify-between text-sm text-[#2a2a2a]/70">
                     <div className="flex items-center gap-2">
@@ -558,7 +564,7 @@ export default function Mapa() {
                   Coisas boas estão chegando!
                 </p>
                 <p className="mt-2 text-sm text-[#2a2a2a]/50">
-                  A função de apoiar solicitações ainda está sendo desenvolvida.
+                  Esta funcionalidade ainda está sendo desenvolvida.
                 </p>
                 <button
                   onClick={() => setModalEmBreve(false)}

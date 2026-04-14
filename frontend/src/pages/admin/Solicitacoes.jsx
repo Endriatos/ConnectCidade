@@ -723,7 +723,7 @@ export default function Solicitacoes() {
           {/* Lightbox */}
           {fotoAtiva !== null && (
             <div
-              className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70"
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70"
               onClick={() => setFotoAtiva(null)}
             >
               <div
@@ -778,7 +778,7 @@ export default function Solicitacoes() {
       {/* Toast */}
       {/* Modal em breve */}
       {modalEmBreve && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setModalEmBreve(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setModalEmBreve(false)}>
           <div className="bg-white rounded-2xl shadow-xl px-8 py-10 w-full max-w-sm text-center mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="w-40 h-40 mx-auto">
               <Lottie animationData={typing} loop />
@@ -796,7 +796,7 @@ export default function Solicitacoes() {
       )}
 
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-in-up ${
+        <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-in-up ${
           toast.tipo === 'sucesso'
             ? 'bg-[#2a2a2a] text-white'
             : 'bg-red-600 text-white'

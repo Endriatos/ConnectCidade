@@ -296,7 +296,7 @@ export default function NovaSolicitacao() {
 
       {/* Modal — seleção de localização no mapa */}
       {modalMapa && isLoaded && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-lg sm:max-w-2xl lg:max-w-4xl bg-white rounded-2xl shadow-xl flex flex-col" style={{ height: '80vh' }}>
 
             <div className="shrink-0 relative">
@@ -325,7 +325,7 @@ export default function NovaSolicitacao() {
               </div>
 
               {sugestoes.length > 0 && (
-                <div className="absolute left-4 right-4 top-full z-[3000] bg-white rounded-xl border border-[#2a2a2a]/10 shadow-lg overflow-hidden">
+                <div className="absolute left-4 right-4 top-full z-30 bg-white rounded-xl border border-[#2a2a2a]/10 shadow-lg overflow-hidden">
                   {sugestoes.map((s) => (
                     <button
                       key={s.place_id}
@@ -341,7 +341,7 @@ export default function NovaSolicitacao() {
 
             <div className="flex-1 relative overflow-hidden">
               {!mapaModalPronto && (
-                <div className="absolute inset-0 z-[9999] bg-white flex flex-col items-center justify-center gap-1">
+                <div className="absolute inset-0 z-20 bg-white flex flex-col items-center justify-center gap-1">
                   <div className="w-36 h-36">
                     <Lottie animationData={catLoading} loop />
                   </div>
@@ -363,7 +363,7 @@ export default function NovaSolicitacao() {
               />
 
               {/* Pin fixo no centro */}
-              <div className="absolute top-1/2 left-1/2 z-[1000] pointer-events-none" style={{ transform: 'translate(-50%, -100%)' }}>
+              <div className="absolute top-1/2 left-1/2 z-10 pointer-events-none" style={{ transform: 'translate(-50%, -100%)' }}>
                 <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M14 0C6.268 0 0 6.268 0 14C0 24.5 14 36 14 36C14 36 28 24.5 28 14C28 6.268 21.732 0 14 0Z" fill="#3cb478"/>
                   <circle cx="14" cy="14" r="5" fill="white"/>
@@ -371,7 +371,7 @@ export default function NovaSolicitacao() {
               </div>
 
               {toastMapa && (
-                <div className={`absolute top-3 left-1/2 -translate-x-1/2 z-[4000] px-4 py-2 rounded-xl text-sm font-medium shadow-md whitespace-nowrap ${toastMapa.tipo === 'sucesso' ? 'bg-[#3cb478] text-white' : 'bg-red-500 text-white'}`}>
+                <div className={`absolute top-3 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-xl text-sm font-medium shadow-md whitespace-nowrap ${toastMapa.tipo === 'sucesso' ? 'bg-[#3cb478] text-white' : 'bg-red-500 text-white'}`}>
                   {toastMapa.msg}
                 </div>
               )}
@@ -379,7 +379,7 @@ export default function NovaSolicitacao() {
               <button
                 onClick={obterLocalizacaoAtual}
                 title="Usar minha localização atual"
-                className="absolute bottom-[72px] right-[10px] z-[1000] bg-white rounded-xl shadow-md p-2.5 text-[#2a2a2a]/60 hover:text-[#3cb478] transition-colors"
+                className="absolute bottom-[72px] right-[10px] z-10 bg-white rounded-xl shadow-md p-2.5 text-[#2a2a2a]/60 hover:text-[#3cb478] transition-colors"
               >
                 <LocateFixed className="h-5 w-5" />
               </button>

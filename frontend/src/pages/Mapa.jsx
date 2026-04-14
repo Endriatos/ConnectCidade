@@ -299,7 +299,7 @@ export default function Mapa() {
     <div className="relative h-full w-full overflow-hidden">
       {/* Overlay de carregamento */}
       {carregandoMapa && (
-        <div className="absolute inset-0 z-[9999] bg-white flex flex-col items-center justify-center gap-1">
+        <div className="absolute inset-0 z-30 bg-white flex flex-col items-center justify-center gap-1">
           <div className="w-44 h-44">
             <Lottie animationData={catLoading} loop />
           </div>
@@ -327,7 +327,7 @@ export default function Mapa() {
           {posicao && (
             <button
               onClick={() => mapa?.setCenter({ lat: posicao[0], lng: posicao[1] })}
-              className="absolute bottom-[72px] right-[10px] z-[1000] bg-white/90 backdrop-blur-sm shadow-md rounded-xl p-2.5 text-[#2a2a2a]/60 hover:text-[#3cb478] transition-colors"
+              className="absolute bottom-[72px] right-[10px] z-10 bg-white/90 backdrop-blur-sm shadow-md rounded-xl p-2.5 text-[#2a2a2a]/60 hover:text-[#3cb478] transition-colors"
               title="Centralizar na minha localização"
             >
               <LocateFixed className="h-5 w-5" />
@@ -336,7 +336,7 @@ export default function Mapa() {
 
           {/* Filtro de categorias */}
           {catsArr.length > 0 && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm shadow-md transition-all duration-300 rounded-2xl px-1.5 pt-1.5 pb-3">
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm shadow-md transition-all duration-300 rounded-2xl px-1.5 pt-1.5 pb-3">
               <div className="relative flex items-center" style={{ gap }}>
                 <div
                   className="absolute rounded-full transition-all duration-300 ease-in-out"
@@ -390,7 +390,7 @@ export default function Mapa() {
 
           {/* Bottom sheet */}
           {selecionada && cat && (
-            <div className="absolute bottom-0 left-0 right-0 z-[1000] bg-white rounded-t-2xl shadow-2xl max-h-[70vh] flex flex-col">
+            <div className="absolute bottom-0 left-0 right-0 z-10 bg-white rounded-t-2xl shadow-2xl max-h-[70vh] flex flex-col">
               <div className="px-6 pt-5 pb-4 border-b border-black/5 shrink-0">
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col gap-2 min-w-0 overflow-hidden">
@@ -503,7 +503,7 @@ export default function Mapa() {
           {/* Lightbox */}
           {fotoAtiva !== null && (
             <div
-              className="absolute inset-0 z-[2000] flex items-center justify-center bg-black/50"
+              className="absolute inset-0 z-[60] flex items-center justify-center bg-black/50"
               onClick={() => setFotoAtiva(null)}
             >
               <div
@@ -555,7 +555,7 @@ export default function Mapa() {
 
           {/* Modal em breve */}
           {modalEmBreve && (
-            <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
               <div className="bg-white rounded-2xl shadow-xl px-8 py-10 w-full max-w-sm text-center mx-4">
                 <div className="w-40 h-40 mx-auto">
                   <Lottie animationData={typing} loop />

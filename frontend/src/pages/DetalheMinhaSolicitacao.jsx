@@ -515,7 +515,7 @@ export default function DetalheMinhaSolicitacao() {
 
       {fotoAtiva !== null && fotos.length > 0 && (
         <div
-          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={() => setFotoAtiva(null)}
           role="presentation"
         >

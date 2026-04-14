@@ -88,6 +88,7 @@ async def criar_solicitacao(
                         "status": duplicata.status.value,
                         "contador_apoios": duplicata.contador_apoios,
                         "data_registro": duplicata.data_registro,
+                        "fotos": [f.caminho_arquivo for f in duplicata.fotos],
                     }
                 ),
             )

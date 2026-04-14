@@ -1,6 +1,7 @@
 import enum
 
 from sqlalchemy import Column, DateTime, Enum as SAEnum, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -30,3 +31,5 @@ class Solicitacao(Base):
     data_registro = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     data_atualizacao = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
     data_resolucao = Column(DateTime(timezone=True), nullable=True)
+
+    fotos = relationship("Foto", backref="solicitacao", order_by="Foto.ordem")

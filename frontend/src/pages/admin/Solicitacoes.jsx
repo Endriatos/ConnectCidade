@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, RefreshCw, MapPin, Calendar, ChevronDown, User, ExternalLink } from 'lucide-react'
+import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, Clock, RefreshCw, MapPin, Calendar, ChevronDown, User, ExternalLink } from 'lucide-react'
 import Lottie from 'lottie-react'
 import typing from '../../assets/Typing.json'
 import api from '../../services/api'
@@ -9,9 +9,17 @@ import Timeline from '../../components/minhasSolicitacoes/timeline/Timeline'
 import { STATUS_LABEL, STATUS_ICONE, formatarData, montarEventosTimeline, ultimoCodigoStatusNaTimeline, destacarUltimoEventoComStatusIgual } from '../../utils/solicitacaoStatus'
 import { iconeCategoria } from '../../utils/categoriaIcone'
 
-function diasDesde(iso) {
-  if (!iso) return 0
-  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
+function tempoDesde(iso) {
+  if (!iso) return '0min'
+  const ms = Math.max(0, Date.now() - new Date(iso).getTime())
+  const dias = Math.floor(ms / 86400000)
+  if (dias > 0) return `${dias}d`
+  const horas = Math.floor(ms / 3600000)
+  if (horas > 0) {
+    const mins = Math.floor((ms % 3600000) / 60000)
+    return `${horas}h ${mins}min`
+  }
+  return `${Math.floor(ms / 60000)}min`
 }
 
 const STATUS_OPCOES = [
@@ -191,6 +199,8 @@ export default function Solicitacoes() {
           .then((r) => setTimeline(r.data))
           .catch(() => {})
           .finally(() => setCarregandoTimeline(false))
+        carregarFila()
+        fecharModal()
         setToast({ tipo: 'sucesso', mensagem: 'Status atualizado com sucesso.' })
       })
       .catch((err) => {
@@ -253,7 +263,7 @@ export default function Solicitacoes() {
               {fila.map((item, idx) => {
                 const Icone = iconeCategoria(item.nome_categoria)
                 const IconeStatus = STATUS_ICONE[item.status]
-                const dias = diasDesde(item.data_atualizacao || item.data_registro)
+                const tempo = tempoDesde(item.data_atualizacao || item.data_registro)
                 return (
                   <div
                     key={item.id_solicitacao}
@@ -261,17 +271,17 @@ export default function Solicitacoes() {
                       if (focoSolicitacao?.id !== item.id_solicitacao)
                         setFocoSolicitacao({ id: item.id_solicitacao, lat: item.latitude, lng: item.longitude })
                     }}
-                    className={`w-full text-left flex items-start gap-3 px-3 py-2 rounded-xl border border-black/8 transition-colors cursor-pointer ${
+                    className={`w-full text-left flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2.5 rounded-xl border border-black/8 transition-colors cursor-pointer ${
                       focoSolicitacao?.id === item.id_solicitacao
                         ? 'border-l-[3px] border-l-[#3cb478] hover:bg-[#2a2a2a]/4'
                         : 'hover:bg-[#2a2a2a]/4'
                     }`}
                   >
-                    <span className="text-sm font-bold text-[#2a2a2a]/25 w-5 shrink-0 text-center pt-1">{idx + 1}</span>
-                    <div className="flex-1 min-w-0 flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm text-[#2a2a2a]/50 shrink-0 w-[104px]">#{item.protocolo}</span>
-                        <div className="shrink-0 min-w-[185px]">
+                    <div className="flex items-center gap-3 sm:contents">
+                      <span className="text-sm font-bold text-[#2a2a2a]/25 w-5 shrink-0 text-center">{idx + 1}</span>
+                      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                          <span className="font-mono text-sm text-[#2a2a2a]/50 shrink-0">#{item.protocolo}</span>
                           <span
                             className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70"
                             style={{ borderColor: item.cor_hex }}
@@ -279,20 +289,23 @@ export default function Solicitacoes() {
                             <Icone className="h-3.5 w-3.5 shrink-0" style={{ color: item.cor_hex }} />
                             {item.nome_categoria}
                           </span>
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70">
+                            {IconeStatus && <IconeStatus className="h-3.5 w-3.5 text-[#2a2a2a]/55" />}
+                            {STATUS_LABEL[item.status]}
+                          </span>
                         </div>
-                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1 text-sm font-medium text-[#2a2a2a]/70">
-                          {IconeStatus && <IconeStatus className="h-3.5 w-3.5 text-[#2a2a2a]/55" />}
-                          {STATUS_LABEL[item.status]}
-                        </span>
+                        <p className="text-sm text-[#2a2a2a]/40 truncate"><span className="mr-1">·</span>{item.descricao}</p>
                       </div>
-                      <p className="text-sm text-[#2a2a2a]/40 truncate"><span className="mr-1">·</span>{item.descricao}</p>
                     </div>
-                    <div className="shrink-0 flex items-start gap-3 text-sm text-[#2a2a2a]/40 pt-0.5">
+                    <div className="shrink-0 flex items-center gap-3 text-sm text-[#2a2a2a]/40 self-end sm:self-auto">
                       <div className="flex items-center gap-1">
-                        <ThumbsUp className="h-3.5 w-3.5" />
+                        <ThumbsUp className="h-3.5 w-3.5 shrink-0" />
                         {item.contador_apoios}
                       </div>
-                      <span>{dias}d</span>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5 shrink-0" />
+                        <span className="whitespace-nowrap">{tempo}</span>
+                      </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); abrirModal(item) }}
                         className="text-xs px-3 py-1.5 rounded-lg border border-[#3cb478]/40 text-[#3cb478] hover:bg-[#3cb478]/8 transition-colors font-medium"
@@ -348,15 +361,15 @@ export default function Solicitacoes() {
           </select>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-[#2a2a2a]/50">
-            <span>Abertura:</span>
+          <div className="flex items-center gap-2 text-sm text-[#2a2a2a]/50 flex-wrap">
+            <span className="shrink-0">Abertura:</span>
             <input
               type="date"
               value={dataInicio}
               onChange={(e) => setDataInicio(e.target.value)}
               className="h-9 px-3 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60"
             />
-            <span>até</span>
+            <span className="shrink-0">até</span>
             <input
               type="date"
               value={dataFim}
@@ -723,7 +736,7 @@ export default function Solicitacoes() {
           {/* Lightbox */}
           {fotoAtiva !== null && (
             <div
-              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70"
+              className="fixed inset-0 z-60 flex items-center justify-center bg-black/70"
               onClick={() => setFotoAtiva(null)}
             >
               <div
@@ -796,7 +809,7 @@ export default function Solicitacoes() {
       )}
 
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-in-up ${
+        <div className={`fixed bottom-6 right-6 z-60 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-in-up ${
           toast.tipo === 'sucesso'
             ? 'bg-[#2a2a2a] text-white'
             : 'bg-red-600 text-white'

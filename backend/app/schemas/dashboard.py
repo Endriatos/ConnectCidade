@@ -41,7 +41,7 @@ class FilaAtencaoItem(BaseModel):
     data_atualizacao: datetime
     endereco_referencia: str
     descricao: str
-    score: int
+    score: float
     latitude: float
     longitude: float
 

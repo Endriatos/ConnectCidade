@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import case, cast, func, Integer
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.models.avaliacao import Avaliacao
@@ -180,10 +180,12 @@ def get_fila_atencao(
     _admin: Usuario = Depends(get_admin_atual),
 ):
     ultima = func.coalesce(Solicitacao.data_atualizacao, Solicitacao.data_registro)
-    score_expr = (
-        Solicitacao.contador_apoios
-        + cast(func.floor(func.extract("day", func.now() - ultima) / 3), Integer)
+    segundos_sem_atualizacao = func.greatest(0, func.extract("epoch", func.now() - ultima))
+    bonus_pendente = case(
+        (Solicitacao.status == StatusSolicitacao.PENDENTE, 10),
+        else_=0,
     )
+    score_expr = Solicitacao.contador_apoios * 0.5 + segundos_sem_atualizacao / 86400.0 + bonus_pendente
 
     rows = (
         db.query(Solicitacao, Categoria, score_expr.label("score"))

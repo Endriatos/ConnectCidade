@@ -2,6 +2,7 @@ import math
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.atualizacao import Atualizacao
@@ -45,16 +46,21 @@ def atualizar_status(
     )
     db.add(atualizacao)
 
-    # Atualiza o status da solicitação
-    solicitacao.status = status_novo
-    solicitacao.data_atualizacao = datetime.now(timezone.utc)
-
-    # Preenche data_resolucao ao marcar como RESOLVIDO
+    # Atualiza status e timestamps em um único UPDATE usando o clock do banco
+    valores = {
+        "status": status_novo,
+        "data_atualizacao": func.now(),
+    }
     if status_novo == StatusSolicitacao.RESOLVIDO:
-        solicitacao.data_resolucao = datetime.now(timezone.utc)
-    # Limpa data_resolucao ao sair do status RESOLVIDO
+        valores["data_resolucao"] = func.now()
     elif status_anterior == StatusSolicitacao.RESOLVIDO:
-        solicitacao.data_resolucao = None
+        valores["data_resolucao"] = None
+
+    db.execute(
+        Solicitacao.__table__.update()
+        .where(Solicitacao.id_solicitacao == id_solicitacao)
+        .values(**valores)
+    )
 
     db.commit()
     db.refresh(solicitacao)

@@ -84,6 +84,7 @@ def listar_solicitacoes(
     endereco: Optional[str] = None,
     data_inicio: Optional[date] = None,
     data_fim: Optional[date] = None,
+    ocultar_encerradas: bool = False,
     pagina: int = 1,
     por_pagina: int = 20,
 ) -> dict:
@@ -108,9 +109,11 @@ def listar_solicitacoes(
         Usuario, Solicitacao.id_autor == Usuario.id_usuario
     )
 
-    # Aplica filtro por status apenas se informado
+    # Aplica filtro por status apenas se informado; ocultar_encerradas só age quando nenhum status específico foi selecionado
     if status is not None:
         query = query.filter(Solicitacao.status == status)
+    elif ocultar_encerradas:
+        query = query.filter(Solicitacao.status.notin_([StatusSolicitacao.RESOLVIDO, StatusSolicitacao.CANCELADO]))
 
     # Aplica filtro por categoria apenas se informado
     if id_categoria is not None:

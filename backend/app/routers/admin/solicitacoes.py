@@ -33,6 +33,8 @@ def listar_solicitacoes_admin(
     data_inicio: Optional[date] = Query(None),
     # Filtra solicitações criadas até esta data (formato YYYY-MM-DD, inclusive)
     data_fim: Optional[date] = Query(None),
+    # Quando True, exclui solicitações com status RESOLVIDO ou CANCELADO (ignorado se status_filtro estiver definido)
+    ocultar_encerradas: bool = Query(False),
     # Número da página desejada (começa em 1)
     pagina: int = Query(1, ge=1),
     # Quantidade de itens por página
@@ -55,6 +57,7 @@ def listar_solicitacoes_admin(
         endereco=endereco,
         data_inicio=data_inicio,
         data_fim=data_fim,
+        ocultar_encerradas=ocultar_encerradas,
         pagina=pagina,
         por_pagina=por_pagina,
     )

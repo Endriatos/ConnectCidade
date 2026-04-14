@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, Clock, RefreshCw, MapPin, Calendar, ChevronDown, User, ExternalLink } from 'lucide-react'
 import Lottie from 'lottie-react'
 import typing from '../../assets/Typing.json'
@@ -34,8 +33,6 @@ const STATUS_OPCOES = [
 const inputCls = 'h-9 px-3 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60 placeholder:text-[#2a2a2a]/30 w-full'
 
 export default function Solicitacoes() {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const [fila, setFila] = useState([])
 
   const [categorias, setCategorias] = useState([])
@@ -46,12 +43,13 @@ export default function Solicitacoes() {
   const [carregando, setCarregando] = useState(false)
   const [buscaRealizada, setBuscaRealizada] = useState(false)
 
-  const [protocolo, setProtocolo] = useState(searchParams.get('protocolo') ?? '')
+  const [protocolo, setProtocolo] = useState('')
   const [endereco, setEndereco] = useState('')
   const [idCategoria, setIdCategoria] = useState('')
   const [status, setStatus] = useState('')
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
+  const [ocultarEncerradas, setOcultarEncerradas] = useState(true)
 
   const [focoSolicitacao, setFocoSolicitacao] = useState(null)
   const [selecionada, setSelecionada] = useState(null)
@@ -93,16 +91,22 @@ export default function Solicitacoes() {
     carregarFila()
   }, [carregarFila])
 
+  useEffect(() => {
+    buscar(1)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const catMap = Object.fromEntries(categorias.map((c) => [c.id_categoria, c]))
 
-  const buscar = useCallback((pag = 1) => {
+  const buscar = useCallback((pag = 1, protocoloOverride = null) => {
     setCarregando(true)
     setBuscaRealizada(true)
     const params = new URLSearchParams()
-    if (protocolo) {
-      const normalizado = /^\d{8,9}$/.test(protocolo.replace(/-/g, ''))
-        ? protocolo.replace(/-/g, '').replace(/^(\d{4})(\d+)$/, '$1-$2')
-        : protocolo
+    const protocoloAtivo = protocoloOverride ?? protocolo
+    if (protocoloAtivo) {
+      const semHash = protocoloAtivo.replace(/^#/, '')
+      const normalizado = /^\d{8,9}$/.test(semHash.replace(/-/g, ''))
+        ? semHash.replace(/-/g, '').replace(/^(\d{4})(\d+)$/, '$1-$2')
+        : semHash
       params.set('protocolo', normalizado)
     }
     if (endereco) params.set('endereco', endereco)
@@ -110,6 +114,7 @@ export default function Solicitacoes() {
     if (status) params.set('status', status)
     if (dataInicio) params.set('data_inicio', dataInicio)
     if (dataFim) params.set('data_fim', dataFim)
+    if (ocultarEncerradas) params.set('ocultar_encerradas', 'true')
     params.set('pagina', pag)
     params.set('por_pagina', 20)
 
@@ -122,7 +127,7 @@ export default function Solicitacoes() {
       })
       .catch(() => {})
       .finally(() => setCarregando(false))
-  }, [protocolo, endereco, idCategoria, status, dataInicio, dataFim])
+  }, [protocolo, endereco, idCategoria, status, dataInicio, dataFim, ocultarEncerradas])
 
   const handleSubmitFiltros = (e) => {
     e.preventDefault()
@@ -136,6 +141,7 @@ export default function Solicitacoes() {
     setStatus('')
     setDataInicio('')
     setDataFim('')
+    setOcultarEncerradas(false)
   }
 
   const abrirModal = (item) => {
@@ -221,6 +227,11 @@ export default function Solicitacoes() {
 
   const temFiltroAtivo = protocolo || endereco || idCategoria || status || dataInicio || dataFim
 
+  const handlePinClick = useCallback((proto) => {
+    setProtocolo(proto)
+    buscar(1, proto)
+  }, [buscar])
+
   return (
     <div className="p-6 space-y-5">
       <h1 className="text-xl font-semibold text-[#2a2a2a] tracking-tight">Solicitações</h1>
@@ -228,7 +239,7 @@ export default function Solicitacoes() {
       {/* Mapa + Precisa de atenção */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className="lg:col-span-2 rounded-2xl overflow-hidden min-h-[480px]">
-          <MapaMini focoSolicitacao={focoSolicitacao} />
+          <MapaMini focoSolicitacao={focoSolicitacao} onPinClick={handlePinClick} />
         </div>
 
         <div className="lg:col-span-3 bg-white rounded-2xl border border-black/8 p-4 flex flex-col gap-3">
@@ -377,6 +388,15 @@ export default function Solicitacoes() {
               className="h-9 px-3 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60"
             />
           </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-[#2a2a2a]/60">
+            <input
+              type="checkbox"
+              checked={ocultarEncerradas}
+              onChange={(e) => setOcultarEncerradas(e.target.checked)}
+              className="h-4 w-4 rounded border-black/20 cursor-pointer"
+            />
+            Ocultar encerradas
+          </label>
           <div className="flex items-center gap-2 ml-auto">
             {temFiltroAtivo && (
               <button

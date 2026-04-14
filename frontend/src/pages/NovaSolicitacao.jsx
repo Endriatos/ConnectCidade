@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, Loader2, Camera, Upload, X, AlertTriangle, CheckCircle, Lightbulb, Trash2, Accessibility, Construction, Search, Pencil, LocateFixed } from 'lucide-react'
+import { MapPin, Loader2, Camera, Upload, X, AlertTriangle, CheckCircle, Lightbulb, Trash2, Accessibility, Construction, Search, Pencil, LocateFixed, ChevronLeft, ChevronRight } from 'lucide-react'
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import Lottie from 'lottie-react'
 import catLoading from '../assets/CatLoading.json'
 import api from '../services/api'
+import { STATUS_ICONE, STATUS_LABEL } from '../utils/solicitacaoStatus'
 import Header from '../components/Header'
 
 const LIBRARIES = ['places', 'marker']
@@ -83,6 +84,7 @@ export default function NovaSolicitacao() {
   const [enviando, setEnviando] = useState(false)
   const [uploadProgresso, setUploadProgresso] = useState(null)
   const [avisDuplicata, setAvisDuplicata] = useState(null)
+  const [fotoAtivaModal, setFotoAtivaModal] = useState(null)
   const [erros, setErros] = useState({})
 
   const { isLoaded } = useJsApiLoader({
@@ -401,42 +403,152 @@ export default function NovaSolicitacao() {
       )}
 
       {/* Modal — aviso de duplicata */}
-      {avisDuplicata && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border-2 border-orange-400 px-8 py-8">
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-50">
-                <AlertTriangle className="h-8 w-8 text-orange-400" />
-              </div>
-              <div>
-                <p className="text-xl font-semibold text-[#2a2a2a] tracking-tight">
-                  Possível duplicata encontrada
-                </p>
-                <p className="mt-2 text-sm text-[#2a2a2a]/50 leading-relaxed">
-                  {avisDuplicata.aviso}
-                </p>
-                <p className="mt-1 text-xs text-[#2a2a2a]/40">
-                  Protocolo existente: #{avisDuplicata.protocolo}
-                </p>
-              </div>
-              <div className="w-full flex flex-col gap-2 mt-2">
-                <button
-                  onClick={() => { setAvisDuplicata(null); navigate('/home') }}
-                  className="w-full py-3 rounded-xl bg-orange-500 text-white font-medium text-sm hover:bg-orange-600 active:scale-[0.98] transition-all"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => { setAvisDuplicata(null); enviarSolicitacao(true) }}
-                  className="w-full py-3 rounded-xl border border-[#2a2a2a]/10 text-sm text-[#2a2a2a]/50 hover:bg-[#2a2a2a]/5 transition-colors"
-                >
-                  Registrar mesmo assim
-                </button>
+      {avisDuplicata && (() => {
+        const fotos = avisDuplicata.fotos ?? []
+        const IconeStatus = STATUS_ICONE[avisDuplicata.status] ?? MapPin
+        const dataFormatada = avisDuplicata.data_registro
+          ? new Date(avisDuplicata.data_registro).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          : null
+        return (
+          <>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border-2 border-orange-400 flex flex-col max-h-[90vh]">
+                <div className="px-6 pt-6 pb-4 flex flex-col items-center text-center gap-3">
+                  <div className="flex items-center justify-center w-14 h-14 rounded-full bg-orange-50 shrink-0">
+                    <AlertTriangle className="h-7 w-7 text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold text-[#2a2a2a] tracking-tight">
+                      Possível duplicata encontrada
+                    </p>
+                    <p className="mt-1 text-sm text-[#2a2a2a]/50 leading-relaxed">
+                      {avisDuplicata.aviso}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="overflow-y-auto px-6 pb-2 flex flex-col gap-3">
+                  <div className="rounded-xl bg-[#f5f5f5] px-4 py-3 flex flex-col gap-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#2a2a2a]/50">Protocolo</span>
+                      <span className="font-mono font-medium text-[#2a2a2a]">#{avisDuplicata.protocolo}</span>
+                    </div>
+                    {dataFormatada && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#2a2a2a]/50">Registrada em</span>
+                        <span className="text-[#2a2a2a]">{dataFormatada}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#2a2a2a]/50">Status</span>
+                      <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70">
+                        <IconeStatus className="h-4 w-4 text-[#2a2a2a]/55" aria-hidden />
+                        {STATUS_LABEL[avisDuplicata.status] ?? avisDuplicata.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {avisDuplicata.descricao && (
+                    <div className="rounded-xl bg-[#f5f5f5] px-4 py-3">
+                      <p className="text-xs text-[#2a2a2a]/40 mb-1">Descrição</p>
+                      <p className="text-sm text-[#2a2a2a] leading-relaxed line-clamp-4">
+                        {avisDuplicata.descricao}
+                      </p>
+                    </div>
+                  )}
+
+                  {fotos.length > 0 && (
+                    <div>
+                      <p className="text-xs text-[#2a2a2a]/40 mb-2">
+                        {fotos.length === 1 ? '1 foto' : `${fotos.length} fotos`}
+                      </p>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {fotos.map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            alt={`Foto ${i + 1}`}
+                            className="shrink-0 w-20 h-20 rounded-xl object-cover cursor-pointer"
+                            onClick={() => setFotoAtivaModal(i)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-6 pt-3 pb-6 flex flex-col gap-2 mt-1">
+                  <button
+                    onClick={() => { setAvisDuplicata(null); navigate('/home') }}
+                    className="w-full py-3 rounded-xl bg-orange-500 text-white font-medium text-sm hover:bg-orange-600 active:scale-[0.98] transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => { setAvisDuplicata(null); enviarSolicitacao(true) }}
+                    className="w-full py-3 rounded-xl border border-[#2a2a2a]/10 text-sm text-[#2a2a2a]/50 hover:bg-[#2a2a2a]/5 transition-colors"
+                  >
+                    Registrar mesmo assim
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+
+            {/* Lightbox das fotos da duplicata */}
+            {fotoAtivaModal !== null && (
+              <div
+                className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
+                onClick={() => setFotoAtivaModal(null)}
+              >
+                <div
+                  className="relative bg-black/90 mx-6 rounded-xl overflow-hidden shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    className="absolute top-3 right-3 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                    onClick={() => setFotoAtivaModal(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <div className="relative flex items-center justify-center">
+                    {fotoAtivaModal > 0 && (
+                      <button
+                        className="absolute left-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                        onClick={() => setFotoAtivaModal(fotoAtivaModal - 1)}
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                    )}
+                    <img
+                      src={fotos[fotoAtivaModal]}
+                      alt={`Foto ${fotoAtivaModal + 1}`}
+                      className="max-h-[60vh] max-w-[85vw] object-contain"
+                    />
+                    {fotoAtivaModal < fotos.length - 1 && (
+                      <button
+                        className="absolute right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                        onClick={() => setFotoAtivaModal(fotoAtivaModal + 1)}
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
+                  {fotos.length > 1 && (
+                    <div className="flex justify-center gap-1.5 py-3">
+                      {fotos.map((_, idx) => (
+                        <div
+                          key={idx}
+                          className={`h-1.5 rounded-full transition-all ${idx === fotoAtivaModal ? 'w-4 bg-white' : 'w-1.5 bg-white/40'}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )
+      })()}
 
       {/* Modal — solicitação criada com sucesso */}
       {solicitacaoCriada && (

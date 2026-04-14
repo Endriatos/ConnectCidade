@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import Lottie from 'lottie-react'
@@ -41,8 +40,9 @@ const clusterSVG = (count) => {
     `</svg>`
 }
 
-export default function MapaMini({ focoSolicitacao }) {
-  const navigate = useNavigate()
+export default function MapaMini({ focoSolicitacao, onPinClick }) {
+  const onPinClickRef = useRef(onPinClick)
+  useEffect(() => { onPinClickRef.current = onPinClick }, [onPinClick])
   const [solicitacoes, setSolicitacoes] = useState([])
   const [categorias, setCategorias] = useState({})
   const [mapa, setMapa] = useState(null)
@@ -94,7 +94,7 @@ export default function MapaMini({ focoSolicitacao }) {
       m._cor = cor
       m._id = sol.id_solicitacao
       m.addListener('gmp-click', () => {
-        navigate(`/admin/solicitacoes?protocolo=${sol.protocolo}`)
+        onPinClickRef.current?.(sol.protocolo)
       })
       porId[sol.id_solicitacao] = m
       return m
@@ -126,7 +126,7 @@ export default function MapaMini({ focoSolicitacao }) {
     })
 
     return () => { if (clustererRef.current) clustererRef.current.clearMarkers() }
-  }, [mapa, marcadorKey, categorias, navigate])
+  }, [mapa, marcadorKey, categorias])
 
   useEffect(() => {
     if (!mapa || !focoSolicitacao) return

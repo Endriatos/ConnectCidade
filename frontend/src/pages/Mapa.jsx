@@ -149,8 +149,9 @@ export default function Mapa() {
       position: { lat: posicao[0], lng: posicao[1] },
       map: mapa,
       content: dotContent,
-      zIndex: 500,
+      zIndex: 0,
     })
+    localizacaoMarkerRef.current.element.style.pointerEvents = 'none'
     return () => { if (localizacaoMarkerRef.current) localizacaoMarkerRef.current.map = null }
   }, [mapa, posicao])
 

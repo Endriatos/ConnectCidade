@@ -20,7 +20,12 @@ from app.crud.solicitacao import (
 )
 from app.models.avaliacao import Avaliacao
 from app.models.solicitacao import StatusSolicitacao
-from app.schemas.solicitacao import AtualizacaoResponse, SolicitacaoCreate, SolicitacaoResponse
+from app.schemas.solicitacao import (
+    AtualizacaoResponse,
+    AvaliacaoResumoResponse,
+    SolicitacaoCreate,
+    SolicitacaoResponse,
+)
 from app.utils.deps import get_db, get_usuario_atual
 from app.utils.foto_utils import apagar_foto_por_url_publica, fazer_upload_foto, garantir_bucket_publico
 
@@ -152,11 +157,13 @@ def detalhar_solicitacao(
     extra = {
         "ja_apoiado": ja_apoiou(db, id_solicitacao, usuario_atual.id_usuario),
         "ja_avaliado": None,
+        "avaliacao": None,
     }
     if solicitacao.id_autor == usuario_atual.id_usuario:
-        extra["ja_avaliado"] = (
-            db.query(Avaliacao).filter(Avaliacao.id_solicitacao == id_solicitacao).first() is not None
-        )
+        av = db.query(Avaliacao).filter(Avaliacao.id_solicitacao == id_solicitacao).first()
+        extra["ja_avaliado"] = av is not None
+        if av is not None:
+            extra["avaliacao"] = AvaliacaoResumoResponse.model_validate(av)
     return SolicitacaoResponse.model_validate({**solicitacao.__dict__, **extra})
 
 

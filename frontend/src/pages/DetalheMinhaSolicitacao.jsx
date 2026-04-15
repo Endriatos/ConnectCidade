@@ -24,10 +24,11 @@ import {
   RESUMO_STATUS,
   STATUS_ICONE,
   STATUS_LABEL,
-  destacarUltimoEventoComStatusIgual,
+  marcarComoAtualUltimoEventoComEsseStatus,
   formatarDataHora,
-  montarEventosTimeline,
-  ultimoCodigoStatusNaTimeline,
+  construirEventosTimeline,
+  marcarUltimaAvaliacaoComoEtapaAtual,
+  obterUltimoStatusNosEventos,
 } from '../utils/solicitacaoStatus'
 
 const MENSAGEM_ERRO_DETALHE = 'Não foi possível carregar esta solicitação.'
@@ -67,6 +68,7 @@ export default function DetalheMinhaSolicitacao() {
   const [enviandoAvaliacao, setEnviandoAvaliacao] = useState(false)
   const [erroAvaliacao, setErroAvaliacao] = useState(null)
   const [versaoCarga, setVersaoCarga] = useState(0)
+  const [mostrarObrigadoAvaliacao, setMostrarObrigadoAvaliacao] = useState(false)
 
   useEffect(() => {
     api
@@ -120,6 +122,7 @@ export default function DetalheMinhaSolicitacao() {
     setProblemaResolvido(null)
     setErroAvaliacao(null)
     setEnviandoAvaliacao(false)
+    setMostrarObrigadoAvaliacao(false)
   }, [idSolicitacao])
 
   useEffect(() => {
@@ -133,28 +136,34 @@ export default function DetalheMinhaSolicitacao() {
 
   const eventos = useMemo(() => {
     if (!solicitacao || atualizacoes === null) return []
-    const base = montarEventosTimeline(solicitacao, atualizacoes)
-    const st = solicitacao.status
-    const label = STATUS_LABEL[st] ?? st
-    const ultimo = ultimoCodigoStatusNaTimeline(base)
-    if (ultimo === st) {
-      return destacarUltimoEventoComStatusIgual(base, st)
+    const eventosOrdenados = construirEventosTimeline(solicitacao, atualizacoes)
+    const statusAtualNaSolicitacao = solicitacao.status
+    const labelStatus = STATUS_LABEL[statusAtualNaSolicitacao] ?? statusAtualNaSolicitacao
+    const statusMaisRecenteNoHistorico = obterUltimoStatusNosEventos(eventosOrdenados)
+    let eventosParaTimeline
+    if (statusMaisRecenteNoHistorico === statusAtualNaSolicitacao) {
+      eventosParaTimeline = marcarComoAtualUltimoEventoComEsseStatus(
+        eventosOrdenados,
+        statusAtualNaSolicitacao,
+      )
+    } else {
+      eventosParaTimeline = [
+        ...eventosOrdenados,
+        {
+          key: `onde-esta-${solicitacao.id_solicitacao}`,
+          tipo: 'situacao_atual',
+          estado: 'atual',
+          data: null,
+          dataLabel: 'Situação atual',
+          titulo: labelStatus,
+          descricao: RESUMO_STATUS[statusAtualNaSolicitacao] ?? 'Status neste momento.',
+          autor: null,
+          cor: COR_MARCADOR_HISTORICO,
+          status: statusAtualNaSolicitacao,
+        },
+      ]
     }
-    return [
-      ...base,
-      {
-        key: `onde-esta-${solicitacao.id_solicitacao}`,
-        tipo: 'situacao_atual',
-        estado: 'atual',
-        data: null,
-        dataLabel: 'Situação atual',
-        titulo: label,
-        descricao: RESUMO_STATUS[st] ?? 'Status neste momento.',
-        autor: null,
-        cor: COR_MARCADOR_HISTORICO,
-        status: st,
-      },
-    ]
+    return marcarUltimaAvaliacaoComoEtapaAtual(eventosParaTimeline)
   }, [solicitacao, atualizacoes])
 
   if (carregando) {
@@ -220,11 +229,16 @@ export default function DetalheMinhaSolicitacao() {
         nota: notaAvaliacao,
         comentario: comentarioAvaliacao.trim(),
       })
-      const res = await api.get(`/solicitacoes/${idSolicitacao}`)
+      const [res, resTime] = await Promise.all([
+        api.get(`/solicitacoes/${idSolicitacao}`),
+        api.get(`/solicitacoes/${idSolicitacao}/timeline`),
+      ])
       setSolicitacao(res.data)
+      setAtualizacoes(resTime.data)
       setNotaAvaliacao(null)
       setComentarioAvaliacao('')
       setProblemaResolvido(null)
+      setMostrarObrigadoAvaliacao(true)
     } catch (e) {
       const d = e?.response?.data?.detail
       setErroAvaliacao(typeof d === 'string' ? d : 'Não foi possível enviar a avaliação.')
@@ -416,7 +430,8 @@ export default function DetalheMinhaSolicitacao() {
               </div>
             </div>
 
-            {solicitacao.status === 'RESOLVIDO' && (
+            {solicitacao.status === 'RESOLVIDO' &&
+              (!solicitacao.ja_avaliado || mostrarObrigadoAvaliacao) && (
               <div className="rounded-2xl border border-black/8 bg-white p-6 shadow-sm sm:p-8">
                 <h2 className="text-base font-semibold text-[#2a2a2a]">Avaliação</h2>
                 {solicitacao.ja_avaliado ? (
@@ -440,16 +455,16 @@ export default function DetalheMinhaSolicitacao() {
                           key={n}
                           type="button"
                           onClick={() => setNotaAvaliacao(n)}
-                          className="inline-flex rounded-full p-0.5 outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[#3cb478]/25 focus-visible:ring-offset-2"
+                          className="inline-flex rounded-full p-0.5 outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-amber-400/35 focus-visible:ring-offset-2"
                           aria-label={`Nota ${n} de 5 estrelas`}
                         >
                           <Star
                             className={`h-6 w-6 ${
                               notaAvaliacao != null && n <= notaAvaliacao
-                                ? 'fill-[#3cb478]/90 stroke-[#2a2a2a]/18'
-                                : 'fill-none stroke-[#2a2a2a]/28'
+                                ? 'fill-amber-400 text-amber-500'
+                                : 'fill-transparent text-[#2a2a2a]/12'
                             }`}
-                            strokeWidth={1}
+                            strokeWidth={notaAvaliacao != null && n <= notaAvaliacao ? 0 : 1.25}
                           />
                         </button>
                       ))}

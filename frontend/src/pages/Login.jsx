@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
-import { Eye, EyeOff, X } from 'lucide-react'
-import Lottie from 'lottie-react'
+import { Eye, EyeOff } from 'lucide-react'
 import api from '../services/api'
 import useAuthStore from '../store/authStore'
 import logoCC from '../assets/logoCC.png'
 import iconCC from '../assets/iconCC.png'
-import typing from '../assets/Typing.json'
 
 // Formata o CPF digitado para o padrão 000.000.000-00
 function formatCPF(value) {
@@ -24,7 +22,6 @@ export default function Login() {
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
-  const [modalSenha, setModalSenha] = useState(false)
 
   const { login, setNome, token } = useAuthStore()
   const navigate = useNavigate()
@@ -69,46 +66,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col">
-
-      {/* Modal — funcionalidade em breve */}
-      {modalSenha && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-          onClick={e => { if (e.target === e.currentTarget) setModalSenha(false) }}
-        >
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl px-8 py-8">
-            <button
-              onClick={() => setModalSenha(false)}
-              className="absolute top-4 right-4 text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="flex flex-col items-center text-center gap-4">
-              <Lottie
-                animationData={typing}
-                loop
-                autoplay
-                style={{ width: 180, height: 180 }}
-              />
-              <div>
-                <p className="text-xl font-semibold text-[#2a2a2a] tracking-tight">
-                  Coisas boas estão chegando!
-                </p>
-                <p className="mt-2 text-sm text-[#2a2a2a]/55 leading-relaxed">
-                  Ainda estamos trabalhando nisso. Em breve você poderá redefinir sua senha por aqui.
-                </p>
-              </div>
-              <button
-                onClick={() => setModalSenha(false)}
-                className="mt-2 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all"
-              >
-                Entendido
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header fixo no topo */}
       <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
@@ -197,15 +154,13 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Link esqueceu a senha */}
             <div className="text-right -mt-2">
-              <button
-                type="button"
-                onClick={() => setModalSenha(true)}
+              <Link
+                to="/esqueci-senha"
                 className="text-xs text-[#2a2a2a]/40 hover:text-[#3cb478] transition-colors"
               >
                 Esqueceu a senha?
-              </button>
+              </Link>
             </div>
 
             {/* Mensagem de erro da API */}

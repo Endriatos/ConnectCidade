@@ -33,6 +33,7 @@ export default function Header() {
     : 'Usuário'
 
   const naoLidas = notificacoes.filter((n) => !n.lida).length
+  const listaNaoLidas = notificacoes.filter((n) => !n.lida).slice(0, 5)
 
   useEffect(() => {
     api.get('/notificacoes').then((res) => setNotificacoes(res.data)).catch(() => {})
@@ -45,14 +46,25 @@ export default function Header() {
 
   const fecharNotif = useCallback(() => {
     setNotifAberto(false)
-    setNotificacoes((prev) => {
-      if (prev.some((n) => !n.lida)) {
-        api.patch('/notificacoes/lidas').catch(() => {})
-        return prev.map((n) => ({ ...n, lida: true }))
-      }
-      return prev
-    })
   }, [])
+
+  const aoClicarNotificacao = useCallback(
+    (n) => {
+      void api
+        .patch(`/notificacoes/${n.id_notificacao}/lida`)
+        .then(() => {
+          setNotificacoes((prev) =>
+            prev.map((x) => (x.id_notificacao === n.id_notificacao ? { ...x, lida: true } : x)),
+          )
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          setNotifAberto(false)
+          navigate(`/minhas-solicitacoes/${n.id_solicitacao}`)
+        })
+    },
+    [navigate],
+  )
 
   useEffect(() => {
     function handleClickFora(e) {
@@ -68,11 +80,9 @@ export default function Header() {
     navigate('/', { replace: true })
   }
 
-  const ultimas5 = notificacoes.slice(0, 5)
-
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-40 w-full min-w-0 border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
+      <div className="mx-auto flex h-16 min-w-0 max-w-[1400px] items-center justify-between gap-2 px-3 sm:gap-3 sm:px-6">
 
         <Link
           to="/home"
@@ -85,15 +95,15 @@ export default function Header() {
           </span>
         </Link>
 
-        <div className="flex-1 min-w-[100px]" />
+        <div className="min-w-0 flex-1" />
 
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
           {tipoUsuario === 'ADMIN' && (
             <Link
               to="/admin/solicitacoes"
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#3cb478]/40 text-sm font-medium text-[#3cb478] hover:bg-[#3cb478]/8 transition-colors"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#3cb478]/40 px-2 text-sm font-medium text-[#3cb478] transition-colors hover:bg-[#3cb478]/8 sm:px-3"
             >
-              <Shield className="h-4 w-4" />
+              <Shield className="h-4 w-4 shrink-0" />
               <span className="hidden sm:inline">Painel administrativo</span>
             </Link>
           )}
@@ -102,43 +112,49 @@ export default function Header() {
           <div className="relative" ref={notifRef}>
             <button
               type="button"
-              aria-label="Notificações"
-              onClick={() => notifAberto ? fecharNotif() : abrirNotif()}
-              className="relative inline-flex items-center justify-center shrink-0 h-9 w-9 rounded-lg border border-[#2a2a2a]/10 text-[#2a2a2a]/60 hover:bg-[#2a2a2a]/5 hover:text-[#2a2a2a] transition-colors"
+              aria-label={naoLidas > 0 ? `Notificações, ${naoLidas} não lidas` : 'Notificações'}
+              onClick={() => (notifAberto ? fecharNotif() : abrirNotif())}
+              className="relative inline-flex items-center justify-center shrink-0 h-9 w-9 rounded-lg border border-[#2a2a2a]/10 text-[#2a2a2a]/60 transition-colors hover:bg-[#2a2a2a]/5 hover:text-[#2a2a2a]"
             >
               <Bell className="h-4 w-4" />
               {naoLidas > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                  {naoLidas > 5 ? '5+' : naoLidas}
+                </span>
               )}
             </button>
 
             {notifAberto && (
-              <div className="absolute right-0 mt-1 w-80 rounded-xl border border-[#2a2a2a]/8 bg-white shadow-lg z-50 overflow-hidden">
+              <div
+                className="z-50 overflow-hidden rounded-xl border border-[#2a2a2a]/8 bg-white shadow-lg max-sm:fixed max-sm:left-3 max-sm:right-3 max-sm:top-[calc(4rem+0.35rem)] max-sm:max-h-[min(70dvh,28rem)] max-sm:overflow-y-auto sm:absolute sm:right-0 sm:mt-1 sm:max-h-none sm:w-80 sm:max-w-none"
+              >
                 <div className="px-4 py-3 border-b border-black/8">
                   <p className="text-sm font-semibold text-[#2a2a2a]">Notificações</p>
                 </div>
-                {ultimas5.length === 0 ? (
-                  <p className="px-4 py-6 text-sm text-[#2a2a2a]/40 text-center">Nenhuma notificação.</p>
+                {listaNaoLidas.length === 0 ? (
+                  <p className="px-4 py-6 text-sm text-[#2a2a2a]/40 text-center">
+                    {notificacoes.length > 0 ? 'Nenhuma notificação nova.' : 'Nenhuma notificação.'}
+                  </p>
                 ) : (
                   <ul>
-                    {ultimas5.map((n) => (
+                    {listaNaoLidas.map((n) => (
                       <li key={n.id_notificacao}>
-                        <Link
-                          to={`/minhas-solicitacoes/${n.id_solicitacao}`}
-                          onClick={fecharNotif}
-                          className={`block px-4 py-3 border-b border-black/5 last:border-0 hover:bg-[#2a2a2a]/4 transition-colors ${!n.lida ? 'bg-[#3cb478]/6' : ''}`}
+                        <button
+                          type="button"
+                          onClick={() => aoClicarNotificacao(n)}
+                          className="block w-full px-4 py-3 border-b border-black/5 last:border-0 text-left hover:bg-[#2a2a2a]/4 transition-colors bg-[#3cb478]/6"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-start gap-2 min-w-0">
-                              {!n.lida && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3cb478]" />}
-                              <p className={`text-sm leading-snug text-[#2a2a2a] ${!n.lida ? 'font-medium' : ''} ${n.lida ? 'pl-3.5' : ''}`}>
+                              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3cb478]" />
+                              <p className="min-w-0 break-words text-sm font-medium leading-snug text-[#2a2a2a]">
                                 {n.mensagem}
                               </p>
                             </div>
                             <span className="text-xs text-[#2a2a2a]/35 shrink-0 mt-0.5">{tempoRelativo(n.data_criacao)}</span>
                           </div>
                           <p className="text-xs text-[#2a2a2a]/40 mt-1 font-mono pl-3.5">#{n.protocolo}</p>
-                        </Link>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -152,7 +168,7 @@ export default function Header() {
             <button
               type="button"
               onClick={() => setMenuAberto((v) => !v)}
-              className="inline-flex items-center gap-1.5 sm:gap-2 max-w-[min(100%,11rem)] sm:max-w-none h-9 px-2.5 sm:px-3 rounded-lg border border-[#2a2a2a]/10 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
+              className="inline-flex h-9 max-w-[min(100%,9.5rem)] items-center gap-1.5 rounded-lg border border-[#2a2a2a]/10 px-2 text-sm text-[#2a2a2a] transition-colors hover:bg-[#2a2a2a]/5 sm:max-w-[min(100%,11rem)] sm:gap-2 sm:px-3"
             >
               <User className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
               <span className="truncate">{nomePerfil}</span>
@@ -160,7 +176,7 @@ export default function Header() {
             </button>
 
             {menuAberto && (
-              <div className="absolute right-0 mt-1 min-w-[13rem] rounded-xl border border-[#2a2a2a]/8 bg-white shadow-lg py-1 z-50">
+              <div className="z-50 w-[min(13rem,calc(100vw-1.5rem))] rounded-xl border border-[#2a2a2a]/8 bg-white py-1 shadow-lg max-sm:fixed max-sm:right-3 max-sm:top-[calc(4rem+0.35rem)] sm:absolute sm:right-0 sm:mt-1 sm:min-w-[13rem] sm:w-auto">
                 <Link
                   to="/minhas-solicitacoes"
                   onClick={() => setMenuAberto(false)}

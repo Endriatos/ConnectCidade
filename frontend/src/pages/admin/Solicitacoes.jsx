@@ -5,7 +5,15 @@ import typing from '../../assets/Typing.json'
 import api from '../../services/api'
 import MapaMini from '../../components/admin/MapaMini'
 import Timeline from '../../components/minhasSolicitacoes/timeline/Timeline'
-import { STATUS_LABEL, STATUS_ICONE, formatarData, montarEventosTimeline, ultimoCodigoStatusNaTimeline, destacarUltimoEventoComStatusIgual } from '../../utils/solicitacaoStatus'
+import {
+  STATUS_LABEL,
+  STATUS_ICONE,
+  formatarData,
+  construirEventosTimeline,
+  marcarUltimaAvaliacaoComoEtapaAtual,
+  obterUltimoStatusNosEventos,
+  marcarComoAtualUltimoEventoComEsseStatus,
+} from '../../utils/solicitacaoStatus'
 import { iconeCategoria } from '../../utils/categoriaIcone'
 
 function tempoDesde(iso) {
@@ -218,11 +226,14 @@ export default function Solicitacoes() {
 
   const eventosTimeline = useMemo(() => {
     if (!selecionada || timeline === null) return []
-    const base = montarEventosTimeline(selecionada, timeline)
-    const st = selecionada.status
-    const ultimo = ultimoCodigoStatusNaTimeline(base)
-    if (ultimo === st) return destacarUltimoEventoComStatusIgual(base, st)
-    return base
+    const eventosOrdenados = construirEventosTimeline(selecionada, timeline)
+    const statusAtualNaSolicitacao = selecionada.status
+    const statusMaisRecenteNoHistorico = obterUltimoStatusNosEventos(eventosOrdenados)
+    const eventosComDestaqueDeStatus =
+      statusMaisRecenteNoHistorico === statusAtualNaSolicitacao
+        ? marcarComoAtualUltimoEventoComEsseStatus(eventosOrdenados, statusAtualNaSolicitacao)
+        : eventosOrdenados
+    return marcarUltimaAvaliacaoComoEtapaAtual(eventosComDestaqueDeStatus)
   }, [selecionada, timeline])
 
   const temFiltroAtivo = protocolo || endereco || idCategoria || status || dataInicio || dataFim

@@ -1,4 +1,10 @@
-import { COR_MARCADOR_HISTORICO, STATUS_ICONE, formatarDataHora } from '../../../utils/solicitacaoStatus'
+import { Star } from 'lucide-react'
+import {
+  COR_MARCADOR_AVALIACAO,
+  COR_MARCADOR_HISTORICO,
+  STATUS_ICONE,
+  formatarDataHora,
+} from '../../../utils/solicitacaoStatus'
 
 function CentroMarcador({ children }) {
   return (
@@ -38,6 +44,10 @@ export default function Item({
   dataLabel,
   autor,
   status,
+  cor = COR_MARCADOR_HISTORICO,
+  nota,
+  textoAvaliacao,
+  textoIndicacaoResolucao,
 }) {
   const previsto = tipo === 'previsto'
   const destaqueAtual = estado === 'atual'
@@ -50,7 +60,12 @@ export default function Item({
         ? 'border-white/80'
         : 'border-dashed border-[#2a2a2a]/20'
   const preenchido = destaqueAtual || concluido
-  const fundoMarcador = preenchido ? COR_MARCADOR_HISTORICO : 'rgba(60, 180, 120, 0.14)'
+  const corMarcador = tipo === 'avaliacao' ? COR_MARCADOR_AVALIACAO : cor
+  const fundoMarcador = preenchido
+    ? corMarcador
+    : tipo === 'avaliacao'
+      ? 'rgba(251, 191, 36, 0.2)'
+      : 'rgba(60, 180, 120, 0.14)'
   const IconeStatus = status ? STATUS_ICONE[status] : null
 
   return (
@@ -65,6 +80,8 @@ export default function Item({
               <MarcaPrevisto />
             ) : tipo === 'criacao' ? (
               <MarcaConcluido />
+            ) : tipo === 'avaliacao' ? (
+              <Star className="h-3.5 w-3.5 fill-white text-white" strokeWidth={0} aria-hidden />
             ) : IconeStatus ? (
               <IconeStatus className="h-3 w-3 text-white" strokeWidth={2.5} aria-hidden />
             ) : (
@@ -86,7 +103,33 @@ export default function Item({
         <p className={`mt-1 text-sm text-[#2a2a2a] ${previsto ? 'font-medium' : 'font-semibold'}`}>
           {titulo}
         </p>
-        <p className="mt-1 text-sm leading-relaxed text-[#2a2a2a]/65">{descricao}</p>
+        {tipo === 'avaliacao' && nota != null && (
+          <div className="mt-1.5 flex gap-0.5" aria-hidden>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Star
+                key={n}
+                className={`h-3.5 w-3.5 ${
+                  n <= nota ? 'fill-amber-400 text-amber-500' : 'fill-transparent text-[#2a2a2a]/12'
+                }`}
+                strokeWidth={n <= nota ? 0 : 1.25}
+              />
+            ))}
+          </div>
+        )}
+        {tipo === 'avaliacao' ? (
+          <>
+            {textoAvaliacao ? (
+              <p className="mt-1 text-sm leading-relaxed text-[#2a2a2a]/65">{textoAvaliacao}</p>
+            ) : null}
+            <p
+              className={`text-sm leading-relaxed text-[#2a2a2a]/55 ${textoAvaliacao ? 'mt-2' : 'mt-1'}`}
+            >
+              {textoIndicacaoResolucao}
+            </p>
+          </>
+        ) : (
+          <p className="mt-1 text-sm leading-relaxed text-[#2a2a2a]/65">{descricao}</p>
+        )}
         {autor && (
           <p className="mt-2 text-xs text-[#2a2a2a]/45">Por {autor}</p>
         )}

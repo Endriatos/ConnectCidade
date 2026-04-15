@@ -8,10 +8,11 @@ from sqlalchemy.orm import Session
 from app.crud.admin_solicitacao import atualizar_status, get_solicitacao_por_id, listar_solicitacoes
 from app.crud.notificacao import criar_notificacao
 from app.crud.usuario import get_usuario_por_id
+from app.models.avaliacao import Avaliacao
 from app.models.usuario import Usuario
 from app.utils.email_utils import enviar_email
 from app.models.solicitacao import StatusSolicitacao
-from app.schemas.solicitacao import PaginacaoResponse, SolicitacaoResponse
+from app.schemas.solicitacao import AvaliacaoResumoResponse, PaginacaoResponse, SolicitacaoResponse
 from app.utils.deps import get_admin_atual, get_db
 
 router = APIRouter(prefix="/admin/solicitacoes", tags=["Admin - Solicitações"])
@@ -84,10 +85,17 @@ def detalhar_solicitacao_admin(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada.")
 
     autor = db.query(Usuario.nome_usuario).filter(Usuario.id_usuario == solicitacao.id_autor).scalar()
+    av = db.query(Avaliacao).filter(Avaliacao.id_solicitacao == id_solicitacao).first()
+    aval_resumo = AvaliacaoResumoResponse.model_validate(av) if av is not None else None
 
-    # Monta a resposta incluindo ja_apoiado=None, que não se aplica ao contexto admin
     return SolicitacaoResponse.model_validate(
-        {**solicitacao.__dict__, "ja_apoiado": None, "ja_avaliado": None, "nome_autor": autor}
+        {
+            **solicitacao.__dict__,
+            "ja_apoiado": None,
+            "ja_avaliado": av is not None,
+            "nome_autor": autor,
+            "avaliacao": aval_resumo,
+        }
     )
 
 

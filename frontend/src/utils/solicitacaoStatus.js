@@ -130,7 +130,14 @@ export function construirEventosPrevistos(statusAtual) {
   }))
 }
 
-const ORDEM_TIPO_NA_MESMA_DATA = { criacao: 0, estado_inicial_pendente: 1, atualizacao: 2 }
+const ORDEM_TIPO_NA_MESMA_DATA = {
+  criacao: 0,
+  estado_inicial_pendente: 1,
+  atualizacao: 2,
+  avaliacao: 3,
+}
+
+export const COR_MARCADOR_AVALIACAO = '#fbbf24'
 
 function compararEventosTimeline(a, b) {
   const ta = a.data ? new Date(a.data).getTime() : 0
@@ -139,7 +146,7 @@ function compararEventosTimeline(a, b) {
   return (ORDEM_TIPO_NA_MESMA_DATA[a.tipo] ?? 9) - (ORDEM_TIPO_NA_MESMA_DATA[b.tipo] ?? 9)
 }
 
-export function ultimoCodigoStatusNaTimeline(eventos) {
+export function obterUltimoStatusNosEventos(eventos) {
   for (let i = eventos.length - 1; i >= 0; i--) {
     const s = eventos[i].status
     if (s != null) return s
@@ -147,7 +154,8 @@ export function ultimoCodigoStatusNaTimeline(eventos) {
   return null
 }
 
-export function montarEventosTimeline(solicitacao, atualizacoes) {
+export function construirEventosTimeline(solicitacao, atualizacoes, opts = {}) {
+  const tituloAvaliacao = opts.tituloAvaliacao ?? 'Avaliado'
   const eventos = [
     {
       key: `criacao-${solicitacao.id_solicitacao}`,
@@ -182,10 +190,44 @@ export function montarEventosTimeline(solicitacao, atualizacoes) {
       status: a.status_novo,
     })
   }
+  const aval = solicitacao.avaliacao
+  if (aval && aval.nota != null && aval.data_avaliacao) {
+    const textoComentario =
+      aval.comentario && String(aval.comentario).trim()
+        ? String(aval.comentario).trim()
+        : null
+    const textoIndicacaoResolucao = aval.foi_resolvido
+      ? 'Considerou que o problema foi resolvido.'
+      : 'Considerou que o problema não foi resolvido.'
+    eventos.push({
+      key: `avaliacao-${solicitacao.id_solicitacao}`,
+      tipo: 'avaliacao',
+      data: aval.data_avaliacao,
+      titulo: tituloAvaliacao,
+      textoAvaliacao: textoComentario,
+      textoIndicacaoResolucao,
+      autor: null,
+      cor: COR_MARCADOR_AVALIACAO,
+      nota: aval.nota,
+    })
+  }
   return eventos.sort(compararEventosTimeline)
 }
 
-export function destacarUltimoEventoComStatusIgual(eventos, codigoStatus) {
+export function marcarUltimaAvaliacaoComoEtapaAtual(eventos) {
+  if (!eventos?.length) return eventos
+  const last = eventos[eventos.length - 1]
+  if (last.tipo !== 'avaliacao') return eventos
+  return eventos.map((ev, i) => {
+    const isLast = i === eventos.length - 1
+    const next = { ...ev }
+    if (isLast) next.estado = 'atual'
+    else if (next.estado === 'atual') delete next.estado
+    return next
+  })
+}
+
+export function marcarComoAtualUltimoEventoComEsseStatus(eventos, codigoStatus) {
   let idx = -1
   for (let i = eventos.length - 1; i >= 0; i--) {
     if (eventos[i].status === codigoStatus) {

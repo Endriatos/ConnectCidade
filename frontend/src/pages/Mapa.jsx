@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
-import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Calendar, ChevronLeft, ChevronRight, LocateFixed, ExternalLink, User } from 'lucide-react'
+import { X, ThumbsUp, Lightbulb, Trash2, Accessibility, Construction, MapPin, Calendar, ChevronLeft, ChevronRight, LocateFixed, ExternalLink } from 'lucide-react'
 import api from '../services/api'
-import useAuthStore from '../store/authStore'
 import Lottie from 'lottie-react'
-import typing from '../assets/Typing.json'
 import catLoading from '../assets/CatLoading.json'
 import { STATUS_ICONE, STATUS_LABEL } from '../utils/solicitacaoStatus'
 
@@ -66,7 +64,6 @@ const clusterSVG = (count) => {
 const CENTRO_PADRAO = { lat: -29.1678, lng: -51.1794 }
 
 export default function Mapa() {
-  const tipoUsuario = useAuthStore((s) => s.tipoUsuario)
   const [solicitacoes, setSolicitacoes] = useState([])
   const [categorias, setCategorias] = useState({})
   const [posicao, setPosicao] = useState(null)
@@ -75,7 +72,6 @@ export default function Mapa() {
   const [carregandoFotos, setCarregandoFotos] = useState(false)
   const [fotoAtiva, setFotoAtiva] = useState(null)
   const [categoriaFiltro, setCategoriaFiltro] = useState(null)
-  const [modalEmBreve, setModalEmBreve] = useState(false)
   const [mapa, setMapa] = useState(null)
   const [pulseApoio, setPulseApoio] = useState(false)
   const [catCarregada, setCatCarregada] = useState(false)
@@ -424,32 +420,20 @@ export default function Mapa() {
 
               <div className="overflow-y-auto">
                 <div className="px-6 py-4 space-y-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-wrap min-w-0">
-                      <div className="flex items-start gap-2 text-sm text-[#2a2a2a]/70">
-                        <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
-                        <span>{selecionada.endereco_referencia}</span>
-                      </div>
-                      <a
-                        href={`https://www.google.com/maps?q=${selecionada.latitude},${selecionada.longitude}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-[#3cb478] hover:text-[#349d69]"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                        Mapa
-                      </a>
+                  <div className="flex items-center gap-3 flex-wrap min-w-0">
+                    <div className="flex items-start gap-2 text-sm text-[#2a2a2a]/70">
+                      <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span>{selecionada.endereco_referencia}</span>
                     </div>
-                    {tipoUsuario === 'ADMIN' && selecionada.nome_autor && (
-                      <button
-                        type="button"
-                        onClick={() => setModalEmBreve(true)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70 shrink-0 hover:bg-[#2a2a2a]/4 transition-colors"
-                      >
-                        <User className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
-                        <span>{selecionada.nome_autor}</span>
-                      </button>
-                    )}
+                    <a
+                      href={`https://www.google.com/maps?q=${selecionada.latitude},${selecionada.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-[#3cb478] hover:text-[#349d69]"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                      Mapa
+                    </a>
                   </div>
                   <div className="flex items-center justify-between text-sm text-[#2a2a2a]/70">
                     <div className="flex items-center gap-2">
@@ -549,29 +533,6 @@ export default function Mapa() {
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* Modal em breve */}
-          {modalEmBreve && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-              <div className="bg-white rounded-2xl shadow-xl px-8 py-10 w-full max-w-sm text-center mx-4">
-                <div className="w-40 h-40 mx-auto">
-                  <Lottie animationData={typing} loop />
-                </div>
-                <p className="text-xl font-semibold text-[#2a2a2a] tracking-tight mt-2">
-                  Coisas boas estão chegando!
-                </p>
-                <p className="mt-2 text-sm text-[#2a2a2a]/50">
-                  Esta funcionalidade ainda está sendo desenvolvida.
-                </p>
-                <button
-                  onClick={() => setModalEmBreve(false)}
-                  className="mt-6 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all"
-                >
-                  Entendido
-                </button>
               </div>
             </div>
           )}

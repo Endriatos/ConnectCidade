@@ -6,6 +6,15 @@ from pydantic import BaseModel, ConfigDict
 from app.schemas.foto import FotoResponse
 
 
+class AvaliacaoResumoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    nota: int
+    comentario: Optional[str] = None
+    foi_resolvido: bool
+    data_avaliacao: datetime
+
+
 class SolicitacaoCreate(BaseModel):
     id_categoria: int
     descricao: str
@@ -37,6 +46,7 @@ class SolicitacaoResponse(BaseModel):
     # Somente para o autor: se já existe avaliação para esta solicitação
     ja_avaliado: Optional[bool] = None
     nome_autor: Optional[str] = None
+    avaliacao: Optional[AvaliacaoResumoResponse] = None
 
 
 class AtualizacaoResponse(BaseModel):

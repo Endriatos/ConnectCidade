@@ -31,8 +31,7 @@ def criar_token(db: Session, id_usuario: int) -> str:
     token_bruto = secrets.token_urlsafe(32)
     token_hash = _hash_token(token_bruto)
 
-    # Define a janela de validade de 1 hora
-    expira_em = datetime.now(timezone.utc) + timedelta(hours=1)
+    expira_em = datetime.now(timezone.utc) + timedelta(minutes=30)
 
     novo_token = TokenRecuperacao(
         id_usuario=id_usuario,

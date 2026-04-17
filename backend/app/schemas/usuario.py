@@ -36,7 +36,7 @@ class UsuarioResponse(BaseModel):
     email: str
     telefone: Optional[str] = None
     data_nascimento: date
-    status_ativo: bool
+    status_conta: int
     data_cadastro: datetime
 
 
@@ -57,6 +57,8 @@ class AdministradorResponse(BaseModel):
     email: str
     cpf: str
     data_cadastro: datetime
+    status_conta: int
+    is_master: bool = False
 
 
 # Schema de resposta para busca de cidadão por CPF no painel admin
@@ -68,8 +70,14 @@ class CidadaoBuscaResponse(BaseModel):
     email: str
     cpf: str
     data_cadastro: datetime
-    # Indica se o usuário já possui perfil de administrador
     ja_e_admin: bool
+    status_conta: int
+    is_master: bool = False
+
+
+# Schema para alteração do status da conta pelo painel admin
+class AlterarStatusContaRequest(BaseModel):
+    status_conta: int = Field(..., ge=0, le=2)
 
 
 # Schema de resposta para o detalhe completo de um cidadão no painel admin
@@ -82,7 +90,7 @@ class CidadaoDetalheResponse(BaseModel):
     cpf: str
     telefone: Optional[str]
     data_cadastro: datetime
-    status_ativo: bool
+    status_conta: int
     # Lista de solicitações do cidadão, ordenadas da mais recente para a mais antiga
     solicitacoes: List[SolicitacaoResumoResponse]
 

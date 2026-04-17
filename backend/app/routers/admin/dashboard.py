@@ -239,7 +239,7 @@ def get_dashboard(
         db.query(func.count(Usuario.id_usuario))
         .filter(
             Usuario.tipo_usuario == TipoUsuario.CIDADAO,
-            Usuario.status_ativo == True,  # noqa: E712
+            Usuario.status_conta == 1,
         )
         .scalar() or 0
     )

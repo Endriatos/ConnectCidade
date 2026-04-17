@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.models import TipoUsuario, Usuario
+from app.models import StatusConta, TipoUsuario, Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
 from app.utils.auth_utils import hashear_senha, verificar_senha
 
@@ -67,7 +67,7 @@ def anonimizar_usuario(db: Session, usuario: Usuario) -> None:
     # Hash inválido: "*" nunca satisfaz a verificação bcrypt, bloqueando qualquer login
     usuario.senha_hash = "*"
     # Desativa a conta para impedir qualquer forma de acesso futuro
-    usuario.status_ativo = False
+    usuario.status_conta = StatusConta.BLOQUEADO
 
     db.commit()
 
@@ -81,6 +81,7 @@ def create_usuario(db: Session, dados: UsuarioCreate) -> Usuario:
         senha_hash=hashear_senha(dados.senha),
         telefone=dados.telefone,
         data_nascimento=dados.data_nascimento,
+        status_conta=StatusConta.PENDENTE,
     )
     db.add(usuario)
     db.commit()

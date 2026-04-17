@@ -3,14 +3,16 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.crud.usuario import get_usuario_por_cpf, get_usuario_por_email, get_usuario_por_id
 from app.models.categoria import Categoria
 from app.models.solicitacao import Solicitacao
-from app.models.usuario import TipoUsuario, Usuario
+from app.models.usuario import StatusConta, TipoUsuario, Usuario
 from app.schemas.solicitacao import SolicitacaoResumoResponse
 from app.schemas.usuario import (
     AdministradorResponse,
     AlterarEmailRequest,
+    AlterarStatusContaRequest,
     CidadaoBuscaResponse,
     CidadaoDetalheResponse,
 )
@@ -33,11 +35,17 @@ def listar_administradores(
     _admin: Usuario = Depends(get_admin_atual),
 ):
     """Retorna todos os usuários com tipo_usuario == ADMIN, sem paginação."""
-    return (
+    admins = (
         db.query(Usuario)
         .filter(Usuario.tipo_usuario == TipoUsuario.ADMIN)
         .all()
     )
+    result = []
+    for a in admins:
+        r = AdministradorResponse.model_validate(a)
+        r.is_master = (a.cpf == settings.ADMIN_CPF)
+        result.append(r)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -89,6 +97,8 @@ def buscar_usuario(
         cpf=usuario.cpf,
         data_cadastro=usuario.data_cadastro,
         ja_e_admin=usuario.tipo_usuario == TipoUsuario.ADMIN,
+        status_conta=usuario.status_conta,
+        is_master=usuario.cpf == settings.ADMIN_CPF,
     )
 
 
@@ -138,7 +148,7 @@ def detalhar_usuario(
         cpf=usuario.cpf,
         telefone=usuario.telefone,
         data_cadastro=usuario.data_cadastro,
-        status_ativo=usuario.status_ativo,
+        status_conta=usuario.status_conta,
         solicitacoes=solicitacoes,
     )
 
@@ -173,6 +183,37 @@ def alterar_email_usuario(
     db.commit()
 
     return {"mensagem": f"Email do usuário {usuario.nome_usuario} atualizado com sucesso."}
+
+
+@router.patch("/{id}/status-conta")
+def alterar_status_conta(
+    id: int,
+    body: AlterarStatusContaRequest,
+    db: Session = Depends(get_db),
+    admin_atual: Usuario = Depends(get_admin_atual),
+):
+    """Altera o status_conta de um usuário (0=PENDENTE, 1=ATIVO, 2=BLOQUEADO)."""
+    if id == admin_atual.id_usuario:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Não é permitido alterar o estado da própria conta.",
+        )
+
+    usuario = get_usuario_por_id(db, id)
+    if usuario is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
+
+    if usuario.cpf == settings.ADMIN_CPF:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="O estado da conta principal não pode ser alterado.",
+        )
+
+    usuario.status_conta = StatusConta(body.status_conta)
+    db.commit()
+
+    labels = {0: "Pendente", 1: "Ativa", 2: "Bloqueada"}
+    return {"mensagem": f"Estado da conta de {usuario.nome_usuario} alterado para {labels[body.status_conta]}."}
 
 
 # ---------------------------------------------------------------------------

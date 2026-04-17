@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Eye, EyeOff, X } from 'lucide-react'
+import { Eye, EyeOff, X, MailCheck } from 'lucide-react'
 import api from '../services/api'
 import useAuthStore from '../store/authStore'
 import logoCC from '../assets/logoCC.png'
@@ -28,6 +28,37 @@ function validarCPF(cpf) {
   for (let i = 0; i < 10; i++) soma += parseInt(n[i]) * (11 - i)
   const d2 = (soma * 10 % 11) % 10
   return d2 === parseInt(n[10])
+}
+
+function ModalContaCriada({ email, onFechar }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-xl px-8 py-10 text-center">
+        <button
+          onClick={onFechar}
+          className="absolute top-4 right-4 text-[#2a2a2a]/30 hover:text-[#2a2a2a]/60 transition-colors"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <MailCheck className="h-12 w-12 text-[#3cb478] mx-auto mb-4" />
+        <p className="text-xl font-semibold text-[#2a2a2a] tracking-tight">Conta criada com sucesso!</p>
+        <p className="mt-3 text-sm text-[#2a2a2a]/60 leading-relaxed">
+          Enviamos um e-mail de confirmação para{' '}
+          <span className="font-medium text-[#2a2a2a]">{email}</span>.
+        </p>
+        <p className="mt-2 text-sm text-[#2a2a2a]/60 leading-relaxed">
+          Acesse sua caixa de entrada e clique no link para ativar sua conta. Somente após a confirmação será possível fazer login.
+        </p>
+        <p className="mt-2 text-xs text-[#2a2a2a]/35">Não esqueça de verificar o spam.</p>
+        <button
+          onClick={onFechar}
+          className="mt-8 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all"
+        >
+          Ir para o login
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function ModalPrivacidade({ onAceitar, onFechar }) {
@@ -251,7 +282,8 @@ export default function Cadastro() {
   const [carregando, setCarregando] = useState(false)
   const [modalPrivacidade, setModalPrivacidade] = useState(false)
   const [privacidadeAceita, setPrivacidadeAceita] = useState(false)
-  const { login, setNome, token } = useAuthStore()
+  const [emailCriado, setEmailCriado] = useState('')
+  const { token } = useAuthStore()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -331,7 +363,6 @@ export default function Cadastro() {
 
     setCarregando(true)
     try {
-      // Cria a conta
       await api.post('/auth/cadastro', {
         nome_usuario: form.nome_usuario,
         cpf: form.cpf.replace(/\D/g, ''),
@@ -340,19 +371,7 @@ export default function Cadastro() {
         telefone: form.telefone.replace(/\D/g, '') || undefined,
         senha: form.senha,
       })
-
-      // Faz login automático após o cadastro
-      const { data } = await api.post('/auth/login', {
-        cpf: form.cpf.replace(/\D/g, ''),
-        senha: form.senha,
-      })
-      login(data.access_token, data.tipo_usuario)
-
-      // Busca o nome do usuário para exibir no header
-      const me = await api.get('/auth/me')
-      setNome(me.data.nome_usuario)
-
-      navigate('/home', { state: { recemCadastrado: true } })
+      setEmailCriado(form.email)
     } catch (err) {
       console.error('Erro cadastro:', err.response?.status, err.response?.data)
       const msg = mensagemErroApi(err)
@@ -369,20 +388,8 @@ export default function Cadastro() {
   return (
     <div className="min-h-screen flex flex-col">
 
-      {/* Modal da Política de Privacidade */}
-      {modalPrivacidade && (
-        <ModalPrivacidade
-          onAceitar={() => {
-            setPrivacidadeAceita(true)
-            setErros(prev => ({ ...prev, privacidade: '' }))
-            setModalPrivacidade(false)
-          }}
-          onFechar={() => setModalPrivacidade(false)}
-        />
-      )}
-
       {/* Header fixo no topo */}
-      <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
+      <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
         <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
           <Link to="/" className="flex items-center">
             <img src={logoCC} alt="Connect Cidade" className="h-9" />
@@ -591,6 +598,24 @@ export default function Cadastro() {
           </p>
         </div>
       </div>
+
+      {emailCriado && (
+        <ModalContaCriada
+          email={emailCriado}
+          onFechar={() => navigate('/login')}
+        />
+      )}
+
+      {modalPrivacidade && (
+        <ModalPrivacidade
+          onAceitar={() => {
+            setPrivacidadeAceita(true)
+            setErros(prev => ({ ...prev, privacidade: '' }))
+            setModalPrivacidade(false)
+          }}
+          onFechar={() => setModalPrivacidade(false)}
+        />
+      )}
 
     </div>
   )

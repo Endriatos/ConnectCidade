@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, X, Shield, ShieldOff, Mail, UserCircle, Info } from 'lucide-react'
+import { Search, X, Shield, ShieldOff, Mail, UserCircle, Info, CircleUser } from 'lucide-react'
 import api from '../../services/api'
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -15,6 +15,21 @@ function formatarCPF(cpf) {
 function formatarData(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR')
+}
+
+const STATUS_CONTA = {
+  0: { label: 'Pendente',  cls: 'border-amber-300 bg-amber-50 text-amber-700' },
+  1: { label: 'Ativada',   cls: 'border-[#3cb478]/40 bg-[#3cb478]/6 text-[#3cb478]' },
+  2: { label: 'Bloqueada', cls: 'border-red-200 bg-red-50 text-red-600' },
+}
+
+function BadgeEstado({ status }) {
+  const cfg = STATUS_CONTA[status] ?? STATUS_CONTA[0]
+  return (
+    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${cfg.cls}`}>
+      {cfg.label}
+    </span>
+  )
 }
 
 function mapAdminParaLinha(a) {
@@ -45,6 +60,11 @@ export default function Usuarios() {
   const [confirmandoAdmin, setConfirmandoAdmin] = useState(false)
   const [erroAdmin, setErroAdmin] = useState('')
   const [sucessoAdmin, setSucessoAdmin] = useState('')
+
+  const [statusNovo, setStatusNovo] = useState(1)
+  const [alterandoStatus, setAlterandoStatus] = useState(false)
+  const [erroStatus, setErroStatus] = useState('')
+  const [sucessoStatus, setSucessoStatus] = useState('')
 
   useEffect(() => {
     if (aba !== 'administradores') return
@@ -130,6 +150,7 @@ export default function Usuarios() {
           email: atualizado.email,
           cpf: atualizado.cpf,
           data_cadastro: atualizado.data_cadastro,
+          status_conta: atualizado.status_conta,
         })
         if (idx >= 0) {
           const next = [...prev]
@@ -155,6 +176,9 @@ export default function Usuarios() {
     setConfirmandoAdmin(false)
     setErroAdmin('')
     setSucessoAdmin('')
+    setStatusNovo(u.status_conta ?? 1)
+    setErroStatus('')
+    setSucessoStatus('')
   }
 
   const fecharModal = () => {
@@ -165,6 +189,9 @@ export default function Usuarios() {
     setConfirmandoAdmin(false)
     setErroAdmin('')
     setSucessoAdmin('')
+    setStatusNovo(1)
+    setErroStatus('')
+    setSucessoStatus('')
   }
 
   const salvarEmail = () => {
@@ -209,6 +236,23 @@ export default function Usuarios() {
         setPromovendo(false)
         setConfirmandoAdmin(false)
       })
+  }
+
+  const salvarStatus = () => {
+    if (statusNovo === selecionado.status_conta) return
+    setAlterandoStatus(true)
+    setErroStatus('')
+    setSucessoStatus('')
+    api
+      .patch(`/admin/usuarios/${selecionado.id_usuario}/status-conta`, { status_conta: statusNovo })
+      .then(() => {
+        const atualizado = { ...selecionado, status_conta: statusNovo }
+        setSelecionado(atualizado)
+        atualizarUsuarioEmListas(atualizado)
+        setSucessoStatus(`Estado alterado para ${STATUS_CONTA[statusNovo].label}.`)
+      })
+      .catch((err) => setErroStatus(err?.response?.data?.detail ?? 'Erro ao alterar estado.'))
+      .finally(() => setAlterandoStatus(false))
   }
 
   const tabBtn = (id, label) => (
@@ -294,6 +338,7 @@ export default function Usuarios() {
                     <th className="text-left px-4 py-3 font-medium hidden md:table-cell">E-mail</th>
                     <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Cadastro</th>
                     <th className="text-left px-4 py-3 font-medium">Tipo</th>
+                    <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Estado</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
@@ -309,6 +354,9 @@ export default function Usuarios() {
                           <Shield className="h-3 w-3" />
                           Admin
                         </span>
+                      </td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <BadgeEstado status={u.status_conta} />
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -390,6 +438,7 @@ export default function Usuarios() {
                     <th className="text-left px-4 py-3 font-medium hidden md:table-cell">E-mail</th>
                     <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Cadastro</th>
                     <th className="text-left px-4 py-3 font-medium">Tipo</th>
+                    <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Estado</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
@@ -410,6 +459,9 @@ export default function Usuarios() {
                           Cidadão
                         </span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <BadgeEstado status={usuario.status_conta} />
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
@@ -572,6 +624,50 @@ export default function Usuarios() {
                   </p>
                 )}
               </div>
+
+              {!selecionado.is_master && <div className="space-y-2">
+                <p className="text-xs font-medium text-[#2a2a2a]/50 flex items-center gap-1.5">
+                  <CircleUser className="h-3.5 w-3.5" />
+                  Estado da conta
+                </p>
+                <div className="rounded-xl border border-black/8 px-4 py-3 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-[#2a2a2a]">
+                        {STATUS_CONTA[selecionado.status_conta]?.label ?? '—'}
+                      </p>
+                      <p className="text-xs text-[#2a2a2a]/40 mt-0.5">Estado atual da conta</p>
+                    </div>
+                    <select
+                      value={statusNovo}
+                      onChange={(e) => { setStatusNovo(Number(e.target.value)); setSucessoStatus(''); setErroStatus('') }}
+                      className="h-9 px-3 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60 shrink-0"
+                    >
+                      <option value={0}>Pendente</option>
+                      <option value={1}>Ativada</option>
+                      <option value={2}>Bloqueada</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={salvarStatus}
+                    disabled={alterandoStatus || statusNovo === selecionado.status_conta}
+                    className="w-full h-9 rounded-xl bg-[#3cb478] text-white text-sm font-medium hover:bg-[#349d69] disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  >
+                    {alterandoStatus ? 'Salvando...' : 'Alterar estado'}
+                  </button>
+                </div>
+                {erroStatus && (
+                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                    {erroStatus}
+                  </p>
+                )}
+                {sucessoStatus && (
+                  <p className="text-xs text-[#3cb478] bg-[#3cb478]/8 border border-[#3cb478]/20 rounded-xl px-3 py-2">
+                    {sucessoStatus}
+                  </p>
+                )}
+              </div>}
             </div>
 
             <div className="px-6 py-4 border-t border-black/8 flex justify-end">

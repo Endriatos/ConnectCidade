@@ -5,6 +5,8 @@ import Login from './pages/Login'
 import EsqueciSenha from './pages/EsqueciSenha'
 import RedefinirSenha from './pages/RedefinirSenha'
 import Cadastro from './pages/Cadastro'
+import AguardandoVerificacao from './pages/AguardandoVerificacao'
+import VerificarEmail from './pages/VerificarEmail'
 import Home from './pages/Home'
 import NovaSolicitacao from './pages/NovaSolicitacao'
 import MinhasSolicitacoes from './pages/MinhasSolicitacoes'
@@ -28,6 +30,8 @@ function App() {
         <Route path="/esqueci-senha" element={<EsqueciSenha />} />
         <Route path="/redefinir-senha" element={<RedefinirSenha />} />
         <Route path="/cadastro" element={<Cadastro />} />
+        <Route path="/aguardando-verificacao" element={<AguardandoVerificacao />} />
+        <Route path="/verificar-email" element={<VerificarEmail />} />
         <Route path="/health" element={<Health />} />
 
         {/* Rotas protegidas — exigem token JWT */}

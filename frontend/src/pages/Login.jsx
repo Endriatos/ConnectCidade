@@ -1,10 +1,74 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, X, MailCheck } from 'lucide-react'
 import api from '../services/api'
 import useAuthStore from '../store/authStore'
 import logoCC from '../assets/logoCC.png'
 import iconCC from '../assets/iconCC.png'
+
+function ModalEmailNaoConfirmado({ email, cpf, onFechar }) {
+  const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+  const [erroEnvio, setErroEnvio] = useState('')
+
+  const reenviar = async () => {
+    setEnviando(true)
+    setErroEnvio('')
+    try {
+      await api.post('/auth/reenviar-verificacao', { cpf })
+      setEnviado(true)
+    } catch {
+      setErroEnvio('Não foi possível reenviar. Tente novamente.')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-xl px-8 py-10 text-center">
+        <button
+          onClick={onFechar}
+          className="absolute top-4 right-4 text-[#2a2a2a]/30 hover:text-[#2a2a2a]/60 transition-colors"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <MailCheck className="h-12 w-12 text-amber-400 mx-auto mb-4" />
+        <p className="text-xl font-semibold text-[#2a2a2a] tracking-tight">E-mail não confirmado</p>
+        <p className="mt-3 text-sm text-[#2a2a2a]/60 leading-relaxed">
+          O e-mail{' '}
+          <span className="font-medium text-[#2a2a2a]">{email}</span>{' '}
+          ainda não foi confirmado. Acesse sua caixa de entrada e clique no link de ativação.
+        </p>
+        <p className="mt-2 text-xs text-[#2a2a2a]/35">Não esqueça de verificar o spam.</p>
+
+        {enviado ? (
+          <p className="mt-8 rounded-xl bg-[#3cb478]/10 px-4 py-3 text-sm font-medium text-[#2a7a4a]">
+            E-mail reenviado! Verifique sua caixa de entrada.
+          </p>
+        ) : (
+          <>
+            {erroEnvio && <p className="mt-4 text-sm text-red-500">{erroEnvio}</p>}
+            <button
+              onClick={reenviar}
+              disabled={enviando}
+              className="mt-8 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+            >
+              {enviando ? 'Enviando...' : 'Reenviar e-mail de confirmação'}
+            </button>
+          </>
+        )}
+
+        <button
+          onClick={onFechar}
+          className="mt-3 w-full py-2 text-sm text-[#2a2a2a]/50 hover:text-[#2a2a2a] transition-colors"
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+  )
+}
 
 // Formata o CPF digitado para o padrão 000.000.000-00
 function formatCPF(value) {
@@ -22,6 +86,7 @@ export default function Login() {
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [modalPendente, setModalPendente] = useState({ visivel: false, email: '' })
 
   const { login, setNome, token } = useAuthStore()
   const navigate = useNavigate()
@@ -60,7 +125,14 @@ export default function Login() {
         navigate('/home')
       }
     } catch (err) {
-      setErro(err.response?.data?.detail || 'Erro ao fazer login.')
+      const detail = err.response?.data?.detail
+      if (detail?.code === 'email_nao_confirmado') {
+        setModalPendente({ visivel: true, email: detail.email })
+      } else if (typeof detail === 'string' && detail.includes('bloqueada')) {
+        setErro('Sua conta foi bloqueada. Entre em contato com o suporte.')
+      } else {
+        setErro((typeof detail === 'string' ? detail : null) || 'Erro ao fazer login.')
+      }
     } finally {
       setCarregando(false)
     }
@@ -70,7 +142,7 @@ export default function Login() {
     <div className="min-h-screen flex flex-col">
 
       {/* Header fixo no topo */}
-      <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
+      <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
         <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
           <Link to="/" className="flex items-center">
             <img src={logoCC} alt="Connect Cidade" className="h-9" />
@@ -165,7 +237,6 @@ export default function Login() {
               </Link>
             </div>
 
-            {/* Mensagem de erro da API */}
             {erro && <p className="text-sm text-red-500 text-center">{erro}</p>}
 
             <button
@@ -186,6 +257,15 @@ export default function Login() {
           </p>
         </div>
       </div>
+
+      {modalPendente.visivel && (
+        <ModalEmailNaoConfirmado
+          email={modalPendente.email}
+          cpf={cpf.replace(/\D/g, '')}
+          onFechar={() => setModalPendente({ visivel: false, email: '' })}
+        />
+      )}
+
     </div>
   )
 }

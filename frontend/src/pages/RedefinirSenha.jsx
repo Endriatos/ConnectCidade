@@ -67,7 +67,7 @@ export default function RedefinirSenha() {
   if (tokenStatus === 'verificando') {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
+        <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
           <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
             <Link to="/" className="flex items-center">
               <img src={logoCC} alt="Connect Cidade" className="h-9" />
@@ -84,7 +84,7 @@ export default function RedefinirSenha() {
   if (tokenStatus === 'invalido') {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
+        <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
           <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
             <Link to="/" className="flex items-center">
               <img src={logoCC} alt="Connect Cidade" className="h-9" />
@@ -113,7 +113,7 @@ export default function RedefinirSenha() {
   if (sucesso) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
+        <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
           <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
             <Link to="/" className="flex items-center">
               <img src={logoCC} alt="Connect Cidade" className="h-9" />
@@ -140,7 +140,7 @@ export default function RedefinirSenha() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
+      <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
         <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
           <Link to="/" className="flex items-center">
             <img src={logoCC} alt="Connect Cidade" className="h-9" />

@@ -51,8 +51,10 @@ export default function Login() {
       const me = await api.get('/auth/me')
       setNome(me.data.nome_usuario)
 
-      // Redireciona para o painel correto conforme o tipo de usuário
-      if (data.tipo_usuario === 'ADMIN') {
+      const destino = location.state?.from
+      if (destino) {
+        navigate(destino, { replace: true })
+      } else if (data.tipo_usuario === 'ADMIN') {
         navigate('/admin/solicitacoes')
       } else {
         navigate('/home')

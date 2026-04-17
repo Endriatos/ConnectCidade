@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import api from '../services/api'
@@ -17,6 +17,7 @@ export default function RedefinirSenha() {
   const navigate = useNavigate()
   const token = searchParams.get('token') || ''
 
+  const [tokenStatus, setTokenStatus] = useState('verificando') // 'verificando' | 'valido' | 'invalido'
   const [senhaNova, setSenhaNova] = useState('')
   const [senhaConfirmar, setSenhaConfirmar] = useState('')
   const [mostrarNova, setMostrarNova] = useState(false)
@@ -25,6 +26,17 @@ export default function RedefinirSenha() {
   const [erroApi, setErroApi] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [sucesso, setSucesso] = useState(false)
+
+  useEffect(() => {
+    if (!token.trim()) { setTokenStatus('invalido'); return }
+    api.get(`/auth/validar-token-recuperacao?token=${encodeURIComponent(token)}`)
+      .then(() => setTokenStatus('valido'))
+      .catch(() => setTokenStatus('invalido'))
+  }, [token])
+
+  const formularioValido =
+    !validarCampoSenha('senha_nova', '', senhaNova, senhaConfirmar) &&
+    !validarCampoSenha('confirmar_senha', '', senhaNova, senhaConfirmar)
 
   const blur = (field) => {
     const msg = validarCampoSenha(field, '', senhaNova, senhaConfirmar)
@@ -52,7 +64,24 @@ export default function RedefinirSenha() {
     }
   }
 
-  if (!token.trim()) {
+  if (tokenStatus === 'verificando') {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
+          <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
+            <Link to="/" className="flex items-center">
+              <img src={logoCC} alt="Connect Cidade" className="h-9" />
+            </Link>
+          </div>
+        </header>
+        <div className="flex-1 flex items-center justify-center bg-[#f5f5f5]">
+          <Loader2 className="h-6 w-6 animate-spin text-[#3cb478]" />
+        </div>
+      </div>
+    )
+  }
+
+  if (tokenStatus === 'invalido') {
     return (
       <div className="min-h-screen flex flex-col">
         <header className="sticky top-0 z-50 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
@@ -64,7 +93,8 @@ export default function RedefinirSenha() {
         </header>
         <div className="flex-1 flex items-center justify-center bg-[#f5f5f5] p-4">
           <div className="w-full max-w-sm rounded-2xl border border-red-200 bg-white px-8 py-8 shadow-sm text-center">
-            <p className="text-sm text-red-700">Link inválido ou incompleto. Solicite uma nova recuperação de senha.</p>
+            <p className="font-semibold text-[#2a2a2a]">Link inválido ou expirado</p>
+            <p className="mt-2 text-sm text-[#2a2a2a]/55">Este link não é mais válido. Solicite um novo para redefinir sua senha.</p>
             <Link
               to="/esqueci-senha"
               className="mt-6 inline-block w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] transition-colors"
@@ -204,7 +234,7 @@ export default function RedefinirSenha() {
 
             <button
               type="submit"
-              disabled={carregando}
+              disabled={carregando || !formularioValido}
               className="mt-2 w-full py-3 rounded-xl bg-[#3cb478] text-white font-medium text-sm hover:bg-[#349d69] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
             >
               {carregando && <Loader2 className="h-4 w-4 animate-spin" />}

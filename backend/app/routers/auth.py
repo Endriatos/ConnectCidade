@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -10,7 +10,7 @@ from app.schemas.usuario import UsuarioCreate, UsuarioResponse
 from app.utils.auth_utils import criar_token_acesso, hashear_senha, validar_complexidade_senha, verificar_senha
 from app.utils.cpf_utils import validar_cpf
 from app.utils.deps import get_db, get_usuario_atual
-from app.utils.email_utils import enviar_email
+from app.utils.email_utils import enviar_email, montar_template_email
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
@@ -52,7 +52,7 @@ def me(usuario_atual=Depends(get_usuario_atual)):
 # ---------------------------------------------------------------------------
 
 class RecuperarSenhaInput(BaseModel):
-    email: str
+    cpf: str
 
 
 class RedefinirSenhaInput(BaseModel):
@@ -64,43 +64,44 @@ class RedefinirSenhaInput(BaseModel):
 # Endpoints de recuperação de senha
 # ---------------------------------------------------------------------------
 
-@router.post("/recuperar-senha", status_code=status.HTTP_200_OK)
-def recuperar_senha(body: RecuperarSenhaInput, db: Session = Depends(get_db)):
-    """
-    Solicita o envio de e-mail para recuperação de senha.
-
-    Retorna 200 mesmo se o e-mail não estiver cadastrado — evita enumeração de contas.
-    """
-    # Mensagem genérica retornada independente de o e-mail existir ou não
-    resposta_generica = {"mensagem": "Se o e-mail estiver cadastrado, você receberá as instruções em breve."}
-
-    usuario = get_usuario_por_email(db, body.email)
+def _processar_recuperacao(cpf: str, db: Session) -> None:
+    usuario = get_usuario_por_cpf(db, cpf)
     if not usuario:
-        # Não revela ao chamador se o e-mail existe na base
-        return resposta_generica
+        return
 
-    # Gera token de recuperação e invalida os anteriores do usuário
     token_bruto = criar_token(db, usuario.id_usuario)
-
-    # Monta o link de redefinição com o token bruto como query param
     link = f"{settings.FRONTEND_URL}/redefinir-senha?token={token_bruto}"
 
-    corpo_html = f"""
-    <p>Olá, {usuario.nome_usuario}!</p>
-    <p>Recebemos uma solicitação para redefinir a senha da sua conta no <strong>Connect Cidade</strong>.</p>
-    <p>Clique no link abaixo para criar uma nova senha. O link é válido por <strong>1 hora</strong>.</p>
-    <p><a href="{link}">{link}</a></p>
-    <p>Se você não solicitou a redefinição, ignore este e-mail — sua senha permanece a mesma.</p>
-    """
+    nome_curto = usuario.nome_usuario.split()[0]
+    corpo_html = montar_template_email(
+        titulo="Redefinição de senha",
+        saudacao=f"Olá, {nome_curto}!",
+        linhas=[
+            "Recebemos uma solicitação para redefinir a senha da sua conta no <strong>Connect Cidade</strong>.",
+            "Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>30 minutos</strong>.",
+        ],
+        rotulo_botao="Redefinir minha senha",
+        url_botao=link,
+        rodape_extra=f'Se preferir, copie e cole este link no navegador:<br><span style="color:#3cb478;font-size:12px;word-break:break-all;">{link}</span>',
+    )
 
-    # Envia o e-mail com o link de recuperação; falhas de envio não interrompem o fluxo
     try:
-        enviar_email(usuario.email, "Recuperação de senha — Connect Cidade", corpo_html)
+        enviar_email(usuario.email, "Redefinição de senha — Connect Cidade", corpo_html)
     except RuntimeError:
-        # Loga silenciosamente — não expõe falha de infraestrutura ao cliente
         pass
 
-    return resposta_generica
+
+@router.post("/recuperar-senha", status_code=status.HTTP_200_OK)
+def recuperar_senha(body: RecuperarSenhaInput, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    background_tasks.add_task(_processar_recuperacao, body.cpf, db)
+    return {"mensagem": "Se houver uma conta com esse CPF, enviaremos o link de redefinição para o e-mail cadastrado."}
+
+
+@router.get("/validar-token-recuperacao", status_code=status.HTTP_200_OK)
+def validar_token_recuperacao(token: str, db: Session = Depends(get_db)):
+    if not buscar_token_valido(db, token):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido ou expirado.")
+    return {"valido": True}
 
 
 @router.post("/redefinir-senha", status_code=status.HTTP_200_OK)

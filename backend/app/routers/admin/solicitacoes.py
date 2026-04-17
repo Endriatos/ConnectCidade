@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -10,7 +10,7 @@ from app.crud.notificacao import criar_notificacao
 from app.crud.usuario import get_usuario_por_id
 from app.models.avaliacao import Avaliacao
 from app.models.usuario import Usuario
-from app.utils.email_utils import enviar_email
+from app.utils.email_utils import _RODAPE_STATUS, enviar_email, montar_template_email
 from app.models.solicitacao import StatusSolicitacao
 from app.schemas.solicitacao import AvaliacaoResumoResponse, PaginacaoResponse, SolicitacaoResponse
 from app.utils.deps import get_admin_atual, get_db
@@ -107,10 +107,31 @@ class AtualizarStatusRequest(BaseModel):
     comentario: str = Field(..., min_length=1)
 
 
+def _enviar_email_status(email: str, protocolo: str, status_formatado: str, comentario: str, nome_curto: str) -> None:
+    from app.config import settings
+    link = f"{settings.FRONTEND_URL}/minhas-solicitacoes"
+    corpo_html = montar_template_email(
+        titulo=f"Atualização da solicitação {protocolo}",
+        saudacao=f"Olá, {nome_curto}!",
+        linhas=[
+            f"O status da sua solicitação <strong>#{protocolo}</strong> foi atualizado para <strong>{status_formatado}</strong>.",
+            f"<strong>Comentário:</strong> {comentario}",
+        ],
+        rotulo_botao="Ver minhas solicitações",
+        url_botao=link,
+        rodape=_RODAPE_STATUS,
+    )
+    try:
+        enviar_email(email, f"Atualização da solicitação {protocolo} — Connect Cidade", corpo_html)
+    except RuntimeError:
+        pass
+
+
 @router.patch("/{id_solicitacao}/status", response_model=SolicitacaoResponse)
 def atualizar_status_solicitacao(
     id_solicitacao: int,
     body: AtualizarStatusRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     admin_atual=Depends(get_admin_atual),
 ):
@@ -133,39 +154,30 @@ def atualizar_status_solicitacao(
         # ValueError com "não encontrada" indica solicitação inexistente → 404
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
-    # Notifica o autor apenas se ele não for o próprio administrador que fez a mudança
-    if solicitacao.id_autor != admin_atual.id_usuario:
-        # Mapeamento de valores do enum para rótulos legíveis em português
-        _rotulos_status = {
-            "PENDENTE": "Pendente",
-            "EM_ANALISE": "Em Análise",
-            "EM_ANDAMENTO": "Em Andamento",
-            "RESOLVIDO": "Resolvido",
-            "CANCELADO": "Cancelado",
-        }
-        status_formatado = _rotulos_status.get(solicitacao.status.value, solicitacao.status.value)
-        mensagem = (
-            f"O status da sua solicitação {solicitacao.protocolo} "
-            f"foi atualizado para {status_formatado}."
+    _rotulos_status = {
+        "PENDENTE": "Pendente",
+        "EM_ANALISE": "Em Análise",
+        "EM_ANDAMENTO": "Em Andamento",
+        "RESOLVIDO": "Resolvido",
+        "CANCELADO": "Cancelado",
+    }
+    status_formatado = _rotulos_status.get(solicitacao.status.value, solicitacao.status.value)
+    mensagem = (
+        f"O status da sua solicitação {solicitacao.protocolo} "
+        f"foi atualizado para {status_formatado}."
+    )
+    criar_notificacao(db, solicitacao.id_autor, solicitacao.id_solicitacao, mensagem)
+
+    autor = get_usuario_por_id(db, solicitacao.id_autor)
+    if autor:
+        background_tasks.add_task(
+            _enviar_email_status,
+            autor.email,
+            solicitacao.protocolo,
+            status_formatado,
+            body.comentario,
+            autor.nome_usuario.split()[0],
         )
-        criar_notificacao(db, solicitacao.id_autor, solicitacao.id_solicitacao, mensagem)
 
-        autor = get_usuario_por_id(db, solicitacao.id_autor)
-        if autor:
-            corpo_html = f"""
-            <p>Olá, {autor.nome_usuario}!</p>
-            <p>O status da sua solicitação <strong>{solicitacao.protocolo}</strong>
-            foi atualizado para <strong>{status_formatado}</strong>.</p>
-            <p><strong>Comentário do administrador:</strong> {body.comentario}</p>
-            <p>Atualização realizada por: {admin_atual.nome_usuario}</p>
-            """
-            try:
-                enviar_email(
-                    autor.email,
-                    f"Atualização da sua solicitação {solicitacao.protocolo} — Connect Cidade",
-                    corpo_html,
-                )
-            except RuntimeError:
-                pass
-
-    return solicitacao
+    nome_autor = db.query(Usuario.nome_usuario).filter(Usuario.id_usuario == solicitacao.id_autor).scalar()
+    return SolicitacaoResponse.model_validate({**solicitacao.__dict__, "nome_autor": nome_autor})

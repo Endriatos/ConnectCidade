@@ -8,12 +8,7 @@ export default function RotaProtegida({ children }) {
   const location = useLocation()
 
   if (!token) {
-    // Logout voluntário: volta para a landing sem aviso
-    if (loggedOut) {
-      return <Navigate to="/" replace />
-    }
-    // Acesso direto sem login: redireciona para o login com aviso e salva a rota de origem
-    return <Navigate to="/login" state={{ avisoLogin: true, from: location.pathname }} replace />
+    return <Navigate to="/login" state={{ avisoLogin: !loggedOut, from: location.pathname }} replace />
   }
 
   return children

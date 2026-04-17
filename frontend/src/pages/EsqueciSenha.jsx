@@ -6,15 +6,24 @@ import { classeInput, mensagemErroApi } from '../utils/meuPerfilForm'
 import logoCC from '../assets/logoCC.png'
 import iconCC from '../assets/iconCC.png'
 
-function validarEmail(v) {
-  const t = v.trim()
-  if (!t) return 'E-mail é obrigatório.'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return 'E-mail inválido.'
+function formatarCpf(v) {
+  return v
+    .replace(/\D/g, '')
+    .slice(0, 11)
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+}
+
+function validarCpf(v) {
+  const t = v.replace(/\D/g, '')
+  if (!t) return 'CPF é obrigatório.'
+  if (t.length !== 11) return 'CPF inválido.'
   return ''
 }
 
 export default function EsqueciSenha() {
-  const [email, setEmail] = useState('')
+  const [cpf, setCpf] = useState('')
   const [erroCampo, setErroCampo] = useState('')
   const [erroApi, setErroApi] = useState('')
   const [carregando, setCarregando] = useState(false)
@@ -24,17 +33,17 @@ export default function EsqueciSenha() {
     e.preventDefault()
     setErroApi('')
     setMensagemSucesso('')
-    const msg = validarEmail(email)
+    const msg = validarCpf(cpf)
     setErroCampo(msg)
     if (msg) return
 
     setCarregando(true)
     try {
-      await api.post('/auth/recuperar-senha', { email: email.trim() })
+      await api.post('/auth/recuperar-senha', { cpf: cpf.replace(/\D/g, '') })
       setMensagemSucesso(
-        'Caso esse e-mail esteja cadastrado, enviamos uma mensagem com o link para redefinir sua senha. Confira a caixa de entrada e o spam.',
+        'Se houver uma conta com esse CPF, enviaremos o link de redefinição para o e-mail cadastrado. Confira a caixa de entrada e o spam.',
       )
-      setEmail('')
+      setCpf('')
     } catch (err) {
       setErroApi(mensagemErroApi(err))
     } finally {
@@ -72,7 +81,7 @@ export default function EsqueciSenha() {
             <img src={iconCC} alt="Connect Cidade" className="h-14 mx-auto mb-4" />
             <p className="text-2xl font-semibold text-[#2a2a2a] tracking-tight">Esqueci a senha</p>
             {!mensagemSucesso && (
-              <p className="mt-2 text-sm text-[#2a2a2a]/50 leading-relaxed">Digite seu e-mail cadastrado.</p>
+              <p className="mt-2 text-sm text-[#2a2a2a]/50 leading-relaxed">Digite seu CPF cadastrado.</p>
             )}
           </div>
 
@@ -91,18 +100,19 @@ export default function EsqueciSenha() {
           ) : (
             <form onSubmit={(e) => void enviar(e)} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-[#2a2a2a]/60 uppercase tracking-wide">E-mail</label>
+                <label className="text-xs font-medium text-[#2a2a2a]/60 uppercase tracking-wide">CPF</label>
                 <input
-                  type="email"
-                  value={email}
+                  type="text"
+                  inputMode="numeric"
+                  value={cpf}
                   onChange={(e) => {
-                    setEmail(e.target.value)
+                    setCpf(formatarCpf(e.target.value))
                     setErroCampo('')
                     setErroApi('')
                   }}
-                  onBlur={() => setErroCampo(validarEmail(email))}
-                  placeholder="seu@email.com"
-                  autoComplete="email"
+                  onBlur={() => setErroCampo(validarCpf(cpf))}
+                  placeholder="000.000.000-00"
+                  autoComplete="off"
                   className={classeInput(erroCampo)}
                 />
                 {erroCampo && <p className="text-xs text-red-500 mt-0.5">{erroCampo}</p>}

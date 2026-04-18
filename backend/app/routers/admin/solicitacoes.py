@@ -6,12 +6,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.crud.admin_solicitacao import atualizar_status, get_solicitacao_por_id, listar_solicitacoes
+from app.crud.avaliacao import listar_avaliacoes
 from app.crud.notificacao import criar_notificacao
 from app.crud.usuario import get_usuario_por_id
 from app.models.avaliacao import Avaliacao
 from app.models.usuario import Usuario
 from app.utils.email_utils import _RODAPE_STATUS, enviar_email, montar_template_email
 from app.models.solicitacao import StatusSolicitacao
+from app.schemas.avaliacao import AvaliacaoPaginacaoResponse
 from app.schemas.solicitacao import AvaliacaoResumoResponse, PaginacaoResponse, SolicitacaoResponse
 from app.utils.deps import get_admin_atual, get_db
 
@@ -36,6 +38,10 @@ def listar_solicitacoes_admin(
     data_fim: Optional[date] = Query(None),
     # Quando True, exclui solicitações com status RESOLVIDO ou CANCELADO (ignorado se status_filtro estiver definido)
     ocultar_encerradas: bool = Query(False),
+    # Campo de ordenação: "data_registro" (padrão) ou "contador_apoios"
+    ordenar_por: str = Query("data_registro", pattern="^(data_registro|contador_apoios)$"),
+    # Direção da ordenação: "desc" (padrão, mais recente primeiro) ou "asc"
+    direcao: str = Query("desc", pattern="^(asc|desc)$"),
     # Número da página desejada (começa em 1)
     pagina: int = Query(1, ge=1),
     # Quantidade de itens por página
@@ -59,6 +65,36 @@ def listar_solicitacoes_admin(
         data_inicio=data_inicio,
         data_fim=data_fim,
         ocultar_encerradas=ocultar_encerradas,
+        # Repassa os parâmetros de ordenação para o CRUD
+        ordenar_por=ordenar_por,
+        direcao=direcao,
+        pagina=pagina,
+        por_pagina=por_pagina,
+    )
+
+
+@router.get("/avaliacoes", response_model=AvaliacaoPaginacaoResponse)
+def listar_avaliacoes_admin(
+    # Filtro opcional por categoria
+    id_categoria: Optional[int] = Query(None),
+    # Filtro opcional por resolução efetiva (true = resolvido, false = não resolvido)
+    foi_resolvido: Optional[bool] = Query(None),
+    # Filtro opcional por nota exata (1 a 5)
+    nota: Optional[int] = Query(None, ge=1, le=5),
+    # Página solicitada — começa em 1
+    pagina: int = Query(1, ge=1),
+    # Quantidade de itens por página
+    por_pagina: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    # Exige que o usuário autenticado seja administrador
+    _admin=Depends(get_admin_atual),
+):
+    """Lista todas as avaliações com filtros opcionais. Restrito a administradores."""
+    return listar_avaliacoes(
+        db=db,
+        id_categoria=id_categoria,
+        foi_resolvido=foi_resolvido,
+        nota=nota,
         pagina=pagina,
         por_pagina=por_pagina,
     )
@@ -151,8 +187,15 @@ def atualizar_status_solicitacao(
             id_administrador=admin_atual.id_usuario,
         )
     except ValueError as e:
-        # ValueError com "não encontrada" indica solicitação inexistente → 404
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        erro = str(e)
+        # Admin tentando alterar a própria solicitação → 403 Forbidden
+        if "própria solicitação" in erro:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=erro)
+        # Solicitação encerrada (resolvida ou cancelada) → 422 Unprocessable Entity
+        if "encerradas" in erro:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=erro)
+        # Solicitação não encontrada → 404
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro)
 
     _rotulos_status = {
         "PENDENTE": "Pendente",

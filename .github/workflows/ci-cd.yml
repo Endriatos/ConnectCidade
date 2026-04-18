@@ -104,11 +104,12 @@ jobs:
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DB_PASSWORD,DATABASE_URL,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,SECRET_KEY,GMAIL_APP_PASSWORD
+          envs: DB_PASSWORD,DATABASE_URL,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,SECRET_KEY,GMAIL_APP_PASSWORD,FRONTEND_URL
           script_stop: true
           command_timeout: 40m
           script: |
@@ -143,6 +144,7 @@ jobs:
             upsert_env backend/.env MINIO_ACCESS_KEY "$MINIO_ACCESS_KEY"
             upsert_env backend/.env MINIO_SECRET_KEY "$MINIO_SECRET_KEY"
             upsert_env backend/.env GMAIL_APP_PASSWORD "$GMAIL_APP_PASSWORD"
+            upsert_env backend/.env FRONTEND_URL "$FRONTEND_URL"
             if [ -n "$DATABASE_URL" ]; then
               echo "DATABASE_URL: usando secret DATABASE_URL"
               upsert_env backend/.env DATABASE_URL "$DATABASE_URL"

@@ -1,7 +1,12 @@
+import math
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from app.models.avaliacao import Avaliacao
+from app.models.categoria import Categoria
 from app.models.solicitacao import Solicitacao, StatusSolicitacao
+from app.models.usuario import Usuario
 from app.schemas.avaliacao import AvaliacaoCreate
 
 
@@ -52,3 +57,57 @@ def criar_avaliacao(
     db.commit()
     db.refresh(avaliacao)
     return avaliacao
+
+
+def listar_avaliacoes(
+    db: Session,
+    id_categoria: Optional[int] = None,
+    foi_resolvido: Optional[bool] = None,
+    nota: Optional[int] = None,
+    pagina: int = 1,
+    por_pagina: int = 20,
+) -> dict:
+    """
+    Lista avaliações com filtros opcionais e paginação para o painel admin.
+    Ordenação fixa: mais recentes primeiro.
+    """
+    # Inicia query com JOINs para trazer dados da solicitação, categoria e autor
+    query = (
+        db.query(Avaliacao, Solicitacao.protocolo, Categoria.nome_categoria, Categoria.cor_hex, Usuario.nome_usuario)
+        .join(Solicitacao, Avaliacao.id_solicitacao == Solicitacao.id_solicitacao)
+        .join(Categoria, Solicitacao.id_categoria == Categoria.id_categoria)
+        .join(Usuario, Avaliacao.id_usuario == Usuario.id_usuario)
+    )
+
+    # Filtra por categoria se informado
+    if id_categoria is not None:
+        query = query.filter(Solicitacao.id_categoria == id_categoria)
+
+    # Filtra por resolução efetiva se informado
+    if foi_resolvido is not None:
+        query = query.filter(Avaliacao.foi_resolvido == foi_resolvido)
+
+    # Filtra por nota exata se informado
+    if nota is not None:
+        query = query.filter(Avaliacao.nota == nota)
+
+    # Ordena sempre pelas mais recentes primeiro
+    query = query.order_by(Avaliacao.data_avaliacao.desc())
+
+    total = query.count()
+    paginas = math.ceil(total / por_pagina) if total > 0 else 1
+    rows = query.offset((pagina - 1) * por_pagina).limit(por_pagina).all()
+
+    # Monta os dicts combinando os campos da avaliação com os dados dos JOINs
+    itens = [
+        {
+            **av.__dict__,
+            "protocolo": protocolo,
+            "nome_categoria": nome_categoria,
+            "cor_hex": cor_hex,
+            "nome_autor": nome_usuario,
+        }
+        for av, protocolo, nome_categoria, cor_hex, nome_usuario in rows
+    ]
+
+    return {"total": total, "pagina": pagina, "por_pagina": por_pagina, "paginas": paginas, "itens": itens}

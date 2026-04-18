@@ -49,6 +49,3 @@ app.include_router(notificacoes_router)
 app.include_router(admin_solicitacoes_router)
 app.include_router(admin_usuarios_router)
 app.include_router(admin_dashboard_router)
-
-
-

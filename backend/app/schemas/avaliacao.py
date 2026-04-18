@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,3 +25,27 @@ class AvaliacaoResponse(BaseModel):
     nota: int
     comentario: Optional[str]
     data_avaliacao: datetime
+
+
+# Schema de resposta para listagem de avaliações no painel admin — inclui dados da solicitação
+class AvaliacaoAdminResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_avaliacao: int
+    protocolo: str
+    nome_categoria: str
+    cor_hex: str
+    nome_autor: str
+    foi_resolvido: bool
+    nota: int
+    comentario: Optional[str]
+    data_avaliacao: datetime
+
+
+# Schema de resposta paginada para listagem de avaliações no painel admin
+class AvaliacaoPaginacaoResponse(BaseModel):
+    total: int
+    pagina: int
+    por_pagina: int
+    paginas: int
+    itens: List[AvaliacaoAdminResponse]

@@ -22,16 +22,25 @@ def atualizar_status(
 
     Regras aplicadas:
     - Se o status_novo for RESOLVIDO, preenche data_resolucao com o instante atual.
-    - Se a solicitação estava RESOLVIDO e está saindo desse status, limpa data_resolucao.
     - Sempre registra um registro de auditoria em atualizacao com status anterior/novo,
       comentário do administrador e referência ao admin responsável.
 
-    Lança ValueError se a solicitação não for encontrada.
+    Lança ValueError se a solicitação não for encontrada,
+    se pertencer ao próprio administrador que tenta alterá-la,
+    ou se o status atual for RESOLVIDO ou CANCELADO (irreversíveis).
     """
     # Busca a solicitação — lança erro se não existir (tratado no router como 404)
     solicitacao = db.query(Solicitacao).filter(Solicitacao.id_solicitacao == id_solicitacao).first()
     if not solicitacao:
         raise ValueError("Solicitação não encontrada.")
+
+    # Bloqueia mudança de status se a solicitação pertence ao admin que está atualizando
+    if solicitacao.id_autor == id_administrador:
+        raise ValueError("O administrador não pode alterar o status de sua própria solicitação.")
+
+    # Bloqueia retrocesso de status RESOLVIDO ou CANCELADO — solicitações encerradas são imutáveis
+    if solicitacao.status in (StatusSolicitacao.RESOLVIDO, StatusSolicitacao.CANCELADO):
+        raise ValueError("Solicitações resolvidas ou canceladas não podem ter o status alterado.")
 
     status_anterior = solicitacao.status
 
@@ -53,8 +62,6 @@ def atualizar_status(
     }
     if status_novo == StatusSolicitacao.RESOLVIDO:
         valores["data_resolucao"] = func.now()
-    elif status_anterior == StatusSolicitacao.RESOLVIDO:
-        valores["data_resolucao"] = None
 
     db.execute(
         Solicitacao.__table__.update()
@@ -85,6 +92,10 @@ def listar_solicitacoes(
     data_inicio: Optional[date] = None,
     data_fim: Optional[date] = None,
     ocultar_encerradas: bool = False,
+    # Campo pelo qual os resultados serão ordenados: "data_registro" ou "contador_apoios"
+    ordenar_por: str = "data_registro",
+    # Direção da ordenação: "asc" (crescente) ou "desc" (decrescente)
+    direcao: str = "desc",
     pagina: int = 1,
     por_pagina: int = 20,
 ) -> dict:
@@ -98,9 +109,8 @@ def listar_solicitacoes(
     - id_autor: filtra pelo id do cidadão que criou a solicitação
 
     Ordenação:
-    - "mais_apoiados": ordena por contador_apoios decrescente
-    - "mais_antigos": ordena por data_registro crescente
-    - qualquer outro valor ou None: ordena por data_registro decrescente (padrão)
+    - ordenar_por: "data_registro" (padrão) ou "contador_apoios"
+    - direcao: "desc" (padrão) ou "asc"
 
     Retorna um dict compatível com PaginacaoResponse.
     """
@@ -141,7 +151,10 @@ def listar_solicitacoes(
         fim_dt = datetime(data_fim.year, data_fim.month, data_fim.day, tzinfo=timezone.utc) + timedelta(days=1)
         query = query.filter(Solicitacao.data_registro < fim_dt)
 
-    query = query.order_by(Solicitacao.data_registro.desc())
+    # Define o campo de ordenação com base no parâmetro recebido
+    campo = Solicitacao.contador_apoios if ordenar_por == "contador_apoios" else Solicitacao.data_registro
+    # Aplica direção crescente ou decrescente conforme solicitado
+    query = query.order_by(campo.asc() if direcao == "asc" else campo.desc())
 
     # Conta o total de registros antes de aplicar a paginação
     total = query.count()

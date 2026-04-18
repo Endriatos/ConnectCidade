@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Eye, EyeOff, X, MailCheck } from 'lucide-react'
+import { Eye, EyeOff, X, MailCheck, CalendarDays } from 'lucide-react'
 import api from '../services/api'
 import useAuthStore from '../store/authStore'
 import logoCC from '../assets/logoCC.png'
@@ -283,6 +283,8 @@ export default function Cadastro() {
   const [modalPrivacidade, setModalPrivacidade] = useState(false)
   const [privacidadeAceita, setPrivacidadeAceita] = useState(false)
   const [emailCriado, setEmailCriado] = useState('')
+  const [dataNascimentoTexto, setDataNascimentoTexto] = useState('')
+  const calendarRef = useRef(null)
   const { token } = useAuthStore()
   const navigate = useNavigate()
 
@@ -463,13 +465,44 @@ export default function Cadastro() {
             {/* Data de nascimento */}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-[#2a2a2a]/60 uppercase tracking-wide">Data de nascimento</label>
-              <input
-                type="date"
-                value={form.data_nascimento}
-                onChange={e => handleChange('data_nascimento', e.target.value)}
-                onBlur={() => handleBlur('data_nascimento')}
-                className={classeInput(erros.data_nascimento)}
-              />
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="DD/MM/AAAA"
+                  value={form.data_nascimento ? (() => { const [y,m,d] = form.data_nascimento.split('-'); return `${d}/${m}/${y}` })() : dataNascimentoTexto}
+                  onChange={e => {
+                    let v = e.target.value.replace(/\D/g, '').slice(0, 8)
+                    if (v.length > 4) v = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4)
+                    else if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2)
+                    setDataNascimentoTexto(v)
+                    if (v.length === 10) {
+                      const [d, m, y] = v.split('/')
+                      handleChange('data_nascimento', `${y}-${m}-${d}`)
+                    } else {
+                      handleChange('data_nascimento', '')
+                    }
+                  }}
+                  onBlur={() => handleBlur('data_nascimento')}
+                  className={classeInput(erros.data_nascimento) + ' pr-10'}
+                />
+                <input
+                  ref={calendarRef}
+                  type="date"
+                  value={form.data_nascimento}
+                  onChange={e => { handleChange('data_nascimento', e.target.value); setDataNascimentoTexto('') }}
+                  className="sr-only"
+                  tabIndex={-1}
+                />
+                <button
+                  type="button"
+                  onClick={() => calendarRef.current?.showPicker?.()}
+                  className="absolute right-2.5 text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors"
+                  tabIndex={-1}
+                >
+                  <CalendarDays size={16} />
+                </button>
+              </div>
               {erros.data_nascimento && <p className="text-xs text-red-500 mt-0.5">{erros.data_nascimento}</p>}
             </div>
 

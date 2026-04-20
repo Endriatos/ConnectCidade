@@ -84,8 +84,12 @@ class SolicitacaoResumoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id_solicitacao: int
+    id_categoria: int
     protocolo: str
     nome_categoria: str
+    descricao: str
+    endereco_referencia: str
+    contador_apoios: int
     status: str
     data_registro: datetime
 

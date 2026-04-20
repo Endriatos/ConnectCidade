@@ -91,7 +91,8 @@ class CidadaoDetalheResponse(BaseModel):
     telefone: Optional[str]
     data_cadastro: datetime
     status_conta: int
-    # Lista de solicitações do cidadão, ordenadas da mais recente para a mais antiga
+    ja_e_admin: bool
+    is_master: bool
     solicitacoes: List[SolicitacaoResumoResponse]
 
 

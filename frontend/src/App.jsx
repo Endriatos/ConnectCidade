@@ -17,6 +17,7 @@ import PainelAdmin from './pages/PainelAdmin'
 import Dashboard from './pages/admin/Dashboard'
 import Solicitacoes from './pages/admin/Solicitacoes'
 import Usuarios from './pages/admin/Usuarios'
+import UsuarioGerenciar from './pages/admin/UsuarioGerenciar'
 import RotaProtegida from './components/RotaProtegida'
 import RotaAdmin from './components/RotaAdmin'
 
@@ -46,6 +47,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="solicitacoes" element={<Solicitacoes />} />
           <Route path="usuarios" element={<Usuarios />} />
+          <Route path="usuarios/:id" element={<UsuarioGerenciar />} />
         </Route>
 
         {/* Qualquer rota desconhecida volta para a landing */}

@@ -3,7 +3,13 @@ import { Circle, MapPin, ThumbsUp } from 'lucide-react'
 import { STATUS_ICONE, STATUS_LABEL, formatarData } from '../../../utils/solicitacaoStatus'
 import { iconeCategoria } from '../../../utils/categoriaIcone'
 
-export default function Card({ solicitacao, categoria }) {
+export default function Card({
+  solicitacao,
+  categoria,
+  desabilitarLink = false,
+  onPainelAdminClick,
+  listadoEmBloco = false,
+}) {
   const nome_categoria = categoria?.nome_categoria
   const corCategoria = categoria?.cor_hex ?? '#3cb478'
 
@@ -22,14 +28,25 @@ export default function Card({ solicitacao, categoria }) {
   const labelStatus = STATUS_LABEL[status] ?? status
   const nApoios = contador_apoios ?? 0
 
-  return (
-    <Link
-      to={`/minhas-solicitacoes/${id_solicitacao}`}
-      className="group relative block rounded-xl border border-black/6 bg-white px-5 py-4 transition-colors hover:bg-[#fafafa]"
-    >
-      <div className="flex min-w-0 flex-col gap-3">
+  const cls =
+    'group relative block rounded-xl border border-black/6 bg-white px-5 py-4 transition-colors' +
+    (desabilitarLink && !onPainelAdminClick ? '' : ' hover:bg-[#fafafa]')
+
+  const clsPainelAdmin =
+    listadoEmBloco && typeof onPainelAdminClick === 'function'
+      ? 'group relative w-full text-left cursor-pointer border-0 rounded-none bg-transparent px-4 py-3 transition-colors hover:bg-[#2a2a2a]/2'
+      : null
+
+  const gapInterno = listadoEmBloco && typeof onPainelAdminClick === 'function' ? 'gap-2' : 'gap-3'
+
+  const inner = (
+      <div className={`flex min-w-0 flex-col ${gapInterno}`}>
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-          <p className="text-lg font-semibold text-[#2a2a2a] tabular-nums leading-none min-w-0">
+          <p
+            className={`font-semibold text-[#2a2a2a] tabular-nums leading-none min-w-0 ${
+              listadoEmBloco ? 'text-base' : 'text-lg'
+            }`}
+          >
             {`#${protocolo}`}
           </p>
           <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-2.5 py-1 text-xs font-medium text-[#2a2a2a]/70">
@@ -80,6 +97,27 @@ export default function Card({ solicitacao, categoria }) {
           </span>
         </div>
       </div>
+  )
+
+  if (typeof onPainelAdminClick === 'function') {
+    return (
+      <button
+        type="button"
+        className={clsPainelAdmin ?? `${cls} hover:bg-[#fafafa] text-left w-full cursor-pointer`}
+        onClick={() => onPainelAdminClick(solicitacao)}
+      >
+        {inner}
+      </button>
+    )
+  }
+
+  if (desabilitarLink) {
+    return <div className={cls}>{inner}</div>
+  }
+
+  return (
+    <Link to={`/minhas-solicitacoes/${id_solicitacao}`} className={cls}>
+      {inner}
     </Link>
   )
 }

@@ -1,4 +1,4 @@
-import { Outlet, NavLink } from 'react-router-dom'
+import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { LayoutDashboard, Settings2, Users } from 'lucide-react'
 import Header from '../components/Header'
 
@@ -10,6 +10,9 @@ const navItem = ({ isActive }) =>
   }`
 
 export default function PainelAdmin() {
+  const { pathname } = useLocation()
+  const naUsuarios = pathname === '/admin/usuarios' || pathname.startsWith('/admin/usuarios/')
+
   return (
     <div className="flex flex-col h-screen bg-[#f8f9fa]">
       <Header />
@@ -20,7 +23,7 @@ export default function PainelAdmin() {
               <Settings2 className="h-4 w-4 shrink-0" />
               Solicitações
             </NavLink>
-            <NavLink to="/admin/usuarios" className={navItem}>
+            <NavLink to="/admin/usuarios" className={() => navItem({ isActive: naUsuarios })}>
               <Users className="h-4 w-4 shrink-0" />
               Usuários
             </NavLink>

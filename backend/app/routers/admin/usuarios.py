@@ -133,8 +133,12 @@ def detalhar_usuario(
     solicitacoes = [
         SolicitacaoResumoResponse(
             id_solicitacao=sol.id_solicitacao,
+            id_categoria=sol.id_categoria,
             protocolo=sol.protocolo,
             nome_categoria=nome_categoria,
+            descricao=sol.descricao,
+            endereco_referencia=sol.endereco_referencia,
+            contador_apoios=sol.contador_apoios,
             status=sol.status.value,
             data_registro=sol.data_registro,
         )
@@ -149,6 +153,8 @@ def detalhar_usuario(
         telefone=usuario.telefone,
         data_cadastro=usuario.data_cadastro,
         status_conta=usuario.status_conta,
+        ja_e_admin=usuario.tipo_usuario == TipoUsuario.ADMIN,
+        is_master=usuario.cpf == settings.ADMIN_CPF,
         solicitacoes=solicitacoes,
     )
 

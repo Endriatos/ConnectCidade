@@ -26,7 +26,8 @@ def test_recuperar_senha_email_existente(client):
     _cadastrar_e_logar(client, _gerar_cpf(1100), "rec1100@email.com")
 
     with patch("app.routers.auth.enviar_email") as mock_enviar:
-        resp = client.post("/auth/recuperar-senha", json={"email": "rec1100@email.com"})
+        # Endpoint recebe CPF no body, não e-mail
+        resp = client.post("/auth/recuperar-senha", json={"cpf": _gerar_cpf(1100)})
 
     assert resp.status_code == 200
     # Confirma que o e-mail foi enviado exatamente uma vez
@@ -36,7 +37,8 @@ def test_recuperar_senha_email_existente(client):
 def test_recuperar_senha_email_inexistente(client):
     """Solicitar recuperação com e-mail não cadastrado deve retornar 200 sem enviar e-mail."""
     with patch("app.routers.auth.enviar_email") as mock_enviar:
-        resp = client.post("/auth/recuperar-senha", json={"email": "naoexiste@email.com"})
+        # CPF válido porém não cadastrado — seed 9999 está fora de qualquer range usado nos testes
+        resp = client.post("/auth/recuperar-senha", json={"cpf": _gerar_cpf(9999)})
 
     assert resp.status_code == 200
     # E-mail não deve ser enviado — evita enumeração de contas
@@ -50,7 +52,8 @@ def test_redefinir_senha_token_valido(client):
     _cadastrar_e_logar(client, cpf, "rec1101@email.com")
 
     with patch("app.routers.auth.enviar_email") as mock_enviar:
-        client.post("/auth/recuperar-senha", json={"email": "rec1101@email.com"})
+        # Endpoint recebe CPF no body, não e-mail
+        client.post("/auth/recuperar-senha", json={"cpf": _gerar_cpf(1101)})
         token_bruto = _extrair_token_do_email(mock_enviar)
 
     # Redefine a senha usando o token extraído do e-mail
@@ -83,7 +86,8 @@ def test_redefinir_senha_token_ja_usado(client):
     _cadastrar_e_logar(client, _gerar_cpf(1102), "rec1102@email.com")
 
     with patch("app.routers.auth.enviar_email") as mock_enviar:
-        client.post("/auth/recuperar-senha", json={"email": "rec1102@email.com"})
+        # Endpoint recebe CPF no body, não e-mail
+        client.post("/auth/recuperar-senha", json={"cpf": _gerar_cpf(1102)})
         token_bruto = _extrair_token_do_email(mock_enviar)
 
     # Primeira redefinição — deve funcionar
@@ -106,7 +110,8 @@ def test_redefinir_senha_fraca(client):
     _cadastrar_e_logar(client, _gerar_cpf(1103), "rec1103@email.com")
 
     with patch("app.routers.auth.enviar_email") as mock_enviar:
-        client.post("/auth/recuperar-senha", json={"email": "rec1103@email.com"})
+        # Endpoint recebe CPF no body, não e-mail
+        client.post("/auth/recuperar-senha", json={"cpf": _gerar_cpf(1103)})
         token_bruto = _extrair_token_do_email(mock_enviar)
 
     # "fraca" viola todos os requisitos: menos de 8 chars, sem maiúscula, sem número, sem especial
@@ -126,11 +131,13 @@ def test_redefinir_senha_token_invalido_nao_revela_email(client):
     _cadastrar_e_logar(client, _gerar_cpf(1104), "rec1104@email.com")
 
     with patch("app.routers.auth.enviar_email"):
+        # Endpoint recebe CPF no body — um CPF cadastrado e um válido mas inexistente
+        # _gerar_cpf(9999) é um seed fora de qualquer range usado nos testes, garantidamente não cadastrado
         resp_existente = client.post(
-            "/auth/recuperar-senha", json={"email": "rec1104@email.com"}
+            "/auth/recuperar-senha", json={"cpf": _gerar_cpf(1104)}
         )
         resp_inexistente = client.post(
-            "/auth/recuperar-senha", json={"email": "naoexiste9999@email.com"}
+            "/auth/recuperar-senha", json={"cpf": _gerar_cpf(9999)}
         )
 
     # Ambas as respostas devem ter o mesmo status e a mesma mensagem

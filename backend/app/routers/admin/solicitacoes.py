@@ -191,9 +191,9 @@ def atualizar_status_solicitacao(
         # Admin tentando alterar a própria solicitação → 403 Forbidden
         if "própria solicitação" in erro:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=erro)
-        # Solicitação encerrada (resolvida ou cancelada) → 422 Unprocessable Entity
+        # Solicitação encerrada (resolvida ou cancelada) → 422 Unprocessable Content
         if "encerradas" in erro:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=erro)
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=erro)
         # Solicitação não encontrada → 404
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro)
 

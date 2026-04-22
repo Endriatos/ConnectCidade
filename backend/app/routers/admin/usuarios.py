@@ -64,20 +64,20 @@ def buscar_usuario(
     """Busca um usuário por CPF ou e-mail. Exatamente um dos dois deve ser informado."""
     if not cpf and not email:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Informe cpf ou email para buscar.",
         )
 
     if cpf and email:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Informe apenas um critério de busca: cpf ou email.",
         )
 
     if cpf:
         if not validar_cpf(cpf):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="CPF inválido.",
             )
         usuario = get_usuario_por_cpf(db, cpf)

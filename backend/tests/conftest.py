@@ -12,7 +12,8 @@ from sqlalchemy.orm import sessionmaker
 from app.database import Base
 from app.main import app
 from app.models.categoria import Categoria
-from app.models.usuario import TipoUsuario, Usuario
+from app.crud.usuario import create_usuario as _create_usuario_original
+from app.models.usuario import StatusConta, TipoUsuario, Usuario
 from app.utils.deps import get_db
 
 # Contexto bcrypt reutilizado para gerar hashes de senha nos helpers de teste
@@ -90,6 +91,7 @@ def _criar_admin_e_logar(client, db, cpf: str, email: str) -> str:
     Insere um usuário ADMIN diretamente no banco (sem passar pela API,
     que só permite cadastro de cidadãos) e retorna o token via login.
     """
+    # Admins são criados diretamente no banco com conta já ativa (sem fluxo de verificação de e-mail)
     admin = Usuario(
         tipo_usuario=TipoUsuario.ADMIN,
         cpf=cpf,
@@ -97,6 +99,7 @@ def _criar_admin_e_logar(client, db, cpf: str, email: str) -> str:
         email=email,
         senha_hash=_pwd_context.hash("Senha@123"),
         data_nascimento=date(1985, 1, 1),
+        status_conta=StatusConta.ATIVO,
     )
     db.add(admin)
     db.commit()
@@ -134,6 +137,20 @@ def _criar_solicitacao(client, token: str) -> int:
         )
     assert resp.status_code == 201
     return resp.json()["id_solicitacao"]
+
+
+def _create_usuario_ativo(db, dados):
+    """Wrapper de create_usuario que ativa a conta automaticamente nos testes.
+
+    Evita o bloqueio de login por e-mail não verificado — em produção o usuário
+    precisaria confirmar o e-mail antes de logar, mas nos testes isso é irrelevante.
+    """
+    usuario = _create_usuario_original(db, dados)
+    # Força status ATIVO para que o login funcione sem confirmação de e-mail
+    usuario.status_conta = StatusConta.ATIVO
+    db.commit()
+    db.refresh(usuario)
+    return usuario
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
@@ -188,6 +205,9 @@ def client(db):
             pass
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
+    # Patch global: todos os cadastros nos testes criam usuários já ativos (status_conta = ATIVO)
+    # Isso evita o bloqueio de login por e-mail não verificado durante os testes
+    with patch("app.routers.auth.create_usuario", side_effect=_create_usuario_ativo):
+        with TestClient(app) as c:
+            yield c
     app.dependency_overrides.clear()

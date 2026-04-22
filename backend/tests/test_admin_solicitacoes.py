@@ -84,32 +84,6 @@ def test_atualizar_status_resolve_seta_data_resolucao(client, db):
     assert resp.json()["data_resolucao"] is not None
 
 
-def test_atualizar_status_sai_de_resolvido_limpa_data_resolucao(client, db):
-    """Ao sair do status RESOLVIDO, data_resolucao deve ser limpa (null)."""
-    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(306), "cidadao_admin4@email.com")
-    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(307), "admin4@email.com")
-
-    id_sol = _criar_solicitacao(client, token_cidadao)
-
-    # O envio de email é mockado para não depender de infraestrutura externa
-    with patch("app.routers.admin.solicitacoes.enviar_email"):
-        # Primeiro resolve a solicitação
-        client.patch(
-            _url_status(id_sol),
-            json={"status_novo": "RESOLVIDO", "comentario": "Resolvido."},
-            headers={"Authorization": f"Bearer {token_admin}"},
-        )
-
-        # Depois reabre como EM_ANDAMENTO — data_resolucao deve ser apagada
-        resp = client.patch(
-            _url_status(id_sol),
-            json={"status_novo": "EM_ANDAMENTO", "comentario": "Reaberto por solicitação."},
-            headers={"Authorization": f"Bearer {token_admin}"},
-        )
-
-    assert resp.status_code == 200
-    assert resp.json()["data_resolucao"] is None
-
 
 def test_atualizar_status_sem_autenticacao(client):
     """Acessar o endpoint sem token deve retornar 401 ou 403."""
@@ -289,7 +263,7 @@ def test_listar_solicitacoes_paginacao(client, db):
 
 
 def test_listar_solicitacoes_ordem_mais_apoiados(client, db):
-    """Com ?ordem=mais_apoiados, o primeiro item da lista deve ter contador_apoios >= ao segundo."""
+    """Com ?ordenar_por=contador_apoios&direcao=desc, o primeiro item deve ter contador_apoios >= ao segundo."""
     # Cidadão A cria a primeira solicitação (sem apoios)
     token_cidadao_a = _cadastrar_e_logar(client, _gerar_cpf(409), "cidadao_lista6a@email.com")
     # Cidadão B cria a segunda solicitação (receberá um apoio)
@@ -308,9 +282,9 @@ def test_listar_solicitacoes_ordem_mais_apoiados(client, db):
     )
     assert resp_apoio.status_code == 204
 
-    # Lista ordenando pelos mais apoiados
+    # Lista ordenando pelos mais apoiados — parâmetros corretos: ordenar_por + direcao
     resp = client.get(
-        "/admin/solicitacoes?ordem=mais_apoiados",
+        "/admin/solicitacoes?ordenar_por=contador_apoios&direcao=desc",
         headers={"Authorization": f"Bearer {token_admin}"},
     )
 
@@ -439,3 +413,76 @@ def test_listar_solicitacoes_filtro_id_autor(client, db):
     assert itens_b[0]["protocolo"] == protocolo_b
     # Confirma que a solicitação do outro cidadão não aparece no resultado
     assert itens_b[0]["protocolo"] != protocolo_a
+
+
+# ---------------------------------------------------------------------------
+# Testes das validações de status implementadas na sessão atual
+# Seeds a partir de 507
+# ---------------------------------------------------------------------------
+
+
+def test_atualizar_status_propria_solicitacao_bloqueado(client, db):
+    """Admin não pode alterar o status de uma solicitação que ele mesmo criou — espera 403."""
+    # Admin cria a solicitação como cidadão (ele também é cidadão)
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(507), "admin_proprio1@email.com")
+    id_sol = _criar_solicitacao(client, token_admin)
+
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp = client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "EM_ANALISE", "comentario": "Tentando alterar própria solicitação."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
+
+    # Admin não pode dar prioridade às próprias solicitações — regra anticorrupção
+    assert resp.status_code == 403
+
+
+def test_atualizar_status_irreversivel_resolvido(client, db):
+    """Solicitação com status RESOLVIDO não pode ter o status alterado — espera 422."""
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(508), "cidadao_irrev1@email.com")
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(509), "admin_irrev1@email.com")
+
+    id_sol = _criar_solicitacao(client, token_cidadao)
+
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        # Primeiro resolve a solicitação
+        client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "RESOLVIDO", "comentario": "Problema resolvido."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
+        # Tenta alterar novamente — deve ser bloqueado
+        resp = client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "EM_ANDAMENTO", "comentario": "Tentando reabrir."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
+
+    # RESOLVIDO é irreversível
+    assert resp.status_code == 422
+
+
+def test_atualizar_status_irreversivel_cancelado(client, db):
+    """Solicitação com status CANCELADO não pode ter o status alterado — espera 422."""
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(510), "cidadao_irrev2@email.com")
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(511), "admin_irrev2@email.com")
+
+    id_sol = _criar_solicitacao(client, token_cidadao)
+
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        # Primeiro cancela a solicitação
+        client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "CANCELADO", "comentario": "Cancelado administrativamente."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
+        # Tenta alterar novamente — deve ser bloqueado
+        resp = client.patch(
+            _url_status(id_sol),
+            json={"status_novo": "PENDENTE", "comentario": "Tentando reabrir cancelado."},
+            headers={"Authorization": f"Bearer {token_admin}"},
+        )
+
+    # CANCELADO é irreversível
+    assert resp.status_code == 422

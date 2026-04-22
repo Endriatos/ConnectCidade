@@ -172,10 +172,11 @@ def test_dashboard_sem_periodo_usa_default(client, db):
 
 
 def test_dashboard_grafico_mensal_tem_6_itens(client, db):
-    """grafico_mensal deve sempre retornar exatamente 6 itens, independente do período."""
+    """grafico_mensal deve retornar exatamente 6 itens para o período 180d."""
     token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(1311), "db_admin8@email.com")
 
-    resp = client.get(_URL, headers={"Authorization": f"Bearer {token_admin}"})
+    # 180d usa granularidade mensal e retorna exatamente 6 meses
+    resp = client.get(f"{_URL}?periodo=180d", headers={"Authorization": f"Bearer {token_admin}"})
 
     assert resp.status_code == 200
     grafico = resp.json()["grafico_mensal"]
@@ -186,7 +187,8 @@ def test_dashboard_grafico_mensal_campos(client, db):
     """Cada item do grafico_mensal deve ter os campos mes, criadas e resolvidas."""
     token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(1312), "db_admin9@email.com")
 
-    resp = client.get(_URL, headers={"Authorization": f"Bearer {token_admin}"})
+    # 180d usa granularidade mensal e retorna exatamente 6 meses
+    resp = client.get(f"{_URL}?periodo=180d", headers={"Authorization": f"Bearer {token_admin}"})
 
     assert resp.status_code == 200
     for item in resp.json()["grafico_mensal"]:
@@ -204,7 +206,8 @@ def test_dashboard_grafico_mensal_ordem_cronologica(client, db):
     """Os meses do grafico_mensal devem estar em ordem cronológica crescente."""
     token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(1313), "db_admin10@email.com")
 
-    resp = client.get(_URL, headers={"Authorization": f"Bearer {token_admin}"})
+    # 180d usa granularidade mensal e retorna exatamente 6 meses
+    resp = client.get(f"{_URL}?periodo=180d", headers={"Authorization": f"Bearer {token_admin}"})
 
     assert resp.status_code == 200
     meses = [item["mes"] for item in resp.json()["grafico_mensal"]]

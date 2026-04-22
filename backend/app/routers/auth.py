@@ -3,7 +3,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.crud import token_recuperacao, token_verificacao_email as crud_verif
+from app.crud import token_temporario
+from app.models.token_temporario import TipoToken
 from app.crud.usuario import create_usuario, get_usuario_por_cpf, get_usuario_por_email
 from app.models.usuario import StatusConta
 from app.schemas.auth import LoginInput, TokenResponse
@@ -17,7 +18,7 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 
 def _enviar_email_verificacao(usuario_id: int, nome: str, email: str, db: Session) -> None:
-    token_bruto = crud_verif.criar_token(db, usuario_id)
+    token_bruto = token_temporario.criar_token(db, usuario_id, TipoToken.VERIFICACAO_EMAIL)
     link = f"{settings.FRONTEND_URL}/verificar-email?token={token_bruto}"
     nome_curto = nome.split()[0]
     corpo_html = montar_template_email(
@@ -100,7 +101,7 @@ def _processar_recuperacao(cpf: str, db: Session) -> None:
     if not usuario:
         return
 
-    token_bruto = token_recuperacao.criar_token(db, usuario.id_usuario)
+    token_bruto = token_temporario.criar_token(db, usuario.id_usuario, TipoToken.RECUPERACAO_SENHA)
     link = f"{settings.FRONTEND_URL}/redefinir-senha?token={token_bruto}"
 
     nome_curto = usuario.nome_usuario.split()[0]
@@ -130,14 +131,14 @@ def recuperar_senha(body: RecuperarSenhaInput, background_tasks: BackgroundTasks
 
 @router.get("/validar-token-recuperacao", status_code=status.HTTP_200_OK)
 def validar_token_recuperacao(token: str, db: Session = Depends(get_db)):
-    if not token_recuperacao.buscar_token_valido(db, token):
+    if not token_temporario.buscar_token_valido(db, token, TipoToken.RECUPERACAO_SENHA):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido ou expirado.")
     return {"valido": True}
 
 
 @router.post("/redefinir-senha", status_code=status.HTTP_200_OK)
 def redefinir_senha(body: RedefinirSenhaInput, db: Session = Depends(get_db)):
-    token_obj = token_recuperacao.buscar_token_valido(db, body.token)
+    token_obj = token_temporario.buscar_token_valido(db, body.token, TipoToken.RECUPERACAO_SENHA)
     if token_obj is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -157,7 +158,7 @@ def redefinir_senha(body: RedefinirSenhaInput, db: Session = Depends(get_db)):
     token_obj.usuario.senha_hash = hashear_senha(body.nova_senha)
     db.commit()
 
-    token_recuperacao.invalidar_token(db, token_obj)
+    token_temporario.invalidar_token(db, token_obj)
 
     return {"mensagem": "Senha redefinida com sucesso."}
 
@@ -172,14 +173,14 @@ class ReenviarVerificacaoInput(BaseModel):
 
 @router.get("/verificar-email", status_code=status.HTTP_200_OK)
 def verificar_email(token: str, db: Session = Depends(get_db)):
-    token_obj = crud_verif.buscar_token_valido(db, token)
+    token_obj = token_temporario.buscar_token_valido(db, token, TipoToken.VERIFICACAO_EMAIL)
     if token_obj is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Link inválido ou expirado.")
 
     usuario = token_obj.usuario
     usuario.status_conta = StatusConta.ATIVO
     db.commit()
-    crud_verif.invalidar_token(db, token_obj)
+    token_temporario.invalidar_token(db, token_obj)
     return {"mensagem": "E-mail confirmado com sucesso."}
 
 

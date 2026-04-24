@@ -40,7 +40,7 @@ def atualizar_status(
 
     # Bloqueia retrocesso de status RESOLVIDO ou CANCELADO — solicitações encerradas são imutáveis
     if solicitacao.status in (StatusSolicitacao.RESOLVIDO, StatusSolicitacao.CANCELADO):
-        raise ValueError("Solicitações resolvidas ou canceladas não podem ter o status alterado.")
+        raise ValueError("Solicitações encerradas (resolvidas ou canceladas) não podem ter o status alterado.")
 
     status_anterior = solicitacao.status
 

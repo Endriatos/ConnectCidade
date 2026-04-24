@@ -17,7 +17,8 @@ def test_cadastro_sucesso(client):
     assert data["nome_usuario"] == USUARIO_BASE["nome_usuario"]
     assert data["email"] == USUARIO_BASE["email"]
     assert data["tipo_usuario"] == "CIDADAO"
-    assert data["status_ativo"] is True
+    # O patch do conftest garante status_conta = ATIVO (valor 1) logo após o cadastro
+    assert data["status_conta"] == 1
 
 
 def test_cadastro_cpf_invalido(client):
@@ -40,6 +41,7 @@ def test_cadastro_email_duplicado(client):
 
 
 def test_login_sucesso(client):
+    # O patch do conftest cria o usuário já ativo, então o login não é bloqueado por e-mail não verificado
     client.post("/auth/cadastro", json=USUARIO_BASE)
     resp = client.post("/auth/login", json={"cpf": USUARIO_BASE["cpf"], "senha": USUARIO_BASE["senha"]})
     assert resp.status_code == 200
@@ -60,6 +62,7 @@ def test_login_cpf_inexistente(client):
 
 
 def test_me_autenticado(client):
+    # O patch do conftest cria o usuário já ativo, permitindo login imediato sem confirmação de e-mail
     client.post("/auth/cadastro", json=USUARIO_BASE)
     login = client.post("/auth/login", json={"cpf": USUARIO_BASE["cpf"], "senha": USUARIO_BASE["senha"]})
     token = login.json()["access_token"]

@@ -6,8 +6,7 @@ from app.models.atualizacao import Atualizacao
 from app.models.apoio import Apoio
 from app.models.avaliacao import Avaliacao
 from app.models.notificacao import Notificacao
-from app.models.token_recuperacao import TokenRecuperacao
-from app.models.token_verificacao_email import TokenVerificacaoEmail
+from app.models.token_temporario import TokenTemporario, TipoToken
 
 __all__ = [
     "Usuario",
@@ -21,6 +20,6 @@ __all__ = [
     "Apoio",
     "Avaliacao",
     "Notificacao",
-    "TokenRecuperacao",
-    "TokenVerificacaoEmail",
+    "TokenTemporario",
+    "TipoToken",
 ]

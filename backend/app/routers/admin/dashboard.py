@@ -70,8 +70,27 @@ def _filtro_periodo(query, campo, data_inicio: Optional[datetime]):
     return query
 
 
-def _aware(dt: datetime) -> datetime:
+def _aware(dt) -> datetime:
+    """Converte para datetime timezone-aware, aceitando tanto datetime quanto string (SQLite)."""
+    # SQLite retorna strings via strftime — converte antes de operar
+    if isinstance(dt, str):
+        dt = datetime.fromisoformat(dt)
     return dt if (dt.tzinfo is not None) else dt.replace(tzinfo=timezone.utc)
+
+
+def _truncar_data(campo, granularidade: str, session: Session):
+    """
+    Retorna a expressão de truncamento de data compatível com o banco em uso.
+    - PostgreSQL (produção): usa func.date_trunc
+    - SQLite (testes): usa func.strftime com formato adequado
+    """
+    dialeto = session.bind.dialect.name
+    if dialeto == "sqlite":
+        # SQLite usa strftime — 'day' vira '%Y-%m-%d', 'month' vira '%Y-%m-01'
+        fmt = "%Y-%m-%d" if granularidade == "day" else "%Y-%m-01"
+        return func.strftime(fmt, campo)
+    # PostgreSQL padrão
+    return func.date_trunc(granularidade, campo)
 
 
 def _gerar_tendencia(
@@ -92,7 +111,7 @@ def _gerar_tendencia(
 
         rows = (
             db.query(
-                func.date_trunc("day", Solicitacao.data_registro).label("ponto"),
+                _truncar_data(Solicitacao.data_registro, "day", db).label("ponto"),
                 func.count(Solicitacao.id_solicitacao).label("criadas"),
                 func.count(
                     case(
@@ -141,7 +160,7 @@ def _gerar_tendencia(
 
     rows = (
         db.query(
-            func.date_trunc("month", Solicitacao.data_registro).label("ponto"),
+            _truncar_data(Solicitacao.data_registro, "month", db).label("ponto"),
             func.count(Solicitacao.id_solicitacao).label("criadas"),
             func.count(
                 case(

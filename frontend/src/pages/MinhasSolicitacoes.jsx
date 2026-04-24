@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 import Header from '../components/Header'
 import Card from '../components/minhasSolicitacoes/card/Card'
 import Carregando from '../components/minhasSolicitacoes/card/Carregando'
@@ -101,11 +103,20 @@ export default function MinhasSolicitacoes() {
       <Header />
       <main className="flex-1">
         <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 px-4 py-6 sm:px-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-[#2a2a2a]">Minhas solicitações</h1>
-            <p className="mt-0.5 text-sm text-[#2a2a2a]/50">
-              Acompanhe o status e o histórico dos problemas que você registrou.
-            </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-[#2a2a2a]">Minhas solicitações</h1>
+              <p className="mt-0.5 text-sm text-[#2a2a2a]/50">
+                Acompanhe o status e o histórico dos problemas que você registrou.
+              </p>
+            </div>
+            <Link
+              to="/nova-solicitacao"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#3cb478] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#349d69]"
+            >
+              <Plus className="h-4 w-4" />
+              Registrar problema
+            </Link>
           </div>
           <ListaMinhasSolicitacoes categoriasPorId={categoriasPorId} />
         </div>

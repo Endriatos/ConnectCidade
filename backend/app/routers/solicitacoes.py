@@ -139,7 +139,6 @@ def listar_minhas_solicitacoes(
     db: Session = Depends(get_db),
     usuario_atual=Depends(get_usuario_atual),
 ):
-    # Retorna todas as solicitações criadas pelo usuário autenticado, ordenadas por data
     return get_solicitacoes_por_autor(db, usuario_atual.id_usuario)
 
 

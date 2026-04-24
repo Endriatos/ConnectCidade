@@ -6,7 +6,7 @@ import Header from '../components/Header';
 import Mapa from './Mapa';
 
 export default function Home() {
-  const { nome } = useAuthStore();
+  const nome = useAuthStore((s) => s.nome);
   const location = useLocation();
 
   const primeiroNome = nome ? nome.split(' ')[0] : 'Usuário';

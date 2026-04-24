@@ -88,12 +88,29 @@ export default function Login() {
   const [carregando, setCarregando] = useState(false)
   const [modalPendente, setModalPendente] = useState({ visivel: false, email: '' })
 
-  const { login, setNome, token } = useAuthStore()
+  const login = useAuthStore((s) => s.login)
+  const setNome = useAuthStore((s) => s.setNome)
+  const token = useAuthStore((s) => s.token)
   const navigate = useNavigate()
   const location = useLocation()
 
   useEffect(() => {
-    if (token) navigate('/home', { replace: true })
+    if (!token) return
+    const tipo = useAuthStore.getState().tipoUsuario
+    const modo = useAuthStore.getState().modoAtuacaoAdmin
+    if (tipo !== 'ADMIN') {
+      navigate('/home', { replace: true })
+      return
+    }
+    if (modo === 'CIDADAO') {
+      navigate('/home', { replace: true })
+      return
+    }
+    if (modo === 'ADMIN') {
+      navigate('/admin/solicitacoes', { replace: true })
+      return
+    }
+    navigate('/continuar', { replace: true })
   }, [token, navigate])
 
   const sessaoExpirada = new URLSearchParams(location.search).get('sessao') === 'expirada'
@@ -117,13 +134,35 @@ export default function Login() {
       setNome(me.data.nome_usuario)
 
       const destino = location.state?.from
-      if (destino) {
-        navigate(destino, { replace: true })
-      } else if (data.tipo_usuario === 'ADMIN') {
-        navigate('/admin/solicitacoes')
-      } else {
-        navigate('/home')
+      const setModo = useAuthStore.getState().setModoAtuacaoAdmin
+      const tipo = data.tipo_usuario
+
+      if (tipo !== 'ADMIN') {
+        if (destino) navigate(destino, { replace: true })
+        else navigate('/home', { replace: true })
+        return
       }
+
+      if (destino) {
+        if (destino.startsWith('/admin')) {
+          setModo('ADMIN')
+          navigate(destino, { replace: true })
+          return
+        }
+        if (destino === '/minhas-solicitacoes' || destino.startsWith('/minhas-solicitacoes/')) {
+          setModo('CIDADAO')
+          navigate(destino, { replace: true })
+          return
+        }
+        setModo('CIDADAO')
+        navigate(destino, { replace: true })
+        return
+      }
+
+      const modo = useAuthStore.getState().modoAtuacaoAdmin
+      if (modo === 'CIDADAO') navigate('/home', { replace: true })
+      else if (modo === 'ADMIN') navigate('/admin/solicitacoes', { replace: true })
+      else navigate('/continuar', { replace: true })
     } catch (err) {
       const detail = err.response?.data?.detail
       if (detail?.code === 'email_nao_confirmado') {

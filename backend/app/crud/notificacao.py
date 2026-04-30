@@ -3,7 +3,10 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from app.models.atualizacao import Atualizacao
 from app.models.notificacao import Notificacao
+from app.models.solicitacao import Solicitacao
+from app.models.usuario import TipoUsuario
 
 
 def criar_notificacao(
@@ -41,7 +44,7 @@ def excluir_antigas(db: Session, id_usuario: int) -> None:
     db.commit()
 
 
-def listar_notificacoes(db: Session, id_usuario: int) -> List[Notificacao]:
+def listar_notificacoes(db: Session, id_usuario: int, tipo_usuario: TipoUsuario) -> List[Notificacao]:
     """
     Retorna todas as notificações do usuário ordenadas pela mais recente primeiro.
     Remove automaticamente notificações com mais de 90 dias antes de listar.
@@ -50,12 +53,19 @@ def listar_notificacoes(db: Session, id_usuario: int) -> List[Notificacao]:
     # Remove notificações antigas antes de montar a listagem
     excluir_antigas(db, id_usuario)
 
-    return (
-        db.query(Notificacao)
-        .filter(Notificacao.id_usuario == id_usuario)
-        .order_by(Notificacao.data_criacao.desc())
-        .all()
-    )
+    query = db.query(Notificacao).filter(Notificacao.id_usuario == id_usuario)
+
+    if tipo_usuario == TipoUsuario.ADMIN:
+        # No contexto admin, o feed exibe apenas notificações de avaliação.
+        query = query.filter(Notificacao.mensagem.ilike("%foi avaliada pelo cidadão%"))
+    else:
+        # No contexto cidadão, o feed mantém apenas notificações das próprias solicitações.
+        query = (
+            query.join(Solicitacao, Solicitacao.id_solicitacao == Notificacao.id_solicitacao)
+            .filter(Solicitacao.id_autor == id_usuario)
+        )
+
+    return query.order_by(Notificacao.data_criacao.desc()).all()
 
 
 def marcar_como_lida(

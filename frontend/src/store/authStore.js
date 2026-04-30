@@ -1,31 +1,50 @@
 import { create } from 'zustand'
 
-// Store global de autenticação — persiste token e dados do usuário no localStorage
+function readModoAtuacaoAdminInicial() {
+  const t = localStorage.getItem('tipoUsuario')
+  if (t !== 'ADMIN') return null
+  const m = localStorage.getItem('modoAtuacaoAdmin')
+  if (m === 'CIDADAO' || m === 'ADMIN') return m
+  return 'ADMIN'
+}
+
 const useAuthStore = create((set) => ({
   token: localStorage.getItem('token') || null,
   tipoUsuario: localStorage.getItem('tipoUsuario') || null,
   nome: localStorage.getItem('nomeUsuario') || null,
-  loggedOut: false, // indica se o usuário fez logout voluntário (usado pela RotaProtegida)
+  modoAtuacaoAdmin: readModoAtuacaoAdminInicial(),
+  loggedOut: false,
 
-  // Salva token e tipo de usuário após login bem-sucedido
   login: (token, tipoUsuario) => {
+    const tipoNorm =
+      tipoUsuario != null ? String(tipoUsuario).toUpperCase() : tipoUsuario
     localStorage.setItem('token', token)
-    localStorage.setItem('tipoUsuario', tipoUsuario)
-    set({ token, tipoUsuario, loggedOut: false })
+    localStorage.setItem('tipoUsuario', tipoNorm)
+    if (tipoNorm !== 'ADMIN') {
+      localStorage.removeItem('modoAtuacaoAdmin')
+      set({ token, tipoUsuario: tipoNorm, modoAtuacaoAdmin: null, loggedOut: false })
+      return
+    }
+    localStorage.setItem('modoAtuacaoAdmin', 'ADMIN')
+    set({ token, tipoUsuario: tipoNorm, modoAtuacaoAdmin: 'ADMIN', loggedOut: false })
   },
 
-  // Salva o nome do usuário separadamente (obtido via /auth/me)
+  setModoAtuacaoAdmin: (modo) => {
+    localStorage.setItem('modoAtuacaoAdmin', modo)
+    set({ modoAtuacaoAdmin: modo })
+  },
+
   setNome: (nome) => {
     localStorage.setItem('nomeUsuario', nome)
     set({ nome })
   },
 
-  // Remove todos os dados de sessão
   logout: () => {
     localStorage.removeItem('token')
     localStorage.removeItem('tipoUsuario')
     localStorage.removeItem('nomeUsuario')
-    set({ token: null, tipoUsuario: null, nome: null, loggedOut: true })
+    localStorage.removeItem('modoAtuacaoAdmin')
+    set({ token: null, tipoUsuario: null, nome: null, modoAtuacaoAdmin: null, loggedOut: true })
   },
 }))
 

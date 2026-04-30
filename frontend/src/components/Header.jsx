@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, ChevronDown, LogOut, ClipboardList, Bell, Shield, UserCircle } from 'lucide-react'
+import { User, ChevronDown, LogOut, ClipboardList, Bell, UserCircle, Shield } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import api from '../services/api'
 import iconCC from '../assets/iconCC.png'
@@ -17,8 +17,15 @@ function tempoRelativo(iso) {
 }
 
 export default function Header() {
-  const { nome, logout, tipoUsuario } = useAuthStore()
+  const nome = useAuthStore((s) => s.nome)
+  const logout = useAuthStore((s) => s.logout)
+  const tipoUsuario = useAuthStore((s) => s.tipoUsuario)
+  const modoAtuacaoAdmin = useAuthStore((s) => s.modoAtuacaoAdmin)
+  const setModoAtuacaoAdmin = useAuthStore((s) => s.setModoAtuacaoAdmin)
   const navigate = useNavigate()
+  const destinoLogo =
+    tipoUsuario === 'ADMIN' && modoAtuacaoAdmin === 'ADMIN' ? '/admin/mapa' : '/home'
+  const exibirMinhasSolicitacoes = tipoUsuario !== 'ADMIN' || modoAtuacaoAdmin === 'CIDADAO'
 
   const [menuAberto, setMenuAberto] = useState(false)
   const menuRef = useRef(null)
@@ -26,6 +33,7 @@ export default function Header() {
   const [notifAberto, setNotifAberto] = useState(false)
   const [notificacoes, setNotificacoes] = useState([])
   const notifRef = useRef(null)
+  const modoNotificacao = tipoUsuario === 'ADMIN' ? (modoAtuacaoAdmin ?? 'ADMIN') : 'CIDADAO'
 
   const primeiroNome = nome ? nome.split(' ')[0] : 'Usuário'
   const nomePerfil = primeiroNome
@@ -36,12 +44,18 @@ export default function Header() {
   const listaNaoLidas = notificacoes.filter((n) => !n.lida).slice(0, 5)
 
   useEffect(() => {
-    api.get('/notificacoes').then((res) => setNotificacoes(res.data)).catch(() => {})
-  }, [])
+    api
+      .get('/notificacoes', { params: { modo_atuacao: modoNotificacao } })
+      .then((res) => setNotificacoes(res.data))
+      .catch(() => {})
+  }, [modoNotificacao])
 
   const abrirNotif = () => {
     setNotifAberto(true)
-    api.get('/notificacoes').then((res) => setNotificacoes(res.data)).catch(() => {})
+    api
+      .get('/notificacoes', { params: { modo_atuacao: modoNotificacao } })
+      .then((res) => setNotificacoes(res.data))
+      .catch(() => {})
   }
 
   const fecharNotif = useCallback(() => {
@@ -60,10 +74,14 @@ export default function Header() {
         .catch(() => undefined)
         .finally(() => {
           setNotifAberto(false)
-          navigate(`/minhas-solicitacoes/${n.id_solicitacao}`)
+          if (tipoUsuario === 'ADMIN' && modoAtuacaoAdmin === 'ADMIN') {
+            navigate('/admin/solicitacoes')
+          } else {
+            navigate(`/minhas-solicitacoes/${n.id_solicitacao}`)
+          }
         })
     },
-    [navigate],
+    [navigate, tipoUsuario, modoAtuacaoAdmin],
   )
 
   useEffect(() => {
@@ -85,7 +103,7 @@ export default function Header() {
       <div className="mx-auto flex h-16 min-w-0 max-w-[1400px] items-center justify-between gap-2 px-3 sm:gap-3 sm:px-6">
 
         <Link
-          to="/home"
+          to={destinoLogo}
           className="flex items-center gap-2 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3cb478]/35 focus-visible:ring-offset-2"
           aria-label="Ir para o mapa"
         >
@@ -98,15 +116,6 @@ export default function Header() {
         <div className="min-w-0 flex-1" />
 
         <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
-          {tipoUsuario === 'ADMIN' && (
-            <Link
-              to="/admin/solicitacoes"
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#3cb478]/40 px-2 text-sm font-medium text-[#3cb478] transition-colors hover:bg-[#3cb478]/8 sm:px-3"
-            >
-              <Shield className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">Painel administrativo</span>
-            </Link>
-          )}
 
           {/* Notificações */}
           <div className="relative" ref={notifRef}>
@@ -177,14 +186,30 @@ export default function Header() {
 
             {menuAberto && (
               <div className="z-50 w-[min(13rem,calc(100vw-1.5rem))] rounded-xl border border-[#2a2a2a]/8 bg-white py-1 shadow-lg max-sm:fixed max-sm:right-3 max-sm:top-[calc(4rem+0.35rem)] sm:absolute sm:right-0 sm:mt-1 sm:min-w-[13rem] sm:w-auto">
-                <Link
-                  to="/minhas-solicitacoes"
-                  onClick={() => setMenuAberto(false)}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
-                >
-                  <ClipboardList className="h-4 w-4 text-[#2a2a2a]/40" />
-                  Minhas solicitações
-                </Link>
+                {exibirMinhasSolicitacoes && (
+                  <Link
+                    to="/minhas-solicitacoes"
+                    onClick={() => setMenuAberto(false)}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#2a2a2a] hover:bg-[#2a2a2a]/5 transition-colors"
+                  >
+                    <ClipboardList className="h-4 w-4 text-[#2a2a2a]/40" />
+                    Minhas solicitações
+                  </Link>
+                )}
+                {tipoUsuario === 'ADMIN' && modoAtuacaoAdmin === 'ADMIN' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAberto(false)
+                      setModoAtuacaoAdmin('CIDADAO')
+                      navigate('/home')
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-[#2a2a2a] transition-colors hover:bg-[#2a2a2a]/5"
+                  >
+                    <User className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
+                    Perfil de cidadão
+                  </button>
+                )}
                 <Link
                   to="/meu-perfil"
                   onClick={() => setMenuAberto(false)}
@@ -193,6 +218,20 @@ export default function Header() {
                   <UserCircle className="h-4 w-4 text-[#2a2a2a]/40" />
                   Meu perfil
                 </Link>
+                {tipoUsuario === 'ADMIN' && modoAtuacaoAdmin === 'CIDADAO' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAberto(false)
+                      setModoAtuacaoAdmin('ADMIN')
+                      navigate('/admin/mapa')
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-[#2a2a2a] transition-colors hover:bg-[#2a2a2a]/5"
+                  >
+                    <Shield className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
+                    Perfil admin
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {

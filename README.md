@@ -32,7 +32,10 @@ python --version   # 3.10 ou superior (recomendado 3.12+)
 node --version     # 22+
 psql --version     # 16+
 git --version
+docker compose version
 ```
+
+Para subir PostgreSQL e MinIO com Docker: no **Windows** e no **macOS**, abra o **Docker Desktop** e espere o engine ficar em execução antes de rodar `docker compose`. No Linux, o serviço Docker (`dockerd`) precisa estar ativo.
 
 ---
 
@@ -98,7 +101,7 @@ npm install
 npm run dev
 ```
 
-App: `http://localhost:5173`. A URL da API vem de `VITE_API_URL` ou, se não estiver definida, de `http://localhost:8000` (ver `frontend/src/services/api.js`).
+App: `http://localhost:5173`. A URL da API vem de `VITE_API_URL` ou, se não estiver definida, de `http://localhost:8000` (ver `frontend/src/services/api.js`). No dev com Vite, prefira abrir pelo hostname **`localhost`**; em alguns ambientes Windows o acesso só por `127.0.0.1` pode não coincidir com o bind do servidor.
 
 Para o Google Maps no dev, copie `frontend/.env.example` para `frontend/.env` e defina `VITE_GOOGLE_MAPS_API_KEY`. O `VITE_GOOGLE_MAPS_MAP_ID` pode ficar no `frontend/.env`, nos **repository secrets** do GitHub Actions e nos build args do Docker (`docker-compose.local.yml`) para o pipeline já receber o valor quando o front passar a usar no código; hoje o bundle só depende da API key. No deploy, configure os secrets `VITE_GOOGLE_MAPS_API_KEY` e `VITE_GOOGLE_MAPS_MAP_ID` (este último pode ficar vazio).
 
@@ -122,6 +125,13 @@ docker compose -f docker-compose.yml stop db minio
 | `No matching distribution found for alembic==...` e o pip lista versões antigas do Alembic | O interpretador do venv é **Python anterior a 3.10**. As dependências atuais exigem **3.10 ou mais**. No Windows, veja versões com `py --list` e crie o venv com uma instalada, por exemplo `py -3.11 -m venv venv`. |
 | `No suitable Python runtime found` ao usar `py -3.12` | O Python 3.12 não está instalado. Use uma versão que apareça em `py --list` (por exemplo 3.11) ou instale 3.12 em [python.org](https://www.python.org/downloads/) e marque a opção de adicionar ao PATH. |
 | Aviso do pip pedindo upgrade | Opcional, mas recomendado: com o venv ativo, `python -m pip install --upgrade pip`. |
+
+### Problemas comuns: Docker
+
+| Sintoma | O que fazer |
+| --------|-------------|
+| `failed to connect to the docker API`, `dockerDesktopLinuxEngine`, `npipe` (Windows) | Garanta que o **Docker Desktop** está aberto e com o engine rodando; no Linux, `sudo systemctl start docker` (ou equivalente). |
+| `Activate.ps1` não pode ser carregado (Política de execução) | No PowerShell como administrador: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`, ou use `cmd` e `venv\Scripts\activate.bat`. |
 
 ### Stack completa em Docker (build do backend e frontend)
 

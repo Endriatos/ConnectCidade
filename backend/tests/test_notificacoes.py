@@ -2,6 +2,8 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from unittest.mock import patch
 
+from app.crud.notificacao import criar_notificacao
+from app.models.usuario import Usuario
 from tests.conftest import (
     _cadastrar_e_logar,
     _criar_admin_e_logar,
@@ -231,3 +233,112 @@ def test_marcar_todas_sem_token_retorna_401(client):
     """PATCH /notificacoes/lidas sem token de autenticação deve retornar 401."""
     resp = client.patch("/notificacoes/lidas")
     assert resp.status_code == 401
+
+
+def test_admin_autor_nao_recebe_notificacao_de_status(client, db):
+    token_admin_autor = _criar_admin_e_logar(client, db, _gerar_cpf(1003), "notif_admin_autor@email.com")
+    token_admin_operador = _criar_admin_e_logar(client, db, _gerar_cpf(1004), "notif_admin_operador@email.com")
+
+    id_solicitacao = _criar_solicitacao(client, token_admin_autor)
+
+    notifs_antes = client.get(
+        "/notificacoes",
+        headers={"Authorization": f"Bearer {token_admin_autor}"},
+    ).json()
+
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp = client.patch(
+            f"/admin/solicitacoes/{id_solicitacao}/status",
+            json={"status_novo": "EM_ANALISE", "comentario": "Processando"},
+            headers={"Authorization": f"Bearer {token_admin_operador}"},
+        )
+    assert resp.status_code == 200
+
+    notifs_depois = client.get(
+        "/notificacoes",
+        headers={"Authorization": f"Bearer {token_admin_autor}"},
+    ).json()
+
+    assert len(notifs_depois) == len(notifs_antes)
+
+
+def test_admin_nao_lista_notificacao_legada_de_status(client, db):
+    token_admin_autor = _criar_admin_e_logar(client, db, _gerar_cpf(1005), "notif_admin_legado1@email.com")
+    token_admin_operador = _criar_admin_e_logar(client, db, _gerar_cpf(1006), "notif_admin_legado2@email.com")
+
+    id_solicitacao = _criar_solicitacao(client, token_admin_autor)
+
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp = client.patch(
+            f"/admin/solicitacoes/{id_solicitacao}/status",
+            json={"status_novo": "EM_ANALISE", "comentario": "Processando"},
+            headers={"Authorization": f"Bearer {token_admin_operador}"},
+        )
+    assert resp.status_code == 200
+
+    criar_notificacao(
+        db=db,
+        id_usuario=resp.json()["id_autor"],
+        id_solicitacao=id_solicitacao,
+        mensagem=f"O status da sua solicitação {resp.json()['protocolo']} foi atualizado para Em Análise.",
+    )
+
+    notifs_admin = client.get(
+        "/notificacoes",
+        headers={"Authorization": f"Bearer {token_admin_autor}"},
+    ).json()
+    assert not any(n["mensagem"].startswith("O status da sua solicitação") for n in notifs_admin)
+
+
+def test_admin_lista_apenas_notificacao_de_avaliacao(client, db):
+    cpf_admin = _gerar_cpf(1007)
+    token_admin = _criar_admin_e_logar(client, db, _gerar_cpf(1007), "notif_admin_filtro@email.com")
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(1008), "notif_cidadao_filtro@email.com")
+    id_solicitacao = _criar_solicitacao(client, token_cidadao)
+    id_admin = db.query(Usuario.id_usuario).filter(Usuario.cpf == cpf_admin).scalar()
+
+    criar_notificacao(
+        db=db,
+        id_usuario=id_admin,
+        id_solicitacao=id_solicitacao,
+        mensagem="O status da sua solicitação ABC123 foi atualizado para Em Análise.",
+    )
+    criar_notificacao(
+        db=db,
+        id_usuario=id_admin,
+        id_solicitacao=id_solicitacao,
+        mensagem="A solicitação ABC123 foi avaliada pelo cidadão.",
+    )
+
+    notifs_admin = client.get(
+        "/notificacoes",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    ).json()
+
+    assert all("foi avaliada pelo cidadão" in n["mensagem"] for n in notifs_admin)
+
+
+def test_admin_em_modo_cidadao_lista_notificacao_de_status(client, db):
+    cpf_admin = _gerar_cpf(1009)
+    token_admin = _criar_admin_e_logar(client, db, cpf_admin, "notif_admin_modo@email.com")
+    id_admin = db.query(Usuario.id_usuario).filter(Usuario.cpf == cpf_admin).scalar()
+    id_solicitacao = _criar_solicitacao(client, token_admin)
+
+    criar_notificacao(
+        db=db,
+        id_usuario=id_admin,
+        id_solicitacao=id_solicitacao,
+        mensagem="O status da sua solicitação XYZ123 foi atualizado para Em Análise.",
+    )
+
+    notifs_modo_cidadao = client.get(
+        "/notificacoes?modo_atuacao=CIDADAO",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    ).json()
+    notifs_modo_admin = client.get(
+        "/notificacoes?modo_atuacao=ADMIN",
+        headers={"Authorization": f"Bearer {token_admin}"},
+    ).json()
+
+    assert any(n["mensagem"].startswith("O status da sua solicitação") for n in notifs_modo_cidadao)
+    assert not any(n["mensagem"].startswith("O status da sua solicitação") for n in notifs_modo_admin)

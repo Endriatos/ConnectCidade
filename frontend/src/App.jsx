@@ -18,8 +18,11 @@ import Dashboard from './pages/admin/Dashboard'
 import Solicitacoes from './pages/admin/Solicitacoes'
 import Usuarios from './pages/admin/Usuarios'
 import UsuarioGerenciar from './pages/admin/UsuarioGerenciar'
+import MapaCidade from './pages/admin/MapaCidade'
 import RotaProtegida from './components/RotaProtegida'
 import RotaAdmin from './components/RotaAdmin'
+import RotaSoCidadao from './components/RotaSoCidadao'
+import RotaHome from './components/RotaHome'
 
 function App() {
   return (
@@ -36,15 +39,43 @@ function App() {
         <Route path="/health" element={<Health />} />
 
         {/* Rotas protegidas — exigem token JWT */}
-        <Route path="/home" element={<RotaProtegida><Home /></RotaProtegida>} />
+        <Route
+          path="/home"
+          element={
+            <RotaProtegida>
+              <RotaHome>
+                <Home />
+              </RotaHome>
+            </RotaProtegida>
+          }
+        />
         <Route path="/nova-solicitacao" element={<RotaProtegida><NovaSolicitacao /></RotaProtegida>} />
-        <Route path="/minhas-solicitacoes" element={<RotaProtegida><MinhasSolicitacoes /></RotaProtegida>} />
-        <Route path="/minhas-solicitacoes/:idSolicitacao" element={<RotaProtegida><DetalheMinhaSolicitacao /></RotaProtegida>} />
+        <Route
+          path="/minhas-solicitacoes"
+          element={
+            <RotaProtegida>
+              <RotaSoCidadao>
+                <MinhasSolicitacoes />
+              </RotaSoCidadao>
+            </RotaProtegida>
+          }
+        />
+        <Route
+          path="/minhas-solicitacoes/:idSolicitacao"
+          element={
+            <RotaProtegida>
+              <RotaSoCidadao>
+                <DetalheMinhaSolicitacao />
+              </RotaSoCidadao>
+            </RotaProtegida>
+          }
+        />
         <Route path="/meu-perfil" element={<RotaProtegida><MeuPerfil /></RotaProtegida>} />
 
         {/* Painel administrativo — exige tipo ADMIN */}
         <Route path="/admin" element={<RotaAdmin><PainelAdmin /></RotaAdmin>}>
           <Route index element={<Dashboard />} />
+          <Route path="mapa" element={<MapaCidade />} />
           <Route path="solicitacoes" element={<Solicitacoes />} />
           <Route path="usuarios" element={<Usuarios />} />
           <Route path="usuarios/:id" element={<UsuarioGerenciar />} />

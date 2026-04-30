@@ -6,7 +6,6 @@ export default function RotaHome({ children }) {
   const modoAtuacaoAdmin = useAuthStore((s) => s.modoAtuacaoAdmin)
 
   if (tipoUsuario !== 'ADMIN') return children
-  if (modoAtuacaoAdmin == null) return <Navigate to="/continuar" replace />
   if (modoAtuacaoAdmin === 'ADMIN') return <Navigate to="/admin/mapa" replace />
   return children
 }

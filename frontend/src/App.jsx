@@ -12,7 +12,6 @@ import NovaSolicitacao from './pages/NovaSolicitacao'
 import MinhasSolicitacoes from './pages/MinhasSolicitacoes'
 import DetalheMinhaSolicitacao from './pages/DetalheMinhaSolicitacao'
 import MeuPerfil from './pages/MeuPerfil'
-import ContinuarAposLogin from './pages/ContinuarAposLogin'
 import Health from './pages/Health'
 import PainelAdmin from './pages/PainelAdmin'
 import Dashboard from './pages/admin/Dashboard'
@@ -72,7 +71,6 @@ function App() {
           }
         />
         <Route path="/meu-perfil" element={<RotaProtegida><MeuPerfil /></RotaProtegida>} />
-        <Route path="/continuar" element={<RotaProtegida><ContinuarAposLogin /></RotaProtegida>} />
 
         {/* Painel administrativo — exige tipo ADMIN */}
         <Route path="/admin" element={<RotaAdmin><PainelAdmin /></RotaAdmin>}>

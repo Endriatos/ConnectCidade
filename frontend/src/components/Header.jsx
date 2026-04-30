@@ -33,6 +33,7 @@ export default function Header() {
   const [notifAberto, setNotifAberto] = useState(false)
   const [notificacoes, setNotificacoes] = useState([])
   const notifRef = useRef(null)
+  const modoNotificacao = tipoUsuario === 'ADMIN' ? (modoAtuacaoAdmin ?? 'ADMIN') : 'CIDADAO'
 
   const primeiroNome = nome ? nome.split(' ')[0] : 'Usuário'
   const nomePerfil = primeiroNome
@@ -43,12 +44,18 @@ export default function Header() {
   const listaNaoLidas = notificacoes.filter((n) => !n.lida).slice(0, 5)
 
   useEffect(() => {
-    api.get('/notificacoes').then((res) => setNotificacoes(res.data)).catch(() => {})
-  }, [])
+    api
+      .get('/notificacoes', { params: { modo_atuacao: modoNotificacao } })
+      .then((res) => setNotificacoes(res.data))
+      .catch(() => {})
+  }, [modoNotificacao])
 
   const abrirNotif = () => {
     setNotifAberto(true)
-    api.get('/notificacoes').then((res) => setNotificacoes(res.data)).catch(() => {})
+    api
+      .get('/notificacoes', { params: { modo_atuacao: modoNotificacao } })
+      .then((res) => setNotificacoes(res.data))
+      .catch(() => {})
   }
 
   const fecharNotif = useCallback(() => {

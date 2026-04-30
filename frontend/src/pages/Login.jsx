@@ -106,11 +106,7 @@ export default function Login() {
       navigate('/home', { replace: true })
       return
     }
-    if (modo === 'ADMIN') {
-      navigate('/admin/solicitacoes', { replace: true })
-      return
-    }
-    navigate('/continuar', { replace: true })
+    navigate('/admin/mapa', { replace: true })
   }, [token, navigate])
 
   const sessaoExpirada = new URLSearchParams(location.search).get('sessao') === 'expirada'
@@ -154,15 +150,13 @@ export default function Login() {
           navigate(destino, { replace: true })
           return
         }
-        setModo('CIDADAO')
         navigate(destino, { replace: true })
         return
       }
 
       const modo = useAuthStore.getState().modoAtuacaoAdmin
       if (modo === 'CIDADAO') navigate('/home', { replace: true })
-      else if (modo === 'ADMIN') navigate('/admin/solicitacoes', { replace: true })
-      else navigate('/continuar', { replace: true })
+      else navigate('/admin/mapa', { replace: true })
     } catch (err) {
       const detail = err.response?.data?.detail
       if (detail?.code === 'email_nao_confirmado') {

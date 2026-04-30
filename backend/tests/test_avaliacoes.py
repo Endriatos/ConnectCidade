@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 from app.models.solicitacao import Solicitacao, StatusSolicitacao
 from tests.conftest import (
     _cadastrar_e_logar,
+    _criar_admin_e_logar,
     _criar_solicitacao,
     _gerar_cpf,
 )
@@ -135,3 +138,83 @@ def test_avaliar_sem_autenticacao(client):
         json={"foi_resolvido": True, "nota": 4},
     )
     assert resp.status_code in (401, 403)
+
+
+def test_avaliar_dispara_notificacao_apenas_para_admins_envolvidos(client, db):
+    token_cidadao = _cadastrar_e_logar(client, _gerar_cpf(907), "avaliacao7@email.com")
+    id_sol = _criar_solicitacao(client, token_cidadao)
+    token_admin_1 = _criar_admin_e_logar(client, db, _gerar_cpf(908), "avaliacao_admin1@email.com")
+    token_admin_2 = _criar_admin_e_logar(client, db, _gerar_cpf(909), "avaliacao_admin2@email.com")
+    token_admin_nao_env = _criar_admin_e_logar(client, db, _gerar_cpf(910), "avaliacao_admin3@email.com")
+
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp_status_1 = client.patch(
+            f"/admin/solicitacoes/{id_sol}/status",
+            json={"status_novo": "EM_ANALISE", "comentario": "Análise iniciada"},
+            headers={"Authorization": f"Bearer {token_admin_1}"},
+        )
+        assert resp_status_1.status_code == 200
+
+        resp_status_2 = client.patch(
+            f"/admin/solicitacoes/{id_sol}/status",
+            json={"status_novo": "EM_ANDAMENTO", "comentario": "Equipe em campo"},
+            headers={"Authorization": f"Bearer {token_admin_2}"},
+        )
+        assert resp_status_2.status_code == 200
+
+        resp_status_3 = client.patch(
+            f"/admin/solicitacoes/{id_sol}/status",
+            json={"status_novo": "RESOLVIDO", "comentario": "Concluído"},
+            headers={"Authorization": f"Bearer {token_admin_1}"},
+        )
+        assert resp_status_3.status_code == 200
+
+    with patch("app.routers.avaliacoes.enviar_email"):
+        resp_avaliar = client.post(
+            _url_avaliar(id_sol),
+            json={"foi_resolvido": True, "nota": 5, "comentario": "Tudo certo"},
+            headers={"Authorization": f"Bearer {token_cidadao}"},
+        )
+    assert resp_avaliar.status_code == 201
+
+    notifs_admin_1 = client.get("/notificacoes", headers={"Authorization": f"Bearer {token_admin_1}"})
+    notifs_admin_2 = client.get("/notificacoes", headers={"Authorization": f"Bearer {token_admin_2}"})
+    notifs_admin_3 = client.get("/notificacoes", headers={"Authorization": f"Bearer {token_admin_nao_env}"})
+    notifs_cidadao = client.get("/notificacoes", headers={"Authorization": f"Bearer {token_cidadao}"})
+
+    assert any("foi avaliada pelo cidadão" in n["mensagem"] for n in notifs_admin_1.json())
+    assert any("foi avaliada pelo cidadão" in n["mensagem"] for n in notifs_admin_2.json())
+    assert not any("foi avaliada pelo cidadão" in n["mensagem"] for n in notifs_admin_3.json())
+    assert not any("foi avaliada pelo cidadão" in n["mensagem"] for n in notifs_cidadao.json())
+
+
+def test_admin_autor_da_solicitacao_nao_recebe_notificacao_de_avaliacao(client, db):
+    token_admin_autor = _criar_admin_e_logar(client, db, _gerar_cpf(911), "avaliacao_admin_autor@email.com")
+    token_admin_operador = _criar_admin_e_logar(client, db, _gerar_cpf(912), "avaliacao_admin_operador@email.com")
+    id_sol = _criar_solicitacao(client, token_admin_autor)
+
+    with patch("app.routers.admin.solicitacoes.enviar_email"):
+        resp_status_1 = client.patch(
+            f"/admin/solicitacoes/{id_sol}/status",
+            json={"status_novo": "EM_ANALISE", "comentario": "Análise iniciada"},
+            headers={"Authorization": f"Bearer {token_admin_operador}"},
+        )
+        assert resp_status_1.status_code == 200
+
+        resp_status_2 = client.patch(
+            f"/admin/solicitacoes/{id_sol}/status",
+            json={"status_novo": "RESOLVIDO", "comentario": "Concluído"},
+            headers={"Authorization": f"Bearer {token_admin_operador}"},
+        )
+        assert resp_status_2.status_code == 200
+
+    with patch("app.routers.avaliacoes.enviar_email"):
+        resp_avaliar = client.post(
+            _url_avaliar(id_sol),
+            json={"foi_resolvido": True, "nota": 5, "comentario": "Tudo certo"},
+            headers={"Authorization": f"Bearer {token_admin_autor}"},
+        )
+    assert resp_avaliar.status_code == 201
+
+    notifs_admin_autor = client.get("/notificacoes", headers={"Authorization": f"Bearer {token_admin_autor}"})
+    assert not any("foi avaliada pelo cidadão" in n["mensagem"] for n in notifs_admin_autor.json())

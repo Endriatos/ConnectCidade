@@ -4,7 +4,8 @@ function readModoAtuacaoAdminInicial() {
   const t = localStorage.getItem('tipoUsuario')
   if (t !== 'ADMIN') return null
   const m = localStorage.getItem('modoAtuacaoAdmin')
-  return m === 'CIDADAO' || m === 'ADMIN' ? m : null
+  if (m === 'CIDADAO' || m === 'ADMIN') return m
+  return 'ADMIN'
 }
 
 const useAuthStore = create((set) => ({
@@ -15,16 +16,17 @@ const useAuthStore = create((set) => ({
   loggedOut: false,
 
   login: (token, tipoUsuario) => {
+    const tipoNorm =
+      tipoUsuario != null ? String(tipoUsuario).toUpperCase() : tipoUsuario
     localStorage.setItem('token', token)
-    localStorage.setItem('tipoUsuario', tipoUsuario)
-    if (tipoUsuario !== 'ADMIN') {
+    localStorage.setItem('tipoUsuario', tipoNorm)
+    if (tipoNorm !== 'ADMIN') {
       localStorage.removeItem('modoAtuacaoAdmin')
-      set({ token, tipoUsuario, modoAtuacaoAdmin: null, loggedOut: false })
+      set({ token, tipoUsuario: tipoNorm, modoAtuacaoAdmin: null, loggedOut: false })
       return
     }
-    const m = localStorage.getItem('modoAtuacaoAdmin')
-    const modo = m === 'CIDADAO' || m === 'ADMIN' ? m : null
-    set({ token, tipoUsuario, modoAtuacaoAdmin: modo, loggedOut: false })
+    localStorage.setItem('modoAtuacaoAdmin', 'ADMIN')
+    set({ token, tipoUsuario: tipoNorm, modoAtuacaoAdmin: 'ADMIN', loggedOut: false })
   },
 
   setModoAtuacaoAdmin: (modo) => {

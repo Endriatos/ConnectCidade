@@ -6,6 +6,5 @@ export default function RotaSoCidadao({ children }) {
   const modoAtuacaoAdmin = useAuthStore((s) => s.modoAtuacaoAdmin)
   if (tipoUsuario !== 'ADMIN') return children
   if (modoAtuacaoAdmin === 'CIDADAO') return children
-  if (modoAtuacaoAdmin == null) return <Navigate to="/continuar" replace />
-  return <Navigate to="/admin/solicitacoes" replace />
+  return <Navigate to="/admin/mapa" replace />
 }

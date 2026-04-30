@@ -1,9 +1,10 @@
-from typing import List
+from typing import List, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.crud.notificacao import listar_notificacoes, marcar_como_lida, marcar_todas_como_lidas
+from app.models.usuario import TipoUsuario
 from app.schemas.notificacao import NotificacaoResponse
 from app.utils.deps import get_db, get_usuario_atual
 
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/notificacoes", tags=["Notificações"])
 
 @router.get("", response_model=List[NotificacaoResponse])
 def listar(
+    modo_atuacao: Literal["ADMIN", "CIDADAO"] | None = None,
     db: Session = Depends(get_db),
     # Exige usuário autenticado — retorna 401/403 se não houver token válido
     usuario_atual=Depends(get_usuario_atual),
@@ -21,7 +23,12 @@ def listar(
     ordenadas da mais recente para a mais antiga.
     Notificações com mais de 90 dias são removidas automaticamente antes da listagem.
     """
-    return listar_notificacoes(db, usuario_atual.id_usuario)
+    tipo_contexto = usuario_atual.tipo_usuario
+    # Para admins com alternância de perfil no frontend, respeita o modo de atuação
+    # informado na requisição para devolver o conjunto correto de notificações.
+    if usuario_atual.tipo_usuario == TipoUsuario.ADMIN and modo_atuacao in ("ADMIN", "CIDADAO"):
+        tipo_contexto = TipoUsuario(modo_atuacao)
+    return listar_notificacoes(db, usuario_atual.id_usuario, tipo_contexto)
 
 
 @router.patch("/{id_notificacao}/lida", response_model=NotificacaoResponse)

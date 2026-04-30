@@ -205,14 +205,13 @@ def atualizar_status_solicitacao(
         "CANCELADO": "Cancelado",
     }
     status_formatado = _rotulos_status.get(solicitacao.status.value, solicitacao.status.value)
-    mensagem = (
-        f"O status da sua solicitação {solicitacao.protocolo} "
-        f"foi atualizado para {status_formatado}."
-    )
-    criar_notificacao(db, solicitacao.id_autor, solicitacao.id_solicitacao, mensagem)
-
     autor = get_usuario_por_id(db, solicitacao.id_autor)
     if autor:
+        mensagem = (
+            f"O status da sua solicitação {solicitacao.protocolo} "
+            f"foi atualizado para {status_formatado}."
+        )
+        criar_notificacao(db, solicitacao.id_autor, solicitacao.id_solicitacao, mensagem)
         background_tasks.add_task(
             _enviar_email_status,
             autor.email,

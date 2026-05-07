@@ -8,7 +8,7 @@ export default function RotaProtegida({ children }) {
   const location = useLocation()
 
   if (!token) {
-    return <Navigate to="/login" state={{ avisoLogin: !loggedOut, from: location.pathname }} replace />
+    return <Navigate to="/login" state={{ avisoLogin: !loggedOut, from: loggedOut ? undefined : location.pathname }} replace />
   }
 
   return children

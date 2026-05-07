@@ -50,6 +50,8 @@ export default function Solicitacoes() {
   const [dataFim, setDataFim] = useState('')
   const [ocultarEncerradas, setOcultarEncerradas] = useState(true)
 
+  const [ordenacao, setOrdenacao] = useState({ campo: null, direcao: 'asc' })
+
   const [focoSolicitacao, setFocoSolicitacao] = useState(null)
   const [selecionada, setSelecionada] = useState(null)
   const [toast, setToast] = useState(null)
@@ -108,6 +110,10 @@ export default function Solicitacoes() {
     if (dataInicio) params.set('data_inicio', dataInicio)
     if (dataFim) params.set('data_fim', dataFim)
     if (ocultarEncerradas) params.set('ocultar_encerradas', 'true')
+    if (ordenacao.campo) {
+      params.set('ordenar_por', ordenacao.campo)
+      params.set('direcao', ordenacao.direcao)
+    }
     params.set('pagina', pag)
     params.set('por_pagina', 20)
 
@@ -120,7 +126,19 @@ export default function Solicitacoes() {
       })
       .catch(() => {})
       .finally(() => setCarregando(false))
-  }, [protocolo, endereco, idCategoria, status, dataInicio, dataFim, ocultarEncerradas])
+  }, [protocolo, endereco, idCategoria, status, dataInicio, dataFim, ocultarEncerradas, ordenacao])
+
+  useEffect(() => {
+    if (buscaRealizada) buscar(1)
+  }, [ordenacao]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const ordenarColuna = (campo) => {
+    setOrdenacao((prev) => {
+      if (prev.campo !== campo) return { campo, direcao: 'asc' }
+      if (prev.direcao === 'asc') return { campo, direcao: 'desc' }
+      return { campo: null, direcao: 'asc' }
+    })
+  }
 
   const handleSubmitFiltros = (e) => {
     e.preventDefault()
@@ -363,14 +381,14 @@ export default function Solicitacoes() {
       <div className="bg-white border border-black/8 rounded-2xl overflow-hidden">
         {!buscaRealizada ? (
           <p className="text-sm text-[#2a2a2a]/40 text-center py-16">Selecione ao menos um filtro e clique em Buscar.</p>
-        ) : carregando ? (
+        ) : carregando && itens.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <div className="w-5 h-5 border-2 border-[#3cb478] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : itens.length === 0 ? (
           <p className="text-sm text-[#2a2a2a]/40 text-center py-16">Nenhuma solicitação encontrada.</p>
         ) : (
-          <>
+          <div className={`transition-opacity duration-150 ${carregando ? 'opacity-50 pointer-events-none' : ''}`}>
             <AdminSolicitacoesTable
               itens={itens}
               categoriasPorId={catMap}
@@ -378,6 +396,8 @@ export default function Solicitacoes() {
               onRowClick={onTabelaRowClick}
               onGerenciarClick={onTabelaGerenciar}
               rowClassName={tabelaRowClassName}
+              ordenacao={ordenacao}
+              onOrdenar={ordenarColuna}
             />
 
             {/* Paginação */}
@@ -407,7 +427,7 @@ export default function Solicitacoes() {
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 

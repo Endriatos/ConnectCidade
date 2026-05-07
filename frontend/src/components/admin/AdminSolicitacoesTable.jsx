@@ -1,6 +1,24 @@
-import { Circle } from 'lucide-react'
+import { Circle, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { STATUS_ICONE, STATUS_LABEL, formatarData } from '../../utils/solicitacaoStatus'
 import { iconeCategoria } from '../../utils/categoriaIcone'
+
+function ThOrdenavel({ campo, label, ordenacao, onOrdenar, className = '' }) {
+  const ativo = ordenacao?.campo === campo
+  const direcao = ativo ? ordenacao.direcao : null
+  const Icone = direcao === 'asc' ? ChevronUp : direcao === 'desc' ? ChevronDown : ChevronsUpDown
+  return (
+    <th className={`text-left px-4 py-3 font-medium whitespace-nowrap ${className}`}>
+      <button
+        type="button"
+        onClick={() => onOrdenar?.(campo)}
+        className="inline-flex items-center gap-1 hover:text-[#2a2a2a]/70 transition-colors"
+      >
+        {label}
+        <Icone className={`h-3 w-3 shrink-0 ${ativo ? 'text-[#3cb478]' : 'opacity-40'}`} />
+      </button>
+    </th>
+  )
+}
 
 export default function AdminSolicitacoesTable({
   itens,
@@ -9,6 +27,8 @@ export default function AdminSolicitacoesTable({
   onGerenciarClick,
   rowClassName,
   showSolicitante = false,
+  ordenacao,
+  onOrdenar,
 }) {
   return (
     <div className="overflow-x-auto">
@@ -19,8 +39,8 @@ export default function AdminSolicitacoesTable({
             <th className="text-left px-4 py-3 font-medium w-px whitespace-nowrap">Categoria</th>
             <th className="text-left px-4 py-3 font-medium w-px whitespace-nowrap">Status</th>
             <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Endereço</th>
-            <th className="text-left px-4 py-3 font-medium hidden lg:table-cell whitespace-nowrap">Data</th>
-            <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Apoios</th>
+            <ThOrdenavel campo="data_registro" label="Data" ordenacao={ordenacao} onOrdenar={onOrdenar} className="hidden lg:table-cell" />
+            <ThOrdenavel campo="contador_apoios" label="Apoios" ordenacao={ordenacao} onOrdenar={onOrdenar} className="hidden lg:table-cell" />
             {showSolicitante && (
               <th className="text-left px-4 py-3 font-medium hidden xl:table-cell">Solicitante</th>
             )}

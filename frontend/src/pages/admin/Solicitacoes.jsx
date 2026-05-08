@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useCallback, useMemo } from 'react'
+﻿import { useState, useEffect, useCallback } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Search, X, ChevronLeft, ChevronRight, AlertTriangle, ThumbsUp, Clock, RefreshCw } from 'lucide-react'
 import api from '../../services/api'
 import MapaMini from '../../components/admin/MapaMini'
@@ -32,6 +33,11 @@ const STATUS_OPCOES = [
 const inputCls = 'h-9 px-3 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60 placeholder:text-[#2a2a2a]/30 w-full'
 
 export default function Solicitacoes() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const abrirId = location.state?.abrirSolicitacao
+  const abrirHistoricoAvaliacao = location.state?.abrirHistoricoAvaliacao === true
+
   const [fila, setFila] = useState([])
 
   const [categorias, setCategorias] = useState([])
@@ -87,8 +93,17 @@ export default function Solicitacoes() {
   }, [carregarFila])
 
   useEffect(() => {
-    buscar(1)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    if (abrirId == null || !Number.isFinite(Number(abrirId))) return
+    setSelecionada({
+      id_solicitacao: Number(abrirId),
+      status: 'PENDENTE',
+      abrirHistoricoAvaliacao,
+    })
+    navigate(
+      { pathname: location.pathname, search: location.search },
+      { replace: true, state: null },
+    )
+  }, [abrirHistoricoAvaliacao, abrirId, location.pathname, location.search, navigate])
 
   const catMap = Object.fromEntries(categorias.map((c) => [c.id_categoria, c]))
 
@@ -127,6 +142,10 @@ export default function Solicitacoes() {
       .catch(() => {})
       .finally(() => setCarregando(false))
   }, [protocolo, endereco, idCategoria, status, dataInicio, dataFim, ocultarEncerradas, ordenacao])
+
+  useEffect(() => {
+    buscar(1)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (buscaRealizada) buscar(1)
@@ -434,6 +453,7 @@ export default function Solicitacoes() {
       {selecionada !== null && (
         <ModalGerenciarSolicitacao
           preview={selecionada}
+          abrirHistoricoAvaliacao={selecionada?.abrirHistoricoAvaliacao === true}
           categorias={categorias}
           meuIdUsuario={meuIdUsuario}
           onClose={fecharModal}

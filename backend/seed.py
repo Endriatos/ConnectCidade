@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import SessionLocal
-from app.models import Categoria, TipoUsuario, Usuario
+from app.models import Categoria, StatusConta, TipoUsuario, Usuario
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -57,7 +57,7 @@ def seed_admin(db: Session) -> None:
         email=settings.ADMIN_EMAIL,
         senha_hash=pwd_context.hash(settings.ADMIN_SENHA),
         data_nascimento=date(1990, 1, 1),
-        status_ativo=True,
+        status_conta=StatusConta.ATIVO,
     )
     db.add(admin)
     db.commit()

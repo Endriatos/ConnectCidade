@@ -5,6 +5,10 @@ import useAuthStore from '../store/authStore'
 import api from '../services/api'
 import iconCC from '../assets/iconCC.png'
 
+function notificacaoEhAvaliacaoCidadao(n) {
+  return typeof n.mensagem === 'string' && /foi avaliada pelo cidadão/i.test(n.mensagem)
+}
+
 function tempoRelativo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
   const min = Math.floor(diff / 60000)
@@ -75,7 +79,12 @@ export default function Header() {
         .finally(() => {
           setNotifAberto(false)
           if (tipoUsuario === 'ADMIN' && modoAtuacaoAdmin === 'ADMIN') {
-            navigate('/admin/solicitacoes')
+            navigate('/admin/solicitacoes', {
+              state: {
+                abrirSolicitacao: n.id_solicitacao,
+                abrirHistoricoAvaliacao: notificacaoEhAvaliacaoCidadao(n),
+              },
+            })
           } else {
             navigate(`/minhas-solicitacoes/${n.id_solicitacao}`)
           }

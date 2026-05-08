@@ -41,6 +41,7 @@ const inputCls =
 
 export default function ModalGerenciarSolicitacao({
   preview,
+  abrirHistoricoAvaliacao = false,
   categorias,
   meuIdUsuario,
   onClose,
@@ -80,7 +81,7 @@ export default function ModalGerenciarSolicitacao({
     setFotosModal([])
     setCarregandoFotos(true)
     setTimeline([])
-    setHistoricoAberto(false)
+    setHistoricoAberto(abrirHistoricoAvaliacao)
     setFotoAtiva(null)
     Promise.allSettled([
       api
@@ -120,7 +121,7 @@ export default function ModalGerenciarSolicitacao({
       if (modalCargaRef.current !== seq) return
       setCarregandoModal(false)
     })
-  }, [preview])
+  }, [abrirHistoricoAvaliacao, preview])
 
   const fecharModal = () => {
     modalCargaRef.current += 1
@@ -410,7 +411,11 @@ export default function ModalGerenciarSolicitacao({
                       ))}
                     </div>
                   ) : (
-                    <Timeline eventos={eventosTimeline} />
+                    <Timeline
+                      eventos={eventosTimeline}
+                      autoFocusTipo={historicoAberto && abrirHistoricoAvaliacao ? 'avaliacao' : null}
+                      autoFocusToken={`${preview.id_solicitacao}-${timeline.length}-${historicoAberto}`}
+                    />
                   )}
                 </div>
               )}

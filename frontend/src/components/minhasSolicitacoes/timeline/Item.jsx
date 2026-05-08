@@ -48,6 +48,8 @@ export default function Item({
   nota,
   textoAvaliacao,
   textoIndicacaoResolucao,
+  destaque = false,
+  itemRef = null,
 }) {
   const previsto = tipo === 'previsto'
   const destaqueAtual = estado === 'atual'
@@ -69,7 +71,10 @@ export default function Item({
   const IconeStatus = status ? STATUS_ICONE[status] : null
 
   return (
-    <li className={`relative flex gap-4 pb-10 last:pb-0 ${opacidade}`}>
+    <li
+      ref={itemRef}
+      className={`relative flex gap-4 pb-10 last:pb-0 ${opacidade}`}
+    >
       <div className="relative flex w-4 shrink-0 flex-col items-center">
         <span
           className={`relative z-10 mt-0.5 box-border h-5 w-5 shrink-0 rounded-full border ${classeBordaNo}`}

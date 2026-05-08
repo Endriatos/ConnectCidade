@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, Shield, User } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowLeft, Loader2, Shield, User } from 'lucide-react'
 import CardDadosPessoais from '../components/meuPerfil/CardDadosPessoais'
 import CardEncerrarConta from '../components/cardEncerrarConta/CardEncerrarConta'
 import CardSeguranca from '../components/meuPerfil/CardSeguranca'
@@ -28,6 +29,7 @@ function formatarDataCadastro(iso) {
 }
 
 export default function MeuPerfil() {
+  const navigate = useNavigate()
   const setNome = useAuthStore((s) => s.setNome)
 
   const [carregando, setCarregando] = useState(true)
@@ -57,6 +59,14 @@ export default function MeuPerfil() {
     setNome(data.nome_usuario)
   }
 
+  const handleVoltar = () => {
+    if (window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+    navigate('/home')
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#f5f5f5]">
       <Header />
@@ -66,6 +76,14 @@ export default function MeuPerfil() {
             <h1 className="text-2xl font-semibold text-[#2a2a2a]">Meu perfil</h1>
             <p className="mt-0.5 text-sm text-[#2a2a2a]/50">Atualize seus dados e gerencie a segurança da conta.</p>
           </div>
+          <button
+            type="button"
+            onClick={handleVoltar}
+            className="mt-2 inline-flex w-fit items-center gap-2 text-sm font-medium text-[#2a2a2a]/55 transition-colors hover:text-[#2a2a2a]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </button>
 
           {carregando && (
             <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-black/8 bg-white py-20 shadow-sm">

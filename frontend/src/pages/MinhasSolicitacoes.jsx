@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Plus } from 'lucide-react'
 import Header from '../components/Header'
 import Card from '../components/minhasSolicitacoes/card/Card'
 import Carregando from '../components/minhasSolicitacoes/card/Carregando'
@@ -85,7 +85,16 @@ function ListaMinhasSolicitacoes({ categoriasPorId }) {
 }
 
 export default function MinhasSolicitacoes() {
+  const navigate = useNavigate()
   const [categoriasPorId, setCategoriasPorId] = useState({})
+
+  const handleVoltar = () => {
+    if (window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+    navigate('/home')
+  }
 
   useEffect(() => {
     api
@@ -118,6 +127,14 @@ export default function MinhasSolicitacoes() {
               Registrar problema
             </Link>
           </div>
+          <button
+            type="button"
+            onClick={handleVoltar}
+            className="mt-2 inline-flex w-fit items-center gap-2 text-sm font-medium text-[#2a2a2a]/55 transition-colors hover:text-[#2a2a2a]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </button>
           <ListaMinhasSolicitacoes categoriasPorId={categoriasPorId} />
         </div>
       </main>

@@ -62,6 +62,7 @@ const clusterSVG = (count) => {
 }
 
 const CENTRO_PADRAO = { lat: -29.1678, lng: -51.1794 }
+const LIMITE_DESCRICAO_PREVIEW = 220
 
 export default function Mapa() {
   const [solicitacoes, setSolicitacoes] = useState([])
@@ -77,6 +78,7 @@ export default function Mapa() {
   const [catCarregada, setCatCarregada] = useState(false)
   const [solicitacoesCarregadas, setSolicitacoesCarregadas] = useState(false)
   const [tilesCarregados, setTilesCarregados] = useState(false)
+  const [descricaoExpandida, setDescricaoExpandida] = useState(false)
 
   const clustererRef = useRef(null)
   const localizacaoMarkerRef = useRef(null)
@@ -131,6 +133,11 @@ export default function Mapa() {
   }, [selecionada?.id_solicitacao])
 
   useEffect(() => { selecionadaRef.current = selecionada }, [selecionada])
+
+  useEffect(() => {
+    setDescricaoExpandida(false)
+  }, [selecionada?.id_solicitacao])
+
 
   useEffect(() => {
     if (mapa && posicao && !posicaoCentradaRef.current) {
@@ -282,6 +289,12 @@ export default function Mapa() {
   const cat = selecionada ? categorias[selecionada.id_categoria] : null
   const Icone = cat ? iconeCategoria(cat.nome_categoria) : MapPin
   const IconeStatus = STATUS_ICONE[selecionada?.status] ?? MapPin
+  const descricaoCompleta = selecionada?.descricao ?? ''
+  const descricaoEhLonga = descricaoCompleta.length > LIMITE_DESCRICAO_PREVIEW
+  const descricaoExibida =
+    descricaoExpandida || !descricaoEhLonga
+      ? descricaoCompleta
+      : `${descricaoCompleta.slice(0, LIMITE_DESCRICAO_PREVIEW).trimEnd()}...`
 
   const catsArr = Object.values(categorias)
   const opcoes = [
@@ -388,38 +401,47 @@ export default function Mapa() {
           {/* Bottom sheet */}
           {selecionada && cat && (
             <div className="absolute bottom-0 left-0 right-0 z-10 bg-white rounded-t-2xl shadow-2xl max-h-[70vh] flex flex-col">
-              <div className="px-6 pt-5 pb-4 border-b border-black/5 shrink-0">
-                <div className="flex items-start justify-between">
-                  <div className="flex flex-col gap-2 min-w-0 overflow-hidden">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                      <span
-                        className="inline-flex min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70"
-                        style={{ borderColor: cat.cor_hex }}
-                      >
-                        <Icone className="h-4 w-4 shrink-0" style={{ color: cat.cor_hex }} />
-                        <span className="truncate">{cat.nome_categoria}</span>
-                      </span>
-                      <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70">
-                        <IconeStatus className="h-4 w-4 text-[#2a2a2a]/55" aria-hidden />
-                        {STATUS_LABEL[selecionada.status] ?? selecionada.status}
-                      </span>
+              <div className="flex-1 overflow-y-auto">
+                <div className="px-6 pt-5 pb-4 border-b border-black/5 shrink-0">
+                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col gap-2 min-w-0 overflow-hidden">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                        <span
+                          className="inline-flex min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border-2 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70"
+                          style={{ borderColor: cat.cor_hex }}
+                        >
+                          <Icone className="h-4 w-4 shrink-0" style={{ color: cat.cor_hex }} />
+                          <span className="truncate">{cat.nome_categoria}</span>
+                        </span>
+                        <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-black/8 bg-white px-3 py-1.5 text-sm font-medium text-[#2a2a2a]/70">
+                          <IconeStatus className="h-4 w-4 text-[#2a2a2a]/55" aria-hidden />
+                          {STATUS_LABEL[selecionada.status] ?? selecionada.status}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-2 text-sm text-[#2a2a2a]/50">
+                        <span className="font-mono">#{selecionada.protocolo}</span>
+                        <div>
+                          <span className="break-words">{descricaoExibida}</span>
+                          {descricaoEhLonga && (
+                            <button
+                              type="button"
+                              onClick={() => setDescricaoExpandida((v) => !v)}
+                              className="mt-1 inline-flex items-center text-xs font-medium text-[#1f5f3f] underline underline-offset-2 transition-colors hover:text-[#174a31]"
+                            >
+                              {descricaoExpandida ? 'Ver menos' : 'Ver mais'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-start gap-1.5 text-sm text-[#2a2a2a]/50">
-                      <span className="font-mono shrink-0">#{selecionada.protocolo}</span>
-                      <span className="text-[#2a2a2a]/40 shrink-0">·</span>
-                      <span className="break-words">{selecionada.descricao}</span>
-                    </div>
+                    <button
+                      onClick={() => setSelecionada(null)}
+                      className="text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors shrink-0 ml-2"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setSelecionada(null)}
-                    className="text-[#2a2a2a]/40 hover:text-[#2a2a2a]/70 transition-colors shrink-0 ml-2"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
                 </div>
-              </div>
-
-              <div className="overflow-y-auto">
                 <div className="px-6 py-4 space-y-2.5">
                   <div className="flex items-center gap-3 flex-wrap min-w-0">
                     <div className="flex items-start gap-2 text-sm text-[#2a2a2a]/70">

@@ -38,6 +38,7 @@ const STATUS_OPCOES = [
 
 const inputCls =
   'h-9 px-3 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60 placeholder:text-[#2a2a2a]/30 w-full'
+const LIMITE_DESCRICAO_PREVIEW = 280
 
 export default function ModalGerenciarSolicitacao({
   preview,
@@ -63,6 +64,7 @@ export default function ModalGerenciarSolicitacao({
   const [carregandoTimeline, setCarregandoTimeline] = useState(false)
   const [historicoAberto, setHistoricoAberto] = useState(false)
   const [modalEmBreve, setModalEmBreve] = useState(false)
+  const [descricaoExpandida, setDescricaoExpandida] = useState(false)
 
   const navigate = useNavigate()
   const catMap = useMemo(() => Object.fromEntries(categorias.map((c) => [c.id_categoria, c])), [categorias])
@@ -83,6 +85,7 @@ export default function ModalGerenciarSolicitacao({
     setTimeline([])
     setHistoricoAberto(abrirHistoricoAvaliacao)
     setFotoAtiva(null)
+    setDescricaoExpandida(false)
     Promise.allSettled([
       api
         .get(`/admin/solicitacoes/${id}`)
@@ -191,6 +194,13 @@ export default function ModalGerenciarSolicitacao({
     return marcarUltimaAvaliacaoComoEtapaAtual(eventosComDestaqueDeStatus)
   }, [detalhe, timeline])
 
+  const descricaoCompleta = detalhe?.descricao ?? ''
+  const descricaoEhLonga = descricaoCompleta.length > LIMITE_DESCRICAO_PREVIEW
+  const descricaoExibida =
+    descricaoExpandida || !descricaoEhLonga
+      ? descricaoCompleta
+      : `${descricaoCompleta.slice(0, LIMITE_DESCRICAO_PREVIEW).trimEnd()}...`
+
   return (
     <>
       <div
@@ -218,7 +228,8 @@ export default function ModalGerenciarSolicitacao({
               <p className="text-sm text-[#2a2a2a]/55">Carregando...</p>
             </div>
           )}
-          <div className="px-6 pt-5 pb-4 pr-14 border-b border-black/8 shrink-0">
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-6 pt-5 pb-4 pr-14 border-b border-black/8">
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 {erroDetalheModal && (
@@ -226,8 +237,26 @@ export default function ModalGerenciarSolicitacao({
                 )}
                 {detalhe && (
                   <>
-                    <p className="font-mono text-xs text-[#2a2a2a]/40 mb-1">#{detalhe.protocolo}</p>
-                    <p className="text-base font-semibold text-[#2a2a2a] leading-snug">{detalhe.descricao}</p>
+                    <div className="flex flex-col gap-2">
+                      <p className="font-mono text-xs text-[#2a2a2a]/40">#{detalhe.protocolo}</p>
+                      <div>
+                        <p className="text-base font-semibold text-[#2a2a2a] leading-snug break-words">
+                          {descricaoExibida}
+                          {descricaoEhLonga && (
+                            <>
+                              {' '}
+                              <button
+                                type="button"
+                                onClick={() => setDescricaoExpandida((v) => !v)}
+                                className="inline-flex items-center text-xs font-medium text-[#1f5f3f] underline underline-offset-2 transition-colors hover:text-[#174a31]"
+                              >
+                                {descricaoExpandida ? 'Ver menos' : 'Ver mais'}
+                              </button>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
                     <div className="flex flex-wrap items-center gap-2 mt-3">
                       {(() => {
                         const cat =
@@ -268,9 +297,7 @@ export default function ModalGerenciarSolicitacao({
                 )}
               </div>
             </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
+            </div>
             {detalhe && (
               <>
                 <div className="px-6 py-3 border-b border-black/8">

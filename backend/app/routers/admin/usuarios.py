@@ -281,6 +281,12 @@ def revogar_admin(
             detail="Não é permitido revogar o próprio acesso de administrador.",
         )
 
+    if usuario.cpf == settings.ADMIN_CPF:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="A permissão do administrador principal não pode ser revogada.",
+        )
+
     # Não faz sentido revogar quem já é cidadão comum
     if usuario.tipo_usuario == TipoUsuario.CIDADAO:
         raise HTTPException(

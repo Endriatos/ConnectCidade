@@ -29,7 +29,8 @@ class Solicitacao(Base):
     status = Column(SAEnum(StatusSolicitacao), nullable=False, default=StatusSolicitacao.PENDENTE)
     contador_apoios = Column(Integer, nullable=False, default=0)
     data_registro = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    data_atualizacao = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    # Sem onupdate — atualizado manualmente apenas em mudanças de status, para não ser zerado por apoios
+    data_atualizacao = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     data_resolucao = Column(DateTime(timezone=True), nullable=True)
 
     fotos = relationship("Foto", backref="solicitacao", order_by="Foto.ordem")

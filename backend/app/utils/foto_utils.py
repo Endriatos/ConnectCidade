@@ -4,7 +4,7 @@ import uuid
 
 import boto3
 from botocore.config import Config
-from PIL import Image
+from PIL import Image, ImageOps
 
 from app.config import settings
 
@@ -61,12 +61,17 @@ def processar_imagem(arquivo_bytes: bytes) -> bytes:
     Recebe os bytes brutos de uma imagem e retorna bytes de uma imagem JPEG
     processada, com as seguintes transformações:
 
+    - Correção de orientação via EXIF (fotos de celular em retrato não ficam deitadas)
     - Conversão para RGB (remove canal alpha de PNGs, por exemplo)
     - Redimensionamento proporcional para caber em 1920x1080 (sem distorção)
     - Compressão JPEG com qualidade 85 (bom equilíbrio entre tamanho e qualidade)
     - Remoção de metadados EXIF (privacidade: elimina GPS, câmera, autor, etc.)
     """
     imagem = Image.open(io.BytesIO(arquivo_bytes))
+
+    # Rotaciona os pixels conforme a tag EXIF de orientação antes de descartá-la
+    # Sem isso, fotos tiradas em modo retrato no celular ficam salvas na horizontal
+    imagem = ImageOps.exif_transpose(imagem)
 
     # Converte para RGB para garantir compatibilidade com JPEG (ex.: RGBA, P, L)
     if imagem.mode != "RGB":

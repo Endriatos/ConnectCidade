@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from app.models import Solicitacao
@@ -75,8 +77,9 @@ def create_solicitacao(db: Session, dados: SolicitacaoCreate, id_autor: int):
 
 
 def cancelar_solicitacao(db: Session, solicitacao: Solicitacao) -> Solicitacao:
-    # Atualiza o status da solicitação para CANCELADO e persiste no banco
     solicitacao.status = StatusSolicitacao.CANCELADO
+    # Atualizado manualmente porque data_atualizacao não usa onupdate — só muda em alterações de status
+    solicitacao.data_atualizacao = datetime.now(timezone.utc)
     db.commit()
     db.refresh(solicitacao)
     return solicitacao

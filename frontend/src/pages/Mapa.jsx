@@ -6,6 +6,7 @@ import api from '../services/api'
 import Lottie from 'lottie-react'
 import catLoading from '../assets/CatLoading.json'
 import { STATUS_ICONE, STATUS_LABEL } from '../utils/solicitacaoStatus'
+import { isDispositivoMobile } from '../utils/modoInicialAdmin'
 
 const LIBRARIES = ['places', 'marker']
 
@@ -95,6 +96,8 @@ export default function Mapa() {
 
   const dadosCarregados = catCarregada && solicitacoesCarregadas
   const carregandoMapa = !isLoaded || !tilesCarregados || !dadosCarregados
+  // cooperative no mobile: um dedo rola a página; dois dedos movem o mapa (greedy trava o scroll)
+  const gestureHandling = isDispositivoMobile() ? 'cooperative' : 'greedy'
 
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -328,7 +331,7 @@ export default function Mapa() {
               streetViewControl: false,
               mapTypeControl: false,
               fullscreenControl: false,
-              gestureHandling: 'greedy',
+              gestureHandling,
               mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? 'DEMO_MAP_ID',
             }}
           />

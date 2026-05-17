@@ -16,31 +16,26 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
       <Header />
 
-      {/* Conteúdo */}
-      <main className="flex-1">
-        <div
-          className="mx-auto px-6 py-6 flex flex-col gap-5"
-          style={{ maxWidth: '1400px' }}
-        >
-          <div className="flex items-center justify-between">
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto flex max-w-[1400px] flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-[#2a2a2a]">
+              <h1 className="text-xl font-semibold text-[#2a2a2a] sm:text-2xl">
                 Olá, {nomeSaudacao}!
               </h1>
-              <p className="text-sm text-[#2a2a2a]/50 mt-0.5">
+              <p className="mt-0.5 text-sm text-[#2a2a2a]/50">
                 Veja os problemas reportados na sua região
               </p>
             </div>
             <Link
               to="/nova-solicitacao"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#3cb478] text-white text-sm font-medium hover:bg-[#349d69] transition-colors"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#3cb478] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#349d69]"
             >
               <Plus className="h-4 w-4" />
               Registrar Problema
             </Link>
           </div>
 
-          {/* Mapa */}
           <div
             className="rounded-2xl overflow-hidden border border-black/8 shadow-sm"
             style={{ height: '70vh' }}

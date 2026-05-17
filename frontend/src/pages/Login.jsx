@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { Eye, EyeOff, X, MailCheck } from 'lucide-react'
 import api from '../services/api'
 import useAuthStore from '../store/authStore'
+import { destinoInicialAdmin } from '../utils/modoInicialAdmin'
 import iconCC from '../assets/iconCC.png'
 import PublicHeader from '../components/PublicHeader'
 
@@ -102,11 +103,7 @@ export default function Login() {
       navigate('/home', { replace: true })
       return
     }
-    if (modo === 'CIDADAO') {
-      navigate('/home', { replace: true })
-      return
-    }
-    navigate('/admin/mapa', { replace: true })
+    navigate(destinoInicialAdmin(modo), { replace: true })
   }, [token, navigate])
 
   const sessaoExpirada = new URLSearchParams(location.search).get('sessao') === 'expirada'
@@ -155,8 +152,7 @@ export default function Login() {
       }
 
       const modo = useAuthStore.getState().modoAtuacaoAdmin
-      if (modo === 'CIDADAO') navigate('/home', { replace: true })
-      else navigate('/admin/mapa', { replace: true })
+      navigate(destinoInicialAdmin(modo), { replace: true })
     } catch (err) {
       const detail = err.response?.data?.detail
       if (detail?.code === 'email_nao_confirmado') {

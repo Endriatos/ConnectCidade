@@ -1,11 +1,12 @@
 import { create } from 'zustand'
+import { modoInicialAdminPorUserAgent } from '../utils/modoInicialAdmin'
 
 function readModoAtuacaoAdminInicial() {
   const t = localStorage.getItem('tipoUsuario')
   if (t !== 'ADMIN') return null
   const m = localStorage.getItem('modoAtuacaoAdmin')
   if (m === 'CIDADAO' || m === 'ADMIN') return m
-  return 'ADMIN'
+  return modoInicialAdminPorUserAgent()
 }
 
 const useAuthStore = create((set) => ({
@@ -25,8 +26,9 @@ const useAuthStore = create((set) => ({
       set({ token, tipoUsuario: tipoNorm, modoAtuacaoAdmin: null, loggedOut: false })
       return
     }
-    localStorage.setItem('modoAtuacaoAdmin', 'ADMIN')
-    set({ token, tipoUsuario: tipoNorm, modoAtuacaoAdmin: 'ADMIN', loggedOut: false })
+    const modoInicial = modoInicialAdminPorUserAgent()
+    localStorage.setItem('modoAtuacaoAdmin', modoInicial)
+    set({ token, tipoUsuario: tipoNorm, modoAtuacaoAdmin: modoInicial, loggedOut: false })
   },
 
   setModoAtuacaoAdmin: (modo) => {

@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff, X, MailCheck, CalendarDays } from 'lucide-react'
 import api from '../services/api'
 import useAuthStore from '../store/authStore'
-import logoCC from '../assets/logoCC.png'
 import iconCC from '../assets/iconCC.png'
+import PublicHeader from '../components/PublicHeader'
 import {
   avaliarForca,
   classeInput,
@@ -390,22 +390,7 @@ export default function Cadastro() {
   return (
     <div className="min-h-screen flex flex-col">
 
-      {/* Header fixo no topo */}
-      <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-        <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
-          <Link to="/" className="flex items-center">
-            <img src={logoCC} alt="Connect Cidade" className="h-9" />
-          </Link>
-          <div className="flex items-center gap-3 translate-y-px">
-            <Link to="/login" className="text-sm font-medium text-[#2a2a2a]/60 hover:text-[#2a2a2a] transition-colors">
-              Entrar
-            </Link>
-            <Link to="/cadastro" className="text-sm font-medium px-4 py-2 rounded-lg bg-[#3cb478] text-white hover:bg-[#349d69] transition-colors">
-              Cadastrar
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* Conteúdo centralizado */}
       <div className="flex-1 flex items-center justify-center bg-[#f5f5f5] py-10">

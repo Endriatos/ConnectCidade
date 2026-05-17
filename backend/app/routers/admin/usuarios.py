@@ -198,7 +198,7 @@ def alterar_status_conta(
     db: Session = Depends(get_db),
     admin_atual: Usuario = Depends(get_admin_atual),
 ):
-    """Altera o status_conta de um usuário (0=PENDENTE, 1=ATIVO, 2=BLOQUEADO)."""
+    """Altera o status_conta de um usuário (PENDENTE, ATIVO ou BLOQUEADO)."""
     if id == admin_atual.id_usuario:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -215,10 +215,14 @@ def alterar_status_conta(
             detail="O estado da conta principal não pode ser alterado.",
         )
 
-    usuario.status_conta = StatusConta(body.status_conta)
+    usuario.status_conta = body.status_conta
     db.commit()
 
-    labels = {0: "Pendente", 1: "Ativa", 2: "Bloqueada"}
+    labels = {
+        StatusConta.PENDENTE: "Pendente",
+        StatusConta.ATIVO: "Ativa",
+        StatusConta.BLOQUEADO: "Bloqueada",
+    }
     return {"mensagem": f"Estado da conta de {usuario.nome_usuario} alterado para {labels[body.status_conta]}."}
 
 

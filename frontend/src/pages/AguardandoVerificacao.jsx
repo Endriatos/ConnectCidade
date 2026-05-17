@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { Loader2, MailCheck } from 'lucide-react'
 import api from '../services/api'
 import { classeInput, mensagemErroApi } from '../utils/meuPerfilForm'
-import logoCC from '../assets/logoCC.png'
 import iconCC from '../assets/iconCC.png'
+import PublicHeader from '../components/PublicHeader'
 
 function formatarCpf(v) {
   return v
@@ -44,16 +44,7 @@ export default function AguardandoVerificacao() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-        <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
-          <Link to="/" className="flex items-center">
-            <img src={logoCC} alt="Connect Cidade" className="h-9" />
-          </Link>
-          <Link to="/login" className="text-sm font-medium text-[#2a2a2a]/60 hover:text-[#2a2a2a] transition-colors">
-            Entrar
-          </Link>
-        </div>
-      </header>
+      <PublicHeader variant="login" />
 
       <div className="flex-1 flex items-center justify-center bg-[#f5f5f5] py-10">
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm px-8 py-10 text-center">

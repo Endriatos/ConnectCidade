@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.models.usuario import StatusConta
 from app.schemas.solicitacao import SolicitacaoResumoResponse  # necessário para CidadaoDetalheResponse
 from app.utils.auth_utils import validar_complexidade_senha as _validar_complexidade_senha
 
@@ -36,7 +37,7 @@ class UsuarioResponse(BaseModel):
     email: str
     telefone: Optional[str] = None
     data_nascimento: date
-    status_conta: int
+    status_conta: str
     data_cadastro: datetime
 
 
@@ -57,7 +58,7 @@ class AdministradorResponse(BaseModel):
     email: str
     cpf: str
     data_cadastro: datetime
-    status_conta: int
+    status_conta: str
     is_master: bool = False
 
 
@@ -71,13 +72,13 @@ class CidadaoBuscaResponse(BaseModel):
     cpf: str
     data_cadastro: datetime
     ja_e_admin: bool
-    status_conta: int
+    status_conta: str
     is_master: bool = False
 
 
 # Schema para alteração do status da conta pelo painel admin
 class AlterarStatusContaRequest(BaseModel):
-    status_conta: int = Field(..., ge=0, le=2)
+    status_conta: StatusConta
 
 
 # Schema de resposta para o detalhe completo de um cidadão no painel admin
@@ -90,7 +91,7 @@ class CidadaoDetalheResponse(BaseModel):
     cpf: str
     telefone: Optional[str]
     data_cadastro: datetime
-    status_conta: int
+    status_conta: str
     ja_e_admin: bool
     is_master: bool
     solicitacoes: List[SolicitacaoResumoResponse]

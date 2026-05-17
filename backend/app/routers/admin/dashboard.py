@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.models.avaliacao import Avaliacao
 from app.models.categoria import Categoria
 from app.models.solicitacao import Solicitacao, StatusSolicitacao
-from app.models.usuario import TipoUsuario, Usuario
+from app.models.usuario import StatusConta, TipoUsuario, Usuario
 from app.schemas.dashboard import (
     CategoriaStatusItem,
     DashboardResponse,
@@ -258,7 +258,7 @@ def get_dashboard(
         db.query(func.count(Usuario.id_usuario))
         .filter(
             Usuario.tipo_usuario == TipoUsuario.CIDADAO,
-            Usuario.status_conta == 1,
+            Usuario.status_conta == StatusConta.ATIVO,
         )
         .scalar() or 0
     )

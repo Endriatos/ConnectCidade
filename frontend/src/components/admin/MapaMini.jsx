@@ -206,7 +206,7 @@ export default function MapaMini({ focoSolicitacao, onPinClick }) {
             mapTypeControl: false,
             fullscreenControl: false,
             zoomControl: false,
-            gestureHandling: 'cooperative',
+            gestureHandling: 'greedy',
             mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? 'DEMO_MAP_ID',
           }}
         />

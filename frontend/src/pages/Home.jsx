@@ -13,33 +13,27 @@ export default function Home() {
     : 'Usuário';
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#f5f5f5]">
       <Header />
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex max-w-[1400px] flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-xl font-semibold text-[#2a2a2a] sm:text-2xl">
-                Olá, {nomeSaudacao}!
-              </h1>
-              <p className="mt-0.5 text-sm text-[#2a2a2a]/50">
-                Veja os problemas reportados na sua região
-              </p>
-            </div>
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col gap-2 px-3 py-2 sm:gap-4 sm:px-6 sm:py-5">
+          <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1">
+            <h1 className="truncate text-lg font-semibold leading-none text-[#2a2a2a] sm:text-2xl">
+              Olá, {nomeSaudacao}!
+            </h1>
             <Link
               to="/nova-solicitacao"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#3cb478] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#349d69]"
+              className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#3cb478] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#349d69]"
             >
               <Plus className="h-4 w-4" />
-              Registrar Problema
             </Link>
+            <p className="col-span-2 text-xs leading-snug text-[#2a2a2a]/50 sm:text-sm pb-2">
+              Veja os problemas reportados na sua região
+            </p>
           </div>
 
-          <div
-            className="rounded-2xl overflow-hidden border border-black/8 shadow-sm"
-            style={{ height: '70vh' }}
-          >
+          <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-black/8 shadow-sm sm:rounded-2xl">
             <Mapa />
           </div>
         </div>

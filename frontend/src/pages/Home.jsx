@@ -19,7 +19,7 @@ export default function Home() {
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col gap-2 px-3 py-2 sm:gap-4 sm:px-6 sm:py-5">
           <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1">
-            <h1 className="truncate text-lg font-semibold leading-none text-[#2a2a2a] sm:text-2xl">
+            <h1 className="truncate text-2xl font-semibold text-[#2a2a2a]">
               Olá, {nomeSaudacao}!
             </h1>
             <Link
@@ -28,7 +28,7 @@ export default function Home() {
             >
               <Plus className="h-4 w-4" />
             </Link>
-            <p className="col-span-2 text-xs leading-snug text-[#2a2a2a]/50 sm:text-sm pb-2">
+            <p className="col-span-2 mt-0.5 text-sm text-[#2a2a2a]/50">
               Veja os problemas reportados na sua região
             </p>
           </div>

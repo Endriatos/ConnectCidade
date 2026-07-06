@@ -20,8 +20,8 @@ O cidadão registra o problema com foto, localização GPS e descrição. A admi
 | Camada             | Tecnologias                                                            |
 | ------------------ | ---------------------------------------------------------------------- |
 | **Backend**        | Python · FastAPI · PostgreSQL · SQLAlchemy · Alembic · Pydantic        |
-| **Frontend**       | React · Vite · Tailwind CSS · Leaflet.js · Recharts · Zustand · Lottie |
-| **Infraestrutura** | Docker · Oracle Cloud (Ubuntu 24.04 aarch64) · MinIO · Resend          |
+| **Frontend**       | React · Vite · Tailwind CSS · Google Maps API · Recharts · Zustand · Lottie |
+| **Infraestrutura** | Docker · Google Cloud (VM Ubuntu Server) · MinIO · Resend          |
 
 ---
 
@@ -220,7 +220,7 @@ ConnectCidade/
 
 ## Arquitetura de deploy
 
-A aplicação roda em uma VM Oracle Cloud (Ubuntu 24.04 · ARM aarch64) com três containers Docker gerenciados pelo Compose:
+A aplicação roda em uma VM do Google Cloud (Ubuntu Server) com quatro containers Docker gerenciados pelo Compose:
 
 | Container  | Imagem base                                       | Função                                  |
 | ---------- | ------------------------------------------------- | --------------------------------------- |
@@ -229,7 +229,7 @@ A aplicação roda em uma VM Oracle Cloud (Ubuntu 24.04 · ARM aarch64) com trê
 | `db`       | `postgres:16-alpine`                              | Banco de dados (volume persistente)     |
 | `minio`    | `minio/minio:latest`                              | Armazenamento de fotos das solicitações |
 
-O Nginx recebe todas as requisições na porta 80. Chamadas para `/api/*` são repassadas ao backend; todo o resto serve os arquivos estáticos do React com fallback para `index.html`.
+O Nginx recebe as requisições na porta 443 (TLS via Let's Encrypt/Certbot, com redirect automático da porta 80). Chamadas para `/api/*` são repassadas ao backend e para `/connect-cidade-fotos/*` ao MinIO; todo o resto serve os arquivos estáticos do React com fallback para `index.html`. O domínio público (`connectcidade.duckdns.org`) é resolvido via DuckDNS, e o deploy é automatizado por CI/CD no GitHub Actions a cada push na `main`.
 
 ---
 

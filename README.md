@@ -17,11 +17,11 @@ O cidadão registra o problema com foto, localização GPS e descrição. A admi
 
 ## Tech Stack
 
-| Camada             | Tecnologias                                                                 |
-| ------------------ | ---------------------------------------------------------------------------- |
-| **Backend**        | Python · FastAPI · PostgreSQL · SQLAlchemy · Alembic · Pydantic              |
-| **Frontend**       | React · Vite · Tailwind CSS · Google Maps API · Recharts · Zustand · Lottie  |
-| **Infraestrutura** | Docker · Google Cloud (VM Ubuntu 24.04) · MinIO · Gmail SMTP · Let's Encrypt |
+| Camada             | Tecnologias                                                            |
+| ------------------ | ---------------------------------------------------------------------- |
+| **Backend**        | Python · FastAPI · PostgreSQL · SQLAlchemy · Alembic · Pydantic        |
+| **Frontend**       | React · Vite · Tailwind CSS · Google Maps API · Recharts · Zustand · Lottie |
+| **Infraestrutura** | Docker · Google Cloud (VM Ubuntu Server) · MinIO · Resend          |
 
 ---
 
@@ -220,7 +220,7 @@ ConnectCidade/
 
 ## Arquitetura de deploy
 
-A aplicação roda em uma VM Google Cloud (Ubuntu 24.04) com quatro containers Docker gerenciados pelo Compose:
+A aplicação roda em uma VM do Google Cloud (Ubuntu Server) com quatro containers Docker gerenciados pelo Compose:
 
 | Container  | Imagem base                                       | Função                                  |
 | ---------- | ------------------------------------------------- | --------------------------------------- |
@@ -229,9 +229,7 @@ A aplicação roda em uma VM Google Cloud (Ubuntu 24.04) com quatro containers D
 | `db`       | `postgres:16-alpine`                              | Banco de dados (volume persistente)     |
 | `minio`    | `minio/minio:latest`                              | Armazenamento de fotos das solicitações |
 
-O Nginx recebe requisições em `80` e `443`. A porta 80 apenas redireciona para HTTPS (certificado Let's Encrypt, renovado via volume `letsencrypt_certs`). Em `443`: `/api/*` é repassado ao backend, `/connect-cidade-fotos/*` ao MinIO, e todo o resto serve os arquivos estáticos do React com fallback para `index.html`.
-
-As imagens de `backend` e `frontend` são construídas pelo GitHub Actions (`.github/workflows/ci-cd.yml`) a cada push em `main`, publicadas no GHCR (`ghcr.io/endriatos/connectcidade-*`) e implantadas na VM via SSH com `docker compose pull && docker compose up -d` — a VM não builda as imagens em produção.
+O Nginx recebe as requisições na porta 443 (TLS via Let's Encrypt/Certbot, com redirect automático da porta 80). Chamadas para `/api/*` são repassadas ao backend e para `/connect-cidade-fotos/*` ao MinIO; todo o resto serve os arquivos estáticos do React com fallback para `index.html`. O domínio público (`connectcidade.duckdns.org`) é resolvido via DuckDNS, e o deploy é automatizado por CI/CD no GitHub Actions a cada push na `main`.
 
 ---
 

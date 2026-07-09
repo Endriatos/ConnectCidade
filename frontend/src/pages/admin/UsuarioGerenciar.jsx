@@ -15,17 +15,12 @@ import AdminUserSummaryCard from '../../components/admin/AdminUserSummaryCard'
 import AdminSolicitacoesTable from '../../components/admin/AdminSolicitacoesTable'
 import StatusContaBadge from '../../components/admin/StatusContaBadge'
 import InlineNotice from '../../components/common/InlineNotice'
+import { STATUS_CONTA } from '../../constants/statusConta'
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const inputCls =
   'h-9 px-3 rounded-xl border border-black/12 text-sm text-[#2a2a2a] bg-white focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60 placeholder:text-[#2a2a2a]/30 w-full'
-
-const STATUS_CONTA = {
-  0: { label: 'Pendente', cls: 'border-amber-300 bg-amber-50 text-amber-700' },
-  1: { label: 'Ativada', cls: 'border-[#3cb478]/40 bg-[#3cb478]/6 text-[#3cb478]' },
-  2: { label: 'Bloqueada', cls: 'border-red-200 bg-red-50 text-red-600' },
-}
 
 export default function UsuarioGerenciar() {
   const { id } = useParams()
@@ -80,7 +75,7 @@ export default function UsuarioGerenciar() {
       .then((res) => {
         setUsuario(res.data)
         setEmailNovo(res.data.email)
-        setStatusNovo(res.data.status_conta ?? 1)
+        setStatusNovo(res.data.status_conta ?? 'ATIVO')
       })
       .catch((err) => {
         setErro(
@@ -398,15 +393,15 @@ export default function UsuarioGerenciar() {
                             <select
                               value={statusNovo}
                               onChange={(e) => {
-                                setStatusNovo(Number(e.target.value))
+                                setStatusNovo(e.target.value)
                                 setSucessoStatus('')
                                 setErroStatus('')
                               }}
                               className="h-8 px-3 rounded-lg border border-black/12 bg-white text-xs text-[#2a2a2a] focus:outline-none focus:ring-2 focus:ring-[#3cb478]/30 focus:border-[#3cb478]/60"
                             >
-                              <option value={0}>Pendente</option>
-                              <option value={1}>Ativada</option>
-                              <option value={2}>Bloqueada</option>
+                              <option value="PENDENTE">Pendente</option>
+                              <option value="ATIVO">Ativada</option>
+                              <option value="BLOQUEADO">Bloqueada</option>
                             </select>
                             <button
                               type="button"

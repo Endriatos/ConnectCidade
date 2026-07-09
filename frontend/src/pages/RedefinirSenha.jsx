@@ -9,8 +9,8 @@ import {
   mensagemErroApi,
   validarCampoSenha,
 } from '../utils/meuPerfilForm'
-import logoCC from '../assets/logoCC.png'
 import iconCC from '../assets/iconCC.png'
+import PublicHeader from '../components/PublicHeader'
 
 export default function RedefinirSenha() {
   const [searchParams] = useSearchParams()
@@ -67,13 +67,7 @@ export default function RedefinirSenha() {
   if (tokenStatus === 'verificando') {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-          <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
-            <Link to="/" className="flex items-center">
-              <img src={logoCC} alt="Connect Cidade" className="h-9" />
-            </Link>
-          </div>
-        </header>
+      <PublicHeader variant="none" />
         <div className="flex-1 flex items-center justify-center bg-[#f5f5f5]">
           <Loader2 className="h-6 w-6 animate-spin text-[#3cb478]" />
         </div>
@@ -84,13 +78,7 @@ export default function RedefinirSenha() {
   if (tokenStatus === 'invalido') {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-          <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
-            <Link to="/" className="flex items-center">
-              <img src={logoCC} alt="Connect Cidade" className="h-9" />
-            </Link>
-          </div>
-        </header>
+      <PublicHeader variant="none" />
         <div className="flex-1 flex items-center justify-center bg-[#f5f5f5] p-4">
           <div className="w-full max-w-sm rounded-2xl border border-red-200 bg-white px-8 py-8 shadow-sm text-center">
             <p className="font-semibold text-[#2a2a2a]">Link inválido ou expirado</p>
@@ -113,13 +101,7 @@ export default function RedefinirSenha() {
   if (sucesso) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-          <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
-            <Link to="/" className="flex items-center">
-              <img src={logoCC} alt="Connect Cidade" className="h-9" />
-            </Link>
-          </div>
-        </header>
+      <PublicHeader variant="none" />
         <div className="flex-1 flex items-center justify-center bg-[#f5f5f5] p-4">
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm px-8 py-10 text-center">
             <img src={iconCC} alt="" className="h-14 mx-auto mb-4" />
@@ -140,16 +122,7 @@ export default function RedefinirSenha() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-40 w-full border-b border-black/8 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
-        <div className="mx-auto px-8 h-16 flex items-center justify-between" style={{ maxWidth: '1400px' }}>
-          <Link to="/" className="flex items-center">
-            <img src={logoCC} alt="Connect Cidade" className="h-9" />
-          </Link>
-          <Link to="/login" className="text-sm font-medium text-[#2a2a2a]/60 hover:text-[#2a2a2a] transition-colors">
-            Entrar
-          </Link>
-        </div>
-      </header>
+      <PublicHeader variant="login" />
 
       <div className="flex-1 flex items-center justify-center bg-[#f5f5f5] py-10">
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm px-8 py-10">

@@ -6,7 +6,6 @@ import api from '../services/api'
 import Lottie from 'lottie-react'
 import catLoading from '../assets/CatLoading.json'
 import { STATUS_ICONE, STATUS_LABEL } from '../utils/solicitacaoStatus'
-
 const LIBRARIES = ['places', 'marker']
 
 const conteudoSVG = (svgStr, width, height) => {

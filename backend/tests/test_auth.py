@@ -17,8 +17,8 @@ def test_cadastro_sucesso(client):
     assert data["nome_usuario"] == USUARIO_BASE["nome_usuario"]
     assert data["email"] == USUARIO_BASE["email"]
     assert data["tipo_usuario"] == "CIDADAO"
-    # O patch do conftest garante status_conta = ATIVO (valor 1) logo após o cadastro
-    assert data["status_conta"] == 1
+    # O patch do conftest garante status_conta = ATIVO logo após o cadastro
+    assert data["status_conta"] == "ATIVO"
 
 
 def test_cadastro_cpf_invalido(client):

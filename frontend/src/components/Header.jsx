@@ -124,7 +124,7 @@ export default function Header() {
 
         <div className="min-w-0 flex-1" />
 
-        <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
 
           {/* Notificações */}
           <div className="relative" ref={notifRef}>
@@ -186,11 +186,12 @@ export default function Header() {
             <button
               type="button"
               onClick={() => setMenuAberto((v) => !v)}
-              className="inline-flex h-9 max-w-[min(100%,9.5rem)] items-center gap-1.5 rounded-lg border border-[#2a2a2a]/10 px-2 text-sm text-[#2a2a2a] transition-colors hover:bg-[#2a2a2a]/5 sm:max-w-[min(100%,11rem)] sm:gap-2 sm:px-3"
+              aria-label={`Menu de ${nomePerfil}`}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#2a2a2a]/10 text-sm text-[#2a2a2a] transition-colors hover:bg-[#2a2a2a]/5 md:w-auto md:gap-2 md:px-3"
             >
               <User className="h-4 w-4 shrink-0 text-[#2a2a2a]/40" />
-              <span className="truncate">{nomePerfil}</span>
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#2a2a2a]/40" />
+              <span className="hidden whitespace-nowrap md:inline">{nomePerfil}</span>
+              <ChevronDown className="hidden h-3.5 w-3.5 shrink-0 text-[#2a2a2a]/40 md:block" />
             </button>
 
             {menuAberto && (

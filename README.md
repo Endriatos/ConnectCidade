@@ -17,11 +17,11 @@ O cidadão registra o problema com foto, localização GPS e descrição. A admi
 
 ## Tech Stack
 
-| Camada             | Tecnologias                                                            |
-| ------------------ | ---------------------------------------------------------------------- |
-| **Backend**        | Python · FastAPI · PostgreSQL · SQLAlchemy · Alembic · Pydantic        |
-| **Frontend**       | React · Vite · Tailwind CSS · Leaflet.js · Recharts · Zustand · Lottie |
-| **Infraestrutura** | Docker · Oracle Cloud (Ubuntu 24.04 aarch64) · MinIO · Resend          |
+| Camada             | Tecnologias                                                                 |
+| ------------------ | ---------------------------------------------------------------------------- |
+| **Backend**        | Python · FastAPI · PostgreSQL · SQLAlchemy · Alembic · Pydantic              |
+| **Frontend**       | React · Vite · Tailwind CSS · Google Maps API · Recharts · Zustand · Lottie  |
+| **Infraestrutura** | Docker · Google Cloud (VM Ubuntu 24.04) · MinIO · Gmail SMTP · Let's Encrypt |
 
 ---
 
@@ -103,7 +103,7 @@ npm run dev
 
 App: `http://localhost:5173`. A URL da API vem de `VITE_API_URL` ou, se não estiver definida, de `http://localhost:8000` (ver `frontend/src/services/api.js`). No dev com Vite, prefira abrir pelo hostname **`localhost`**; em alguns ambientes Windows o acesso só por `127.0.0.1` pode não coincidir com o bind do servidor.
 
-Para o Google Maps no dev, copie `frontend/.env.example` para `frontend/.env` e defina `VITE_GOOGLE_MAPS_API_KEY`. O `VITE_GOOGLE_MAPS_MAP_ID` pode ficar no `frontend/.env`, nos **repository secrets** do GitHub Actions e nos build args do Docker (`docker-compose.local.yml`) para o pipeline já receber o valor quando o front passar a usar no código; hoje o bundle só depende da API key. No deploy, configure os secrets `VITE_GOOGLE_MAPS_API_KEY` e `VITE_GOOGLE_MAPS_MAP_ID` (este último pode ficar vazio).
+Para o Google Maps no dev, crie `frontend/.env` com `VITE_GOOGLE_MAPS_API_KEY=<sua-chave>`. O `VITE_GOOGLE_MAPS_MAP_ID` pode ficar no mesmo arquivo, nos **repository secrets** do GitHub Actions e nos build args do Docker (`docker-compose.local.yml`) para o pipeline já receber o valor quando o front passar a usar no código; hoje o bundle só depende da API key. No deploy, configure os secrets `VITE_GOOGLE_MAPS_API_KEY` e `VITE_GOOGLE_MAPS_MAP_ID` (este último pode ficar vazio).
 
 MinIO: API `http://localhost:9000` · console `http://localhost:9001`
 
@@ -182,7 +182,7 @@ ConnectCidade/
 │   ├── app/
 │   │   ├── models/       # Mapeamento das tabelas (SQLAlchemy)
 │   │   ├── schemas/      # Validação de dados (Pydantic)
-│   │   ├── routers/      # Endpoints da API (FastAPI)
+│   │   ├── routers/      # Endpoints da API (FastAPI), com routers/admin/ à parte
 │   │   ├── crud/         # Operações de banco de dados
 │   │   └── utils/        # Autenticação, email, foto, geolocalização
 │   ├── migrations/       # Histórico de versões do banco (Alembic)
@@ -190,8 +190,8 @@ ConnectCidade/
 │   └── requirements.txt
 └── frontend/
     └── src/
-        ├── components/   # Componentes reutilizáveis
-        ├── pages/        # Telas da aplicação
+        ├── components/   # Componentes reutilizáveis, com components/admin/ à parte
+        ├── pages/        # Telas da aplicação, com pages/admin/ à parte
         ├── services/     # Integração com a API
         └── store/        # Estado global (Zustand)
 ```
@@ -220,16 +220,18 @@ ConnectCidade/
 
 ## Arquitetura de deploy
 
-A aplicação roda em uma VM Oracle Cloud (Ubuntu 24.04 · ARM aarch64) com três containers Docker gerenciados pelo Compose:
+A aplicação roda em uma VM Google Cloud (Ubuntu 24.04) com quatro containers Docker gerenciados pelo Compose:
 
 | Container  | Imagem base                                       | Função                                  |
 | ---------- | ------------------------------------------------- | --------------------------------------- |
-| `frontend` | `nginx:alpine` (multi-stage com `node:22-alpine`) | Build do React + reverse proxy          |
+| `frontend` | `nginx:alpine` (multi-stage com `node:22-alpine`) | Build do React + reverse proxy + TLS    |
 | `backend`  | `python:3.12-slim`                                | API FastAPI via Uvicorn                 |
 | `db`       | `postgres:16-alpine`                              | Banco de dados (volume persistente)     |
 | `minio`    | `minio/minio:latest`                              | Armazenamento de fotos das solicitações |
 
-O Nginx recebe todas as requisições na porta 80. Chamadas para `/api/*` são repassadas ao backend; todo o resto serve os arquivos estáticos do React com fallback para `index.html`.
+O Nginx recebe requisições em `80` e `443`. A porta 80 apenas redireciona para HTTPS (certificado Let's Encrypt, renovado via volume `letsencrypt_certs`). Em `443`: `/api/*` é repassado ao backend, `/connect-cidade-fotos/*` ao MinIO, e todo o resto serve os arquivos estáticos do React com fallback para `index.html`.
+
+As imagens de `backend` e `frontend` são construídas pelo GitHub Actions (`.github/workflows/ci-cd.yml`) a cada push em `main`, publicadas no GHCR (`ghcr.io/endriatos/connectcidade-*`) e implantadas na VM via SSH com `docker compose pull && docker compose up -d` — a VM não builda as imagens em produção.
 
 ---
 

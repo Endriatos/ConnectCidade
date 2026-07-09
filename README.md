@@ -103,7 +103,7 @@ npm run dev
 
 App: `http://localhost:5173`. A URL da API vem de `VITE_API_URL` ou, se não estiver definida, de `http://localhost:8000` (ver `frontend/src/services/api.js`). No dev com Vite, prefira abrir pelo hostname **`localhost`**; em alguns ambientes Windows o acesso só por `127.0.0.1` pode não coincidir com o bind do servidor.
 
-Para o Google Maps no dev, copie `frontend/.env.example` para `frontend/.env` e defina `VITE_GOOGLE_MAPS_API_KEY`. O `VITE_GOOGLE_MAPS_MAP_ID` pode ficar no `frontend/.env`, nos **repository secrets** do GitHub Actions e nos build args do Docker (`docker-compose.local.yml`) para o pipeline já receber o valor quando o front passar a usar no código; hoje o bundle só depende da API key. No deploy, configure os secrets `VITE_GOOGLE_MAPS_API_KEY` e `VITE_GOOGLE_MAPS_MAP_ID` (este último pode ficar vazio).
+Para o Google Maps no dev, crie `frontend/.env` com `VITE_GOOGLE_MAPS_API_KEY=<sua-chave>`. O `VITE_GOOGLE_MAPS_MAP_ID` pode ficar no mesmo arquivo, nos **repository secrets** do GitHub Actions e nos build args do Docker (`docker-compose.local.yml`) para o pipeline já receber o valor quando o front passar a usar no código; hoje o bundle só depende da API key. No deploy, configure os secrets `VITE_GOOGLE_MAPS_API_KEY` e `VITE_GOOGLE_MAPS_MAP_ID` (este último pode ficar vazio).
 
 MinIO: API `http://localhost:9000` · console `http://localhost:9001`
 
@@ -182,7 +182,7 @@ ConnectCidade/
 │   ├── app/
 │   │   ├── models/       # Mapeamento das tabelas (SQLAlchemy)
 │   │   ├── schemas/      # Validação de dados (Pydantic)
-│   │   ├── routers/      # Endpoints da API (FastAPI)
+│   │   ├── routers/      # Endpoints da API (FastAPI), com routers/admin/ à parte
 │   │   ├── crud/         # Operações de banco de dados
 │   │   └── utils/        # Autenticação, email, foto, geolocalização
 │   ├── migrations/       # Histórico de versões do banco (Alembic)
@@ -190,8 +190,8 @@ ConnectCidade/
 │   └── requirements.txt
 └── frontend/
     └── src/
-        ├── components/   # Componentes reutilizáveis
-        ├── pages/        # Telas da aplicação
+        ├── components/   # Componentes reutilizáveis, com components/admin/ à parte
+        ├── pages/        # Telas da aplicação, com pages/admin/ à parte
         ├── services/     # Integração com a API
         └── store/        # Estado global (Zustand)
 ```
@@ -224,7 +224,7 @@ A aplicação roda em uma VM do Google Cloud (Ubuntu Server) com quatro containe
 
 | Container  | Imagem base                                       | Função                                  |
 | ---------- | ------------------------------------------------- | --------------------------------------- |
-| `frontend` | `nginx:alpine` (multi-stage com `node:22-alpine`) | Build do React + reverse proxy          |
+| `frontend` | `nginx:alpine` (multi-stage com `node:22-alpine`) | Build do React + reverse proxy + TLS    |
 | `backend`  | `python:3.12-slim`                                | API FastAPI via Uvicorn                 |
 | `db`       | `postgres:16-alpine`                              | Banco de dados (volume persistente)     |
 | `minio`    | `minio/minio:latest`                              | Armazenamento de fotos das solicitações |
